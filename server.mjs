@@ -12,6 +12,7 @@ import { parse } from 'url';
 import { initDatabase, getDatabase, closeStore } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
 import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
+import { createMcpHandler } from './mcp.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
@@ -152,6 +153,26 @@ class CallforgeHttpServer {
       return;
     }
 
+    // M09: RFC9728 protected-resource discovery for the /mcp endpoint.
+    if (path === '/.well-known/oauth-protected-resource' && method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          resource: `${ISSUER}/mcp`,
+          authorization_servers: [ISSUER],
+          scopes_supported: ['read', 'simulate', 'audit', 'admin'],
+          bearer_methods_supported: ['header'],
+        }),
+      );
+      return;
+    }
+
+    // M09: remote MCP endpoint (simulation-first; tenant from token only).
+    if (path === '/mcp' && method === 'POST') {
+      await this.handleMcp(req, res);
+      return;
+    }
+
     // Simulation endpoints (v0.2 only) — M02: authenticated + scoped
     if (SIMULATION_MODE) {
       if (path === '/simulate/call' && method === 'POST') {
@@ -177,6 +198,52 @@ class CallforgeHttpServer {
     // 404
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
+  }
+
+  /** M09: remote MCP (simulation-first). Tools run through the registry. */
+  async getMcpToolHandlers() {
+    if (this._mcpToolHandlers) {
+      return this._mcpToolHandlers;
+    }
+    // F-PR26-1: dispatch the real tool registry instead of fake success.
+    // registerTools() registers handlers via server.tool(name, desc, shape, fn);
+    // capture them with a minimal fake server and invoke directly.
+    const { registerTools } = await import('./tools/index.mjs');
+    const handlers = {};
+    const captureServer = {
+      tool(name, _description, _shape, fn) {
+        handlers[name] = fn;
+      },
+    };
+    if (!this.auditLogger) {
+      this.auditLogger = createAuditLogger();
+      await this.auditLogger.initialize();
+    }
+    await registerTools(captureServer, {
+      auditLogger: this.auditLogger,
+      authMiddleware: {
+        createDevToken: async () => {
+          throw new Error('create_dev_token is not available via remote MCP');
+        },
+      },
+    });
+    this._mcpToolHandlers = handlers;
+    return handlers;
+  }
+
+  async handleMcp(req, res) {
+    const handler = createMcpHandler({
+      guard: (rq, rs, scopes) => this.guard(rq, rs, scopes),
+      callTool: async (name, args, _context) => {
+        const handlers = await this.getMcpToolHandlers();
+        const fn = handlers[name];
+        if (!fn) {
+          throw new Error(`tool not implemented: ${name}`);
+        }
+        return fn(args);
+      },
+    });
+    await handler.handle(req, res);
   }
 
   /** M03-2: HMAC-verified webhook store. 401 + nothing stored on failure. */
