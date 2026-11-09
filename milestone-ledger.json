@@ -1,7 +1,19 @@
 {
-  "format_version": "1.0",
-  "updated_at": "2026-11-09T02:15:00Z",
-  "repository": "Davidcarmelalex/CALLFORGE",
+  "format_version": "1.1",
+  "updated_at": "2026-11-09T04:05:00Z",
+  "repository": "MrNothingEcoSystem/callforge-ai",
+  "source_repository": "Davidcarmelalex/CALLFORGE",
+  "acceptance": {
+    "verdict": "ACCEPT WITH FOLLOW-UPS",
+    "accepted_commit": "76bb06235e098904fae390acf48b11b1f57aa7d8",
+    "accepted_by": "INDEPENDENT-AUDITOR",
+    "accepted_at": "2026-11-09T03:58:00Z",
+    "gates_closed": ["REV-001", "CI-001"],
+    "follow_up_issues": "tracked in canonical repository (6 audit follow-ups)"
+  },
+  "provenance": {
+    "SRC-001": "Original v0.2 source bundle unavailable; implementation is specification-derived and is not claimed equivalent to the missing original source. This limitation remains open and is not resolved by M01 acceptance."
+  },
   "milestones": [
     {
       "id": "M00",
@@ -22,12 +34,14 @@
     {
       "id": "M01",
       "name": "Baseline stabilization",
-      "status": "review_pending",
+      "status": "accepted",
+      "technical_acceptance": "ACCEPT WITH FOLLOW-UPS by INDEPENDENT-AUDITOR for commit 76bb06235e098904fae390acf48b11b1f57aa7d8",
+      "github_integration": "synchronized to canonical MrNothingEcoSystem/callforge-ai main at 76bb062; hosted CI PASS (runs 42551360023, 42551352898); REV-001 and CI-001 closed; 6 follow-up issues tracked",
       "owner": "BACKEND-ENGINEER",
       "reviewer": "INDEPENDENT-AUDITOR",
       "depends_on": ["M00"],
-      "branch": "m01-baseline-stabilization",
-      "commit": null,
+      "branch": "main",
+      "commit": "76bb06235e098904fae390acf48b11b1f57aa7d8",
       "test_evidence": {
         "node": "24.22.2",
         "pnpm": "12.18.0",
@@ -40,17 +54,17 @@
         "format": "passed",
         "dependency_audit": "no_known_vulnerabilities"
       },
-      "security_verdict": "simulation baseline only; no production authorization",
-      "blockers": ["REV-001", "CI-001", "SRC-001"],
-      "next_action": "Push exact candidate, open draft PR, verify hosted CI, request independent review"
+      "security_verdict": "simulation baseline only; no production authorization. Six audit follow-ups tracked; tenant-identity issue is an M02 critical security gate.",
+      "blockers": ["SRC-001"],
+      "next_action": "M02 security work on dedicated branch: OAuth/PKCE, verified tenant context, RBAC, scope enforcement, cross-tenant negative tests"
     },
     {
       "id": "M02",
       "name": "Production identity and tenant isolation",
-      "status": "pending",
+      "status": "in_progress",
       "depends_on": ["M01"],
-      "blockers": ["M01 acceptance"],
-      "next_action": "Create scoped OAuth/tenant-context design after M01 review"
+      "blockers": ["M02 critical security gate: replace client-supplied tenant identity with verified authenticated tenant context"],
+      "next_action": "Dedicated M02 branch: OAuth/PKCE, verified tenant context, RBAC, scope enforcement, cross-tenant negative tests"
     },
     {
       "id": "M03",

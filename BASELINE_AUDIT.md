@@ -55,4 +55,10 @@ Executed with Node.js 24.22.2 and pnpm 12.18.0:
 
 ## Verdict
 
-Local M01 quality gates are green. M01 remains review-pending until the draft pull request has hosted CI evidence and independent acceptance. No release tag is authorized at this stage.
+**M01 ACCEPTED — ACCEPT WITH FOLLOW-UPS** for commit `76bb06235e098904fae390acf48b11b1f57aa7d8` (INDEPENDENT-AUDITOR, 2026-11-09).
+
+- REV-001 (independent review): closed by this verdict.
+- CI-001 (hosted CI): closed — M01 quality gates PASS on exact head (runs 42551360023, 42551352898).
+- Six audit follow-ups are tracked as issues in the canonical repository; the client-supplied tenant identity issue is designated an M02 critical security gate.
+- SRC-001 remains open: M01 acceptance does not resolve the missing original v0.2 source.
+- Canonical repository: MrNothingEcoSystem/callforge-ai (synchronized to accepted commit on main).
