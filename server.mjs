@@ -181,8 +181,25 @@ class CallforgeHttpServer {
 
   /** M03-2: HMAC-verified webhook store. 401 + nothing stored on failure. */
   async handleWebhook(req, res, provider) {
+    // F5: single-segment provider identifiers only.
+    if (!/^[a-z0-9._-]{1,64}$/i.test(provider || '')) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid provider identifier' }));
+      return;
+    }
+    // F4: bounded body — enforced before buffering, so oversize payloads
+    // are rejected without ever reading the full stream into memory.
+    const maxBytes = Number(process.env.MAX_WEBHOOK_BODY_BYTES || 1048576);
     const chunks = [];
+    let length = 0;
     for await (const chunk of req) {
+      length += chunk.length;
+      if (length > maxBytes) {
+        req.destroy?.();
+        res.writeHead(413, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Webhook payload too large', max_bytes: maxBytes }));
+        return;
+      }
       chunks.push(chunk);
     }
     const rawBody = Buffer.concat(chunks).toString();

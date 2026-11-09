@@ -3,6 +3,19 @@
 PR #20, exact head `e21b341fcec0ca1ff8e16180450c609b6030c89e` ("style: prettier-format m03-orchestration tests"),
 parent `2746ee5`. Review date 2026-11-09. Reviewer: independent (adversarial probes + targeted regression tests).
 
+## Remediation pass (F1–F6) — pending re-review
+
+Fixes applied after the REJECT above (commit hashes recorded in the re-review section below):
+F1 webhook `received → processing → processed` is now transactional and idempotent
+(`workflow/dispatcher.mjs`); crash/lease-reclaim redelivery completes to `processed`.
+F3 `audit_events` is excluded from destructive retention (`RETENTION_PROTECTED`); the chain
+verifies before and after `executeRetention()`. F2 recovery reclaims NULL-lease claims.
+F4 webhook bodies are bounded by `MAX_WEBHOOK_BODY_BYTES` (default 1 MiB, 413 before HMAC).
+F5 provider identifiers are restricted to a single segment (400 otherwise).
+F6 dispatcher `start()` is idempotent and re-checks the env gate on every call.
+New tests: crash-between-processing-and-ack, idempotent redelivery, stale-vs-fresh leases,
+audit-chain before/after retention, late-enable, HTTP 400/413/401/202/200 cases.
+
 ## Verdict: **REJECT — remediation and re-review required** (1 blocking defect, 1 major design conflict)
 
 REJECTED, not ACCEPTED. Re-review required at the remediated head before any merge decision.

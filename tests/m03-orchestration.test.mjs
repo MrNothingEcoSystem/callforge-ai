@@ -253,27 +253,76 @@ describe('M03-2 orchestration', () => {
     const a2 = receiveWebhook(db, { provider: 'rev-replay', rawBody: '{"x":1}' });
     expect(a2.stored).toBe(false);
     expect(a2.row.id).toBe(a1.row.id);
-    const b1 = receiveWebhook(db, { provider: 'rev-replay2', dedupKey: 'k1', rawBody: '{"v":1}' });
+    receiveWebhook(db, { provider: 'rev-replay2', dedupKey: 'k1', rawBody: '{"v":1}' });
     const b2 = receiveWebhook(db, { provider: 'rev-replay2', dedupKey: 'k1', rawBody: '{"v":2}' });
     expect(b2.stored).toBe(false);
     expect(b2.row.raw_body).toBe('{"v":1}');
   });
 
-  it('webhook dispatched view: received -> processing (processed is NOT reached — F1)', async () => {
+  it('webhook lifecycle: received -> processing -> processed (F1 remediated)', async () => {
     const db = getDatabase();
     receiveWebhook(db, { provider: 'rev-f1', rawBody: '{"f1":true}' });
     process.env.OUTBOX_DISPATCHER_ENABLED = '1';
     await createDispatcher(db).dispatchOnce();
     delete process.env.OUTBOX_DISPATCHER_ENABLED;
-    const wh = db.prepare("SELECT status FROM webhook_inbox WHERE provider = 'rev-f1'").get();
-    // BLOCKING DEFECT F1: dispatcher marks 'processing' and acks; no code path
-    // ever sets 'processed'. This assertion pins the defect until remediated.
-    expect(wh.status).toBe('processing');
+    const wh = db
+      .prepare("SELECT status, processed_at FROM webhook_inbox WHERE provider = 'rev-f1'")
+      .get();
+    expect(wh.status).toBe('processed');
+    expect(wh.processed_at).toBeTruthy();
     const counts = runReconciler(db);
-    expect(counts.stuck_webhooks).toBeGreaterThanOrEqual(1);
+    expect(counts.stuck_webhooks).toBe(0);
   });
 
-  it('recovery does NOT reclaim claimed rows with NULL lease (F2 documented)', () => {
+  it('crash between processing and ack: lease reclaim redelivers to processed (F1 adversarial)', async () => {
+    const db = getDatabase();
+    const { row: wh } = receiveWebhook(db, { provider: 'rev-crash', rawBody: '{"crash":1}' });
+    // Simulate crash: webhook reached 'processing', outbox row was claimed
+    // by a dead worker with an expired lease and was never acked.
+    db.prepare("UPDATE webhook_inbox SET status = 'processing' WHERE id = ?").run(wh.id);
+    const ob = db.prepare('SELECT id FROM outbox WHERE aggregate_id = ?').get(wh.id);
+    db.prepare(
+      "UPDATE outbox SET status='claimed', claimed_by='dead', attempts=1, lease_expires_at=datetime('now','-1 minute') WHERE id = ?",
+    ).run(ob.id);
+    const rec = runRecovery(db);
+    expect(rec.reclaimed_leases).toBeGreaterThanOrEqual(1);
+    expect(rec.reset_webhooks).toBeGreaterThanOrEqual(1);
+    process.env.OUTBOX_DISPATCHER_ENABLED = '1';
+    await createDispatcher(db).dispatchOnce();
+    delete process.env.OUTBOX_DISPATCHER_ENABLED;
+    const done = db.prepare('SELECT status FROM webhook_inbox WHERE id = ?').get(wh.id);
+    expect(done.status).toBe('processed');
+    const obDone = db.prepare('SELECT status FROM outbox WHERE id = ?').get(ob.id);
+    expect(obDone.status).toBe('acked');
+  });
+
+  it('redelivery of an already-processed webhook is a no-op (idempotent handler)', async () => {
+    const db = getDatabase();
+    receiveWebhook(db, { provider: 'rev-idem', rawBody: '{"idem":1}' });
+    process.env.OUTBOX_DISPATCHER_ENABLED = '1';
+    const d = createDispatcher(db);
+    await d.dispatchOnce();
+    // Re-enqueue a duplicate delivery of the same webhook.
+    enqueue(db, {
+      tenantId: null,
+      aggregateType: 'webhook',
+      aggregateId: db.prepare("SELECT id FROM webhook_inbox WHERE provider='rev-idem'").get().id,
+      type: 'webhook.received',
+      dedupKey: 'rev-idem-2',
+    });
+    const before = db
+      .prepare('SELECT processed_at FROM webhook_inbox WHERE provider = ?')
+      .get('rev-idem').processed_at;
+    await d.dispatchOnce();
+    delete process.env.OUTBOX_DISPATCHER_ENABLED;
+    const after = db
+      .prepare('SELECT status, processed_at FROM webhook_inbox WHERE provider = ?')
+      .get('rev-idem');
+    expect(after.status).toBe('processed');
+    expect(after.processed_at).toBe(before);
+  });
+
+  it('recovery reclaims NULL-lease claimed rows (F2 remediated)', () => {
     const db = getDatabase();
     const { row } = enqueue(db, {
       tenantId: null,
@@ -285,9 +334,98 @@ describe('M03-2 orchestration', () => {
       "UPDATE outbox SET status = 'claimed', claimed_by = 'dead', lease_expires_at = NULL WHERE id = ?",
     ).run(row.id);
     const result = runRecovery(db);
-    expect(result.reclaimed_leases).toBe(0);
+    expect(result.reclaimed_leases).toBeGreaterThanOrEqual(1);
     const ob = db.prepare('SELECT status FROM outbox WHERE id = ?').get(row.id);
-    expect(ob.status).toBe('claimed');
+    expect(ob.status).toBe('pending');
+  });
+
+  it('stale leases are reclaimed; fresh leases are not', () => {
+    const db = getDatabase();
+    const stale = enqueue(db, {
+      tenantId: null,
+      aggregateType: 't',
+      aggregateId: 'stale',
+      type: 'test.ok',
+    }).row;
+    const fresh = enqueue(db, {
+      tenantId: null,
+      aggregateType: 't',
+      aggregateId: 'fresh',
+      type: 'test.ok',
+    }).row;
+    db.prepare(
+      "UPDATE outbox SET status='claimed', claimed_by='w', lease_expires_at=datetime('now','-1 minute') WHERE id = ?",
+    ).run(stale.id);
+    db.prepare(
+      "UPDATE outbox SET status='claimed', claimed_by='w', lease_expires_at=datetime('now','+10 minutes') WHERE id = ?",
+    ).run(fresh.id);
+    const result = runRecovery(db);
+    expect(result.reclaimed_leases).toBe(1);
+    expect(db.prepare('SELECT status FROM outbox WHERE id = ?').get(stale.id).status).toBe(
+      'pending',
+    );
+    expect(db.prepare('SELECT status FROM outbox WHERE id = ?').get(fresh.id).status).toBe(
+      'claimed',
+    );
+  });
+
+  it('audit-chain retention is excluded: chain verifies before and after retention (F3 remediated)', async () => {
+    const db = getDatabase();
+    const { transition } = await import('../workflow/stateMachine.mjs');
+    const { createAuditLogger } = await import('../audit.mjs');
+    const tid = seedTenantQuota(db, 100);
+    const intentId = generateId();
+    db.prepare(
+      'INSERT INTO call_intents (id, tenant_id, idempotency_key, direction, status) VALUES (?, ?, ?, ?, ?)',
+    ).run(intentId, tid, 'k-audit', 'outbound', 'pending');
+    transition(db, { intentId, to: 'approved', actor: 'f3-test' });
+    const logger = createAuditLogger();
+    await logger.initialize();
+    const before = await logger.verifyChain();
+    expect(before.valid).toBe(true);
+    const count = db.prepare('SELECT COUNT(*) n FROM audit_events').get().n;
+    expect(count).toBeGreaterThan(0);
+    db.prepare(
+      'INSERT INTO retention_policies (tenant_id, resource, retain_days) VALUES (?,?,0)',
+    ).run(tid, 'audit_events');
+    process.env.RETENTION_ENABLED = '1';
+    process.env.RETENTION_DRY_RUN = '0';
+    const res = executeRetention(db);
+    delete process.env.RETENTION_ENABLED;
+    delete process.env.RETENTION_DRY_RUN;
+    const excluded = res.deleted.find(d => d.resource === 'audit_events');
+    expect(excluded).toMatchObject({ deleted: 0, excluded: 'audit_chain_protected' });
+    expect(db.prepare('SELECT COUNT(*) n FROM audit_events').get().n).toBe(count);
+    const after = await logger.verifyChain();
+    expect(after.valid).toBe(true);
+  });
+
+  it('dispatcher start is idempotent and re-checks the env gate (F6)', () => {
+    const db = getDatabase();
+    const d = createDispatcher(db, { pollMs: 60000 });
+    process.env.OUTBOX_DISPATCHER_ENABLED = '1';
+    expect(d.start()).toMatchObject({ started: true });
+    expect(d.start()).toMatchObject({ started: false, reason: 'already_running' });
+    expect(d.running).toBe(true);
+    d.stop();
+    expect(d.running).toBe(false);
+    // Restart after stop works; env toggle off stops it too.
+    expect(d.start()).toMatchObject({ started: true });
+    d.stop();
+    delete process.env.OUTBOX_DISPATCHER_ENABLED;
+    expect(d.start()).toMatchObject({ started: false });
+  });
+
+  it('dispatcher late-enables after server-style initialize (env set after create)', async () => {
+    const db = getDatabase();
+    delete process.env.OUTBOX_DISPATCHER_ENABLED;
+    const d = createDispatcher(db);
+    expect(d.start()).toMatchObject({ started: false });
+    process.env.OUTBOX_DISPATCHER_ENABLED = '1';
+    enqueue(db, { tenantId: null, aggregateType: 't', aggregateId: 'late', type: 'test.ok' });
+    const r = await d.dispatchOnce();
+    delete process.env.OUTBOX_DISPATCHER_ENABLED;
+    expect(r.claimed).toBeGreaterThanOrEqual(1);
   });
 
   it('quota limit_value=0 is unlimited (consistent with checkQuota); consume caps at limit>0', () => {

@@ -56,6 +56,7 @@ export function applyRetention(db, { dryRun = true } = {}) {
       retain_days: days,
       deletable,
       dry_run: dryRun,
+      ...(policy.resource === 'audit_events' ? { excluded: 'audit_chain_protected' } : {}),
     });
   }
   return report;
@@ -88,10 +89,14 @@ export function releaseQuota(db, tenantId, resource) {
   return row ? { released: true, used: row.used } : { released: false };
 }
 
+// F3 (review 2026-11-09): audit_events is EXCLUDED from destructive
+// retention. Rows are hash-linked (audit.mjs); deleting any row breaks
+// verifyChain and silently resets the genesis anchor. Archival/deletion
+// requires an explicit owner-approved policy that preserves chain
+// checkpoints — pending. Kept in the map only to report the exclusion.
+const RETENTION_PROTECTED = new Set(['audit_events']);
+
 const RETENTION_DELETE_SQL = {
-  audit_events: `DELETE FROM audit_events WHERE id IN (
-    SELECT id FROM audit_events WHERE tenant_id = ? AND created_at < datetime('now', ?)
-    LIMIT 500)`,
   call_events: `DELETE FROM call_events WHERE id IN (
     SELECT ce.id FROM call_events ce JOIN call_intents ci ON ci.id = ce.call_intent_id
     WHERE ci.tenant_id = ? AND ci.status IN ('completed','failed','rejected','cancelled')
@@ -120,6 +125,15 @@ export function executeRetention(db, { chunkGuard = 1000 } = {}) {
   const policies = db.prepare('SELECT * FROM retention_policies').all();
   const result = [];
   for (const policy of policies) {
+    if (RETENTION_PROTECTED.has(policy.resource)) {
+      result.push({
+        tenant_id: policy.tenant_id,
+        resource: policy.resource,
+        deleted: 0,
+        excluded: 'audit_chain_protected',
+      });
+      continue;
+    }
     const sql = RETENTION_DELETE_SQL[policy.resource];
     if (!sql) {
       continue;

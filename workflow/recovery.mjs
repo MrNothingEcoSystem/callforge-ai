@@ -11,8 +11,8 @@ export function runRecovery(db) {
     .prepare(
       `UPDATE outbox SET status = 'pending', claimed_by = NULL, claimed_at = NULL,
               lease_expires_at = NULL
-       WHERE status = 'claimed' AND lease_expires_at IS NOT NULL
-         AND lease_expires_at < datetime('now')`,
+       WHERE status = 'claimed'
+         AND (lease_expires_at IS NULL OR lease_expires_at < datetime('now'))`,
     )
     .run();
   const webhookReset = db
