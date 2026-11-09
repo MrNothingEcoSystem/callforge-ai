@@ -37,3 +37,12 @@
 - No unblocked engineering task: all remaining engineering sits in draft PRs awaiting the owner merge-order decision; production identity blocked on SEC-001 IdP decision; EXT-001..EXT-009 unchanged. No source changes this cycle.
 - Recorded in draft PR #44 (ledger only). No merge, deploy, live calls, spend, or publish.
 - Resource usage: ~8 min wall clock, local test run only, no worktrees. Remaining work: unchanged from cycle 25 — 4 engineering PRs pending one owner merge-order + IdP decision; SEC-001 unestimable until IdP chosen (assumption: simulation baseline remains deployment mode until EXT-004).
+
+## 2026-11-09 — Cycle 27 (dispatcher, 18:57 UTC)
+
+- Sync: `git fetch`; local HEAD = origin/main = `28c9040` (merge PR #20 m03-2-orchestration). No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Gate check: `pnpm test` on main = 13 files, 108/108 passed. Engineering PRs #24 (M04/M09 docs), #26 (M09 MCP), #31 (SEC-003 scope re-derivation), #33 (M01 follow-ups: issues #2/#4/#5/#6) all OPEN/MERGEABLE with CI `verify` SUCCESS; ledger PR #44 also CLEAN/SUCCESS.
+- No unblocked engineering task: remaining engineering sits in draft PRs awaiting the owner merge-order decision (MERGE_SEQUENCE.md); production identity blocked on SEC-001 IdP decision (issue #1); EXT-001..EXT-009 unchanged. No source changes this cycle.
+- Recorded in draft PR (ledger only). No merge, deploy, live calls, spend, or publish. No Telegram digest (last digest precedes the 6h window boundary check — no milestone acceptance, critical finding, or new blocker to report; status unchanged from cycle 26).
+- Resource usage: ~6 min wall clock, local test run only, no worktrees. Remaining work: unchanged from cycle 26 — 4 engineering PRs pending one owner merge-order + IdP decision; SEC-001 unestimable until IdP chosen (assumption: simulation baseline remains deployment mode until EXT-004).
