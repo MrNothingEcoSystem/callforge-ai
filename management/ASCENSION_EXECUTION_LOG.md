@@ -28,3 +28,14 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-09 — Cycle 11 (dispatcher, 09:21 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. Checkout was on `docs/ascension-cycle-010` (PR #28, unmerged); cycle 11 performed a read-only audit only (isolated worktree at 87ae898, removed) and branched docs from main. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task: independent re-audit of PR #26 (M09) head `87ae898d213a66dbe87cc66c35c91da81ca7e478`. `delegate_task` unavailable in cron env; audit done directly, read-only.
+- Findings: F-PR26-1..4 all verified closed by code inspection + test review (real registry dispatch, schema validation, scope/cross-tenant/413/malformed/invalid-args tests, idempotentHint, callTool try/catch). New low follow-ups G-1 (readOnlyHint mis-derived for admin creating tools) and G-2 (body read before auth, 1MB cap). No new critical/high findings.
+- Tests: `pnpm test` in audit worktree = 14 files, 120/120 passed. CI `verify` pass (run 42588825986).
+- Verdict: ACCEPT WITH FOLLOW-UPS as simulation baseline; M09 NOT accepted as production (SEC-001 gate stands). Recorded in ASCENSION_MILESTONES.json + ASCENSION_BLOCKERS.md. PR #26 remains draft, unmerged (owner merge decision pending).
+- Telegram: last digest 08:20Z (<6h ago) — no digest sent; verdict is a milestone-level acceptance-as-baseline, recorded in PR #26 scope; no critical finding/external blocker/approval request triggered beyond existing owner merge gate.
+- Resource usage: ~9 min wall clock. Remaining work estimate: G-1/G-2 fixes are small bounded patches (~1 focused session incl. tests); PR #26 merge and all production gates remain owner-gated (unestimable until decided). Assumption: simulation baseline remains deployment mode until EXT-004.
