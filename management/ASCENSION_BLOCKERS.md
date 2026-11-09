@@ -35,3 +35,11 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 11 — Independent re-audit of PR #26 (M09) at 87ae898
+
+Verdict: **ACCEPT WITH FOLLOW-UPS as simulation baseline. NOT accepted as production remote MCP.** F-PR26-1..4 verified closed (real registry dispatch via `getMcpToolHandlers()`, schema validation 400/-32602, scope-denial/cross-tenant/413/malformed tests, `idempotentHint:false` for creating tools, callTool try/catch 500/-32603). Local re-run: 120/120 (14 files); CI pass run 42588825986. Audit was read-only in an isolated worktree (removed); `delegate_task` unavailable in cron env. SEC-001 remains the production gate regardless of this verdict.
+
+New follow-ups (low, non-blocking for simulation baseline):
+- G-1: `readOnlyHint` in `listRemoteTools()` is derived as "scope does not include simulate", so admin creating tools (`onboard_tenant`, `configure_business`) advertise `readOnlyHint:true`; `validate_compliance` advertises `readOnlyHint:true` with `idempotentHint:false` (inconsistent). Fix annotation derivation before any production MCP client relies on it.
+- G-2: `/mcp` reads the full body (1MB cap) before authentication. Cap mitigates; move auth first for defense in depth.

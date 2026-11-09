@@ -1,20 +1,17 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-09T09:30Z (cycle 11)
 
-## Highest priority (supervisor-verified 2026-11-09T04:30Z)
+## Highest priority
 
-M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 fixed in 65ff410 (73/73, CI PASS). Remaining before M02 can be accepted as production identity:
-
-1. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step. Until then M02 is a simulation baseline and must not be network-exposed.
-2. Non-blocking: scope re-derivation from role at token validation; conversation fixture scoping decision (currently documented global).
-3. Owner merge decision on PR #7 (draft, unmerged).
+1. **PR #26 (M09)**: independent re-audit verdict ACCEPT WITH FOLLOW-UPS as simulation baseline at 87ae898 (120/120, CI pass). Owner merge decision on draft PR #26 pending. Before any production MCP claim: G-1/G-2 fixes + SEC-001 IdP.
+2. **SEC-001** (M02/M09 shared production-identity gate): owner IdP decision required; until then M02/M09 are simulation baselines, must not be network-exposed as production identity.
+3. Small bounded fixes available without owner input: G-1 (readOnlyHint derivation), G-2 (auth-before-body on /mcp), SEC-003 remainder (scope re-derivation at token validation), conversation fixture scoping decision.
 
 ## Next engineering
 
-- M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
-- Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
-- M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
+- M03-2 quota wiring (PR #22) + M04 UAE plan (PR #24) await owner merge; M09 quota consume/release for MCP tools tied to PR #22.
+- Issues #2, #4, #5, #6 cleanup PR #14 open; issue #8 (MCP surface) largely addressed by PR #26.
 
 ## Gates needing owner
 
