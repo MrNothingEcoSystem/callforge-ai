@@ -28,3 +28,26 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-09 — Cycle 12 (dispatcher, 09:53 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2, corepack pnpm 12.18.0.
+- Selected task: G-1/G-2 follow-ups from cycle-11 M09 re-audit (highest-priority unblocked, on PR #26 branch m09-remote-mcp).
+- G-1 fixed: `readOnlyHint` now derived from CREATING_TOOLS set (`!CREATING_TOOLS.has(name)`) instead of simulate-scope check — admin creating tools (onboard_tenant, configure_business) no longer advertise readOnlyHint:true; validate_compliance hints now consistent. readOnlyHint == idempotentHint for all remote tools (both derive from same set).
+- G-2 fixed: /mcp authenticates (guard) BEFORE reading body; oversize unauthenticated payloads rejected by auth without body consumption. 1MB cap retained defense-in-depth.
+- Tests: `pnpm test` = 14 files, 122/122 passed (120 prior + 2 new regression tests: G-1 annotation matrix, G-2 unauth-oversize auth-first).
+- Pushed to PR #26 head `5785f0ff95dc8537e39022e5121bfee03659fcbc` (draft, unmerged; owner merge decision still pending). Not production-accepted: SEC-001 IdP gate unchanged.
+- Telegram: last digest 08:20Z (<6h ago at cycle start; G-1/G-2 are low follow-ups, not milestone acceptance/critical/external blocker) — no digest sent.
+- Resource usage: ~8 min wall clock. Remaining estimate: SEC-003 scope re-derivation at token validation is next small bounded fix (~1 session incl. tests); SEC-001 IdP decision owner-gated. Assumption: simulation baseline remains deployment mode until EXT-004.
+
+## 2026-11-09 — Cycle 13 (dispatcher, 10:25 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`; local `docs/ascension-cycle-012` = `ff02acb` (cycle-12 ledger, already PR #30 draft). No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2, corepack pnpm 12.18.0.
+- Selected task: SEC-003 scope re-derivation at token validation (named next in cycle-12 log; highest-priority unblocked).
+- Fix on branch `sec003-scope-rederivation`, draft PR #31, head `8fa5586c36db373eca6793744ce58a6b3e15f583`: `validateAccessToken` re-derives scopes from `ROLES[role]`; unknown role / empty scope / scope outside role → fail-closed rejection. Regression tests: forged auditor+simulate rejected, unknown-role rejected, in-role tenant_admin accepted.
+- Tests: `pnpm test` = 13 files, 111/111 passed on main baseline (m09 branch PR #26 carries its own +11 tests/122).
+- SEC-001 unchanged: simulation baseline only, not production identity. No merge/deploy/live-call/paid action.
+- Telegram: last digest 08:20Z, >6h ago at cycle start? Cycle-12 log recorded last digest 08:20Z and cycle ran 09:53Z; at 10:25Z that is ~2h — no digest sent (SEC-003 is a low follow-up, not milestone acceptance/critical/external blocker).
+- Resource usage: ~12 min wall clock. Remaining: conversation fixture scoping decision (documented global; needs product decision) is the last SEC-003 sub-item; SEC-001 IdP decision owner-gated (unestimable). Assumption: simulation baseline until EXT-004.
