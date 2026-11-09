@@ -183,7 +183,7 @@
     "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 22,
-    "last_cycle": "2026-11-09T15:14:00Z"
+    "cycles_proven": 23,
+    "last_cycle": "2026-11-09T15:45Z"
   }
 }
