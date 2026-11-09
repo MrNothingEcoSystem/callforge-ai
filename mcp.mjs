@@ -11,8 +11,11 @@
  * - Every tool declaration advertises explicit annotations (conservative
  *   defaults) and a tenant_id-free input schema.
  * - No external side effects yet: all tools remain the simulation baseline
- *   until SEC-001 is resolved. Simulation-first means call creation here is
- *   the same simulated path as /simulate/* — no live calls ever.
+ *   until SEC-001 is resolved. Tools are dispatched through the real tool
+ *   registry (tools/index.mjs) — the same simulated handlers as the stdio
+ *   transport; simulate_call via /mcp creates a real (simulated) intent,
+ *   identical to /simulate/call. No live calls ever. Unimplemented or
+ *   invalid calls return explicit JSON-RPC errors, never fake success.
  */
 import { TOOL_SCHEMAS } from './tools/index.mjs';
 
@@ -21,6 +24,14 @@ const REMOTE_EXCLUDED = new Set([
 ]);
 
 const REMOTE_TOOLS = Object.keys(TOOL_SCHEMAS).filter(name => !REMOTE_EXCLUDED.has(name));
+
+const CREATING_TOOLS = new Set([
+  'onboard_tenant',
+  'configure_business',
+  'simulate_call',
+  'simulate_conversation',
+  'validate_compliance',
+]);
 
 const TOOL_SCOPES = {
   onboard_tenant: ['admin'],
@@ -57,7 +68,7 @@ export function listRemoteTools() {
       title: name.replace(/_/g, ' '),
       readOnlyHint: !(TOOL_SCOPES[name] ?? []).includes('simulate'),
       destructiveHint: false,
-      idempotentHint: true,
+      idempotentHint: !CREATING_TOOLS.has(name),
       openWorldHint: false,
     },
   }));
@@ -158,7 +169,39 @@ export function createMcpHandler({ guard, callTool }) {
         );
         return;
       }
-      const result = await callTool(name, adapted.args, context);
+      // Validate against the tool schema before dispatch (F-PR26-1).
+      const schema = TOOL_SCHEMAS[name];
+      let dispatchArgs = adapted.args;
+      if (schema && typeof schema.safeParse === 'function') {
+        const parsed = schema.safeParse(adapted.args);
+        if (!parsed.success) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(
+            JSON.stringify({
+              jsonrpc: '2.0',
+              error: { code: -32602, message: 'invalid arguments' },
+              id,
+            }),
+          );
+          return;
+        }
+        dispatchArgs = parsed.data;
+      }
+      let result;
+      try {
+        result = await callTool(name, dispatchArgs, context);
+      } catch {
+        // F-PR26-4: never leave the request hanging on a handler throw.
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            jsonrpc: '2.0',
+            error: { code: -32603, message: 'internal error' },
+            id,
+          }),
+        );
+        return;
+      }
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ jsonrpc: '2.0', result, id }));
       return;

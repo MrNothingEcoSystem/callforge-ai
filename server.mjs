@@ -201,29 +201,46 @@ class CallforgeHttpServer {
   }
 
   /** M09: remote MCP (simulation-first). Tools run through the registry. */
+  async getMcpToolHandlers() {
+    if (this._mcpToolHandlers) {
+      return this._mcpToolHandlers;
+    }
+    // F-PR26-1: dispatch the real tool registry instead of fake success.
+    // registerTools() registers handlers via server.tool(name, desc, shape, fn);
+    // capture them with a minimal fake server and invoke directly.
+    const { registerTools } = await import('./tools/index.mjs');
+    const handlers = {};
+    const captureServer = {
+      tool(name, _description, _shape, fn) {
+        handlers[name] = fn;
+      },
+    };
+    if (!this.auditLogger) {
+      this.auditLogger = createAuditLogger();
+      await this.auditLogger.initialize();
+    }
+    await registerTools(captureServer, {
+      auditLogger: this.auditLogger,
+      authMiddleware: {
+        createDevToken: async () => {
+          throw new Error('create_dev_token is not available via remote MCP');
+        },
+      },
+    });
+    this._mcpToolHandlers = handlers;
+    return handlers;
+  }
+
   async handleMcp(req, res) {
     const handler = createMcpHandler({
       guard: (rq, rs, scopes) => this.guard(rq, rs, scopes),
-      callTool: async (name, args, context) => {
-        // Simulation-first: only path that never has external side effects.
-        // M09: the remote tool registry dispatches through this table.
-        if (name === 'check_readiness') {
-          const db = getDatabase();
-          const row = db.prepare('SELECT 1').get();
-          return { content: [{ type: 'text', text: JSON.stringify({ ready: !!row }) }] };
+      callTool: async (name, args, _context) => {
+        const handlers = await this.getMcpToolHandlers();
+        const fn = handlers[name];
+        if (!fn) {
+          throw new Error(`tool not implemented: ${name}`);
         }
-        if (name === 'get_call_status') {
-          const db = getDatabase();
-          const intent = db
-            .prepare('SELECT * FROM call_intents WHERE id = ? AND tenant_id = ?')
-            .get(args.call_intent_id, context.tenantId);
-          return {
-            content: [{ type: 'text', text: JSON.stringify(intent ?? { error: 'not found' }) }],
-          };
-        }
-        return {
-          content: [{ type: 'text', text: JSON.stringify({ simulated: true, tool: name }) }],
-        };
+        return fn(args);
       },
     });
     await handler.handle(req, res);
