@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-09T07:25:00Z",
+  "updated_at": "2026-11-09T20:35:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -21,17 +21,15 @@
     {
       "id": "M02",
       "name": "Production identity and tenant isolation",
-      "status": "changes_requested",
+      "status": "merged_simulation_baseline",
       "branch": "m02-oauth-tenant-isolation",
       "pr": 7,
-      "sha": "ac0adcba2f87efe95e647bb1eda08ba790f0492a",
+      "sha": "4368955",
       "tests": "70/70",
       "blockers": [
-        "SEC-001 self-asserted tenant/role at authorize",
-        "SEC-002 default token secret fallback",
-        "independent verdict recorded 2026-11-09 cycle 1"
+        "SEC-001 self-asserted tenant/role at authorize (issue #1) \u2014 blocks production identity/external deployment, not simulation baseline"
       ],
-      "verdict": "REJECT for production identity; ACCEPTABLE only as simulation baseline",
+      "verdict": "ACCEPT WITH FOLLOW-UPS (simulation baseline); production identity REJECTED pending SEC-001/IdP",
       "audit": {
         "date": "2026-11-09",
         "tests_local": "70/70",
@@ -42,14 +40,19 @@
     {
       "id": "M03",
       "name": "Durable persistence and workflow engine",
-      "status": "design",
-      "blockers": ["M02 acceptance", "PostgreSQL evaluation"]
+      "status": "merged",
+      "blockers": ["M03-2a quota wiring PR #22 awaiting owner merge"],
+      "prs": [9, 20],
+      "sha": "28c90405b5da65807b9139f05ce0f30bc232bcfe",
+      "tests": "108/108",
+      "verdict": "M03-1 ACCEPT (PR #15 record); M03-2 independent re-review ACCEPT at 8ef939b, merged via PR #20 (28c9040)"
     },
     {
       "id": "M04",
       "name": "UAE compliance and human approval",
-      "status": "pending",
-      "blockers": ["M02", "M03", "EXT-002 legal review"]
+      "status": "design",
+      "blockers": ["EXT-002 qualified UAE legal review"],
+      "pr": 24
     },
     {
       "id": "M05",
@@ -78,8 +81,9 @@
     {
       "id": "M09",
       "name": "Production remote MCP server",
-      "status": "pending",
-      "blockers": ["M02"]
+      "status": "implemented_pending_merge",
+      "blockers": ["owner merge of PR #26 (issue #8 MCP tenant enforcement)"],
+      "pr": 26
     },
     {
       "id": "M10",
@@ -139,7 +143,7 @@
     "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 1,
-    "last_cycle": "2026-11-09T04:12Z"
+    "cycles_proven": 29,
+    "last_cycle": "2026-11-09T20:35Z"
   }
 }
