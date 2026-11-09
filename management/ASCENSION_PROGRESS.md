@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Progress
 
-Updated: 2026-11-09T04:30Z (cycles 1; supervisor verified)
+Updated: 2026-11-09T04:50Z (cycle 2; dispatcher)
 
 - M00 Discovery: complete (ef277d2)
 - M01 Baseline stabilization: accepted with follow-ups (76bb062), blocker SRC-001/EXT-001
