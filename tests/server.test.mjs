@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+process.env.CALLFORGE_ALLOW_DEV_SECRET ??= 'true';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { CallforgeHttpServer } from '../server.mjs';
