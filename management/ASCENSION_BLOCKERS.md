@@ -35,3 +35,13 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## M03-2 audit (2026-11-09 cycle 6, PR #20 head e21b341)
+
+Verdict: ACCEPT WITH FOLLOW-UPS. Local: 92/92 tests, read-only worktree audit. Verdict posted as PR #20 comment (issuecomment-6733880708).
+
+| ID       | Finding                                                                                                                                                          | Severity         | Status                    |
+| -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- | ------------------------- |
+| F-M03-2a | consumeQuota/releaseQuota implemented but not wired into POST /simulate/call or stateMachine transitions — API-layer quota enforcement pending.                  | Medium (billing) | Open — next M03 increment |
+| F-M03-2b | Dispatcher advances webhooks to 'processing' but nothing marks 'processed' (no-op sink until M05); processing rows accumulate, covered by recovery + reconciler. | Low              | Open — M05                |
+| F-M03-2c | consumeQuota fail-closed on missing row vs checkQuota fail-open — intended default undocumented.                                                                 | Low              | Open                      |
