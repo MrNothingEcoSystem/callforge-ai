@@ -26,13 +26,13 @@ Phase Zero found no original CALLFORGE v0.2 source bundle locally or in the auth
 
 Executed with Node.js 24.22.2 and pnpm 12.18.0:
 
-- `pnpm test`: 7 test files passed; 54 tests passed; 0 failed; 0 skipped.
+- `pnpm test`: 9 test files passed; 58 tests passed; 0 failed; 0 skipped.
 - `pnpm typecheck`: passed with TypeScript check-JS over production ESM modules.
 - `pnpm lint`: passed with no errors or warnings.
 - `pnpm format:check`: passed.
 - `pnpm audit`: no known vulnerabilities.
 
-The test suite verifies database initialization, uniqueness constraints, tenant-scoped records, token handling, idempotency, audit-chain integrity and tamper detection, deterministic fixtures, all 11 registered tools, reports, readiness, and compliance simulation behavior.
+- The test suite verifies database initialization, uniqueness constraints, tenant-scoped records, negative cross-tenant HTTP status access, token handling in the declared Node.js ESM runtime, idempotency, single- and multi-logger audit-chain integrity, audit tamper detection, deterministic fixtures, all 11 registered tools, reports, readiness, and compliance simulation behavior.
 
 ## Defects corrected during stabilization
 

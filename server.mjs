@@ -23,12 +23,13 @@ class CallforgeHttpServer {
   async initialize() {
     await initDatabase();
     this.auditLogger = createAuditLogger();
+    await this.auditLogger.initialize();
 
     await this.auditLogger.log({
-      event: 'http_server_initialized',
-      simulation_mode: SIMULATION_MODE,
-      port: PORT,
-      timestamp: new Date().toISOString(),
+      event_type: 'http_server_initialized',
+      actor_type: 'system',
+      action: 'initialize_http_server',
+      payload: { simulation_mode: SIMULATION_MODE, port: PORT },
     });
   }
 
@@ -254,16 +255,18 @@ class CallforgeHttpServer {
   }
 
   async handleSimulateStatus(req, res, query) {
-    const { call_intent_id } = query;
+    const { tenant_id, call_intent_id } = query;
 
-    if (!call_intent_id) {
+    if (!tenant_id || !call_intent_id) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing call_intent_id query parameter' }));
+      res.end(JSON.stringify({ error: 'Missing tenant_id or call_intent_id query parameter' }));
       return;
     }
 
     const db = getDatabase();
-    const intent = db.prepare('SELECT * FROM call_intents WHERE id = ?').get(call_intent_id);
+    const intent = db
+      .prepare('SELECT * FROM call_intents WHERE id = ? AND tenant_id = ?')
+      .get(call_intent_id, tenant_id);
 
     if (!intent) {
       res.writeHead(404, { 'Content-Type': 'application/json' });

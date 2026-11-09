@@ -112,6 +112,22 @@ describe('Audit Logger', () => {
     expect(verification.events_checked).toBe(3);
   });
 
+  it('should preserve chain integrity across multiple logger instances', async () => {
+    const loggerA = createAuditLogger();
+    const loggerB = createAuditLogger();
+    await loggerA.initialize();
+    await loggerB.initialize();
+
+    await loggerA.log({ event_type: 'multi_logger_1', actor_type: 'system', action: 'test' });
+    await loggerB.log({ event_type: 'multi_logger_2', actor_type: 'system', action: 'test' });
+    await loggerA.log({ event_type: 'multi_logger_3', actor_type: 'system', action: 'test' });
+
+    const verification = await loggerA.verifyChain();
+    expect(verification.valid).toBe(true);
+    expect(verification.errors).toHaveLength(0);
+    expect(verification.events_checked).toBe(3);
+  });
+
   it('should detect broken hash chain', async () => {
     await auditLogger.log({ event_type: 'tamper_1', actor_type: 'system', action: 'test' });
     await auditLogger.log({ event_type: 'tamper_2', actor_type: 'system', action: 'test' });

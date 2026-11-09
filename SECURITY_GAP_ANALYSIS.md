@@ -9,7 +9,7 @@ Status: M01 review candidate
 - Database operations use parameterized SQLite statements.
 - Tenant identifiers are included in primary application queries covered by tests.
 - Simulated call creation has a tenant-scoped unique idempotency constraint.
-- Audit events are hash-linked and direct payload tampering is detected by tests.
+- Audit events are hash-linked, serialized across logger instances, and direct payload tampering is detected by tests.
 - Call destinations are represented as masked values in test fixtures.
 - No telephony adapter, carrier credential, or live-call dispatch implementation exists.
 - Package audit currently reports no known vulnerabilities.

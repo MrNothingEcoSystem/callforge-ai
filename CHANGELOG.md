@@ -15,6 +15,9 @@
 - Test database initialization and isolation.
 - MCP store import and handler initialization.
 - Tool input defaults, call-event hashing, deterministic fixture loading, SQL timestamp quoting, and compliance aggregation.
+- `create_dev_token` executes successfully through the declared Node.js ESM runtime.
+- The HTTP status path rejects cross-tenant call-intent lookup.
+- Audit append operations are serialized across logger instances and ordered by SQLite row sequence.
 - Vulnerable test/runtime dependencies.
 
 ### Safety

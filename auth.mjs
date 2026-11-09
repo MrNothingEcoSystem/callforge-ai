@@ -6,6 +6,7 @@
  * Production OAuth implementation in M02.
  */
 
+import { createHash, randomBytes } from 'node:crypto';
 import { getDatabase } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
 
@@ -13,13 +14,11 @@ const DEV_TOKEN_PREFIX = 'cf_dev_';
 const TOKEN_LENGTH = 32;
 
 function generateDevToken() {
-  const crypto = require('crypto');
-  return DEV_TOKEN_PREFIX + crypto.randomBytes(TOKEN_LENGTH).toString('hex');
+  return DEV_TOKEN_PREFIX + randomBytes(TOKEN_LENGTH).toString('hex');
 }
 
 function hashToken(token) {
-  const crypto = require('crypto');
-  return crypto.createHash('sha256').update(token).digest('hex');
+  return createHash('sha256').update(token).digest('hex');
 }
 
 export function createAuthMiddleware() {

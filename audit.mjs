@@ -8,11 +8,13 @@
 
 import { getDatabase, generateId, nowISO, hashEventAsync } from './store.mjs';
 
+let appendQueue = Promise.resolve();
+
 async function getChainHead() {
   // Always read from database to ensure fresh state
   const db = getDatabase();
   const lastEvent = db
-    .prepare('SELECT event_hash FROM audit_events ORDER BY created_at DESC LIMIT 1')
+    .prepare('SELECT event_hash FROM audit_events ORDER BY rowid DESC LIMIT 1')
     .get();
 
   if (lastEvent) {
@@ -32,71 +34,68 @@ export function createAuditLogger() {
     },
 
     async log(entry) {
-      const db = getDatabase();
+      const append = async () => {
+        const db = getDatabase();
+        const previousHash = await getChainHead();
 
-      // Ensure chain head is initialized
-      if (!currentHead) {
-        currentHead = await getChainHead();
-      }
+        const event = {
+          id: entry.id || generateId(),
+          tenant_id: entry.tenant_id || null,
+          event_type: entry.event_type,
+          actor_type: entry.actor_type || 'system',
+          actor_id: entry.actor_id || null,
+          action: entry.action || 'unknown',
+          resource_type: entry.resource_type || null,
+          resource_id: entry.resource_id || null,
+          payload: entry.payload || {},
+          previous_hash: previousHash,
+          created_at: entry.created_at || nowISO(),
+        };
 
-      const event = {
-        id: entry.id || generateId(),
-        tenant_id: entry.tenant_id || null,
-        event_type: entry.event_type,
-        actor_type: entry.actor_type || 'system',
-        actor_id: entry.actor_id || null,
-        action: entry.action || 'unknown',
-        resource_type: entry.resource_type || null,
-        resource_id: entry.resource_id || null,
-        payload: entry.payload || {},
-        previous_hash: currentHead,
-        created_at: entry.created_at || nowISO(),
+        const eventHash = await hashEventAsync(event);
+        event.event_hash = eventHash;
+
+        db.prepare(
+          `
+          INSERT INTO audit_events (id, tenant_id, event_type, actor_type, actor_id, action, resource_type, resource_id, payload, previous_hash, event_hash, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        ).run(
+          event.id,
+          event.tenant_id,
+          event.event_type,
+          event.actor_type,
+          event.actor_id,
+          event.action,
+          event.resource_type,
+          event.resource_id,
+          JSON.stringify(event.payload),
+          event.previous_hash,
+          event.event_hash,
+          event.created_at,
+        );
+
+        currentHead = eventHash;
+        return event;
       };
 
-      // Compute hash of this event (including previous hash) - payload as object
-      const eventHash = await hashEventAsync({
-        ...event,
-        previous_hash: currentHead,
-      });
-
-      event.event_hash = eventHash;
-
-      // Insert into database - stringify payload for storage
-      db.prepare(
-        `
-        INSERT INTO audit_events (id, tenant_id, event_type, actor_type, actor_id, action, resource_type, resource_id, payload, previous_hash, event_hash, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-      ).run(
-        event.id,
-        event.tenant_id,
-        event.event_type,
-        event.actor_type,
-        event.actor_id,
-        event.action,
-        event.resource_type,
-        event.resource_id,
-        JSON.stringify(event.payload),
-        event.previous_hash,
-        event.event_hash,
-        event.created_at,
+      const result = appendQueue.then(append, append);
+      appendQueue = result.then(
+        () => undefined,
+        () => undefined,
       );
-
-      // Update chain head
-      currentHead = eventHash;
-
-      return event;
+      return result;
     },
 
     async verifyChain(fromEventId = null) {
       const db = getDatabase();
 
-      let query = 'SELECT * FROM audit_events ORDER BY created_at ASC';
+      let query = 'SELECT * FROM audit_events ORDER BY rowid ASC';
       const params = [];
 
       if (fromEventId) {
         query =
-          'SELECT * FROM audit_events WHERE created_at >= (SELECT created_at FROM audit_events WHERE id = ?) ORDER BY created_at ASC';
+          'SELECT * FROM audit_events WHERE rowid >= (SELECT rowid FROM audit_events WHERE id = ?) ORDER BY rowid ASC';
         params.push(fromEventId);
       }
 
