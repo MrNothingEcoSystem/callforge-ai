@@ -2,9 +2,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { join } from 'node:path';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { enqueue, claimBatch } from '../workflow/outbox.mjs';
+import { enqueue, claimBatch, fail } from '../workflow/outbox.mjs';
 import { receiveWebhook } from '../workflow/webhookInbox.mjs';
-import { consumeQuota, releaseQuota, planRetention, executeRetention } from '../workflow/quota.mjs';
+import {
+  consumeQuota,
+  releaseQuota,
+  checkQuota,
+  planRetention,
+  executeRetention,
+} from '../workflow/quota.mjs';
 import { createDispatcher } from '../workflow/dispatcher.mjs';
 import { runRecovery } from '../workflow/recovery.mjs';
 import { runReconciler } from '../workflow/reconciler.mjs';
@@ -195,5 +201,101 @@ describe('M03-2 orchestration', () => {
       pending_outbox: expect.any(Number),
       quota_drift_tenants: expect.any(Number),
     });
+  });
+
+  // ---- Independent review regression tests (M03-2 review, 2026-11-09) ----
+
+  it('two concurrent workers claim disjoint rows (no double-delivery)', () => {
+    const db = getDatabase();
+    const ids = [];
+    for (let i = 0; i < 6; i++) {
+      ids.push(
+        enqueue(db, { tenantId: null, aggregateType: 't', aggregateId: `cc${i}`, type: 'test.ok' })
+          .row.id,
+      );
+    }
+    db.prepare(
+      `UPDATE outbox SET available_at = datetime('now') WHERE id IN (${ids.map(() => '?').join(',')})`,
+    ).run(...ids);
+    const w1 = claimBatch(db, { workerId: 'rev-w1', limit: 10 });
+    const w2 = claimBatch(db, { workerId: 'rev-w2', limit: 10 });
+    const overlap = w1.some(r => w2.some(s => s.id === r.id));
+    expect(overlap).toBe(false);
+  });
+
+  it('retry exhaustion dead-letters after MAX_ATTEMPTS (5) claims', () => {
+    const db = getDatabase();
+    const { row } = enqueue(db, {
+      tenantId: null,
+      aggregateType: 't',
+      aggregateId: 'exh',
+      type: 'test.boom',
+    });
+    for (let i = 0; i < 10; i++) {
+      const claimed = claimBatch(db, { workerId: 'rev-w' });
+      const me = claimed.find(r => r.id === row.id);
+      if (!me) {
+        break;
+      }
+      fail(db, row.id, 'rev-w', 'boom');
+      db.prepare("UPDATE outbox SET available_at = datetime('now','-1 hour') WHERE id = ?").run(
+        row.id,
+      );
+    }
+    const dead = db.prepare('SELECT status, attempts FROM outbox WHERE id = ?').get(row.id);
+    expect(dead.status).toBe('dead');
+    expect(dead.attempts).toBe(5);
+  });
+
+  it('webhook replay: identical body dedups; same key + different body preserves first', () => {
+    const db = getDatabase();
+    const a1 = receiveWebhook(db, { provider: 'rev-replay', rawBody: '{"x":1}' });
+    const a2 = receiveWebhook(db, { provider: 'rev-replay', rawBody: '{"x":1}' });
+    expect(a2.stored).toBe(false);
+    expect(a2.row.id).toBe(a1.row.id);
+    const b1 = receiveWebhook(db, { provider: 'rev-replay2', dedupKey: 'k1', rawBody: '{"v":1}' });
+    const b2 = receiveWebhook(db, { provider: 'rev-replay2', dedupKey: 'k1', rawBody: '{"v":2}' });
+    expect(b2.stored).toBe(false);
+    expect(b2.row.raw_body).toBe('{"v":1}');
+  });
+
+  it('webhook dispatched view: received -> processing (processed is NOT reached — F1)', async () => {
+    const db = getDatabase();
+    receiveWebhook(db, { provider: 'rev-f1', rawBody: '{"f1":true}' });
+    process.env.OUTBOX_DISPATCHER_ENABLED = '1';
+    await createDispatcher(db).dispatchOnce();
+    delete process.env.OUTBOX_DISPATCHER_ENABLED;
+    const wh = db.prepare("SELECT status FROM webhook_inbox WHERE provider = 'rev-f1'").get();
+    // BLOCKING DEFECT F1: dispatcher marks 'processing' and acks; no code path
+    // ever sets 'processed'. This assertion pins the defect until remediated.
+    expect(wh.status).toBe('processing');
+    const counts = runReconciler(db);
+    expect(counts.stuck_webhooks).toBeGreaterThanOrEqual(1);
+  });
+
+  it('recovery does NOT reclaim claimed rows with NULL lease (F2 documented)', () => {
+    const db = getDatabase();
+    const { row } = enqueue(db, {
+      tenantId: null,
+      aggregateType: 't',
+      aggregateId: 'nl',
+      type: 'test.ok',
+    });
+    db.prepare(
+      "UPDATE outbox SET status = 'claimed', claimed_by = 'dead', lease_expires_at = NULL WHERE id = ?",
+    ).run(row.id);
+    const result = runRecovery(db);
+    expect(result.reclaimed_leases).toBe(0);
+    const ob = db.prepare('SELECT status FROM outbox WHERE id = ?').get(row.id);
+    expect(ob.status).toBe('claimed');
+  });
+
+  it('quota limit_value=0 is unlimited (consistent with checkQuota); consume caps at limit>0', () => {
+    const db = getDatabase();
+    const tenantId = seedTenantQuota(db, 0);
+    expect(checkQuota(db, tenantId, 'calls').allowed).toBe(true);
+    for (let i = 0; i < 10; i++) {
+      expect(consumeQuota(db, tenantId, 'calls').consumed).toBe(true);
+    }
   });
 });
