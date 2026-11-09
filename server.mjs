@@ -12,6 +12,7 @@ import { parse } from 'url';
 import { initDatabase, getDatabase, closeStore } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
 import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
+import { createMcpHandler } from './mcp.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
@@ -152,6 +153,26 @@ class CallforgeHttpServer {
       return;
     }
 
+    // M09: RFC9728 protected-resource discovery for the /mcp endpoint.
+    if (path === '/.well-known/oauth-protected-resource' && method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          resource: `${ISSUER}/mcp`,
+          authorization_servers: [ISSUER],
+          scopes_supported: ['read', 'simulate', 'audit', 'admin'],
+          bearer_methods_supported: ['header'],
+        }),
+      );
+      return;
+    }
+
+    // M09: remote MCP endpoint (simulation-first; tenant from token only).
+    if (path === '/mcp' && method === 'POST') {
+      await this.handleMcp(req, res);
+      return;
+    }
+
     // Simulation endpoints (v0.2 only) — M02: authenticated + scoped
     if (SIMULATION_MODE) {
       if (path === '/simulate/call' && method === 'POST') {
@@ -177,6 +198,35 @@ class CallforgeHttpServer {
     // 404
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
+  }
+
+  /** M09: remote MCP (simulation-first). Tools run through the registry. */
+  async handleMcp(req, res) {
+    const handler = createMcpHandler({
+      guard: (rq, rs, scopes) => this.guard(rq, rs, scopes),
+      callTool: async (name, args, context) => {
+        // Simulation-first: only path that never has external side effects.
+        // M09: the remote tool registry dispatches through this table.
+        if (name === 'check_readiness') {
+          const db = getDatabase();
+          const row = db.prepare('SELECT 1').get();
+          return { content: [{ type: 'text', text: JSON.stringify({ ready: !!row }) }] };
+        }
+        if (name === 'get_call_status') {
+          const db = getDatabase();
+          const intent = db
+            .prepare('SELECT * FROM call_intents WHERE id = ? AND tenant_id = ?')
+            .get(args.call_intent_id, context.tenantId);
+          return {
+            content: [{ type: 'text', text: JSON.stringify(intent ?? { error: 'not found' }) }],
+          };
+        }
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ simulated: true, tool: name }) }],
+        };
+      },
+    });
+    await handler.handle(req, res);
   }
 
   /** M03-2: HMAC-verified webhook store. 401 + nothing stored on failure. */
