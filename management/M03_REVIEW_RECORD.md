@@ -2,12 +2,12 @@
 
 ## Verdict history (PR #9, `m03-durable-workflow`)
 
-| Head      | Verdict                                                      | Reviewer                   | Date       |
-| --------- | ------------------------------------------------------------ | -------------------------- | ---------- |
-| `dec034e` | **REJECT** — 4 blocking defects                              | Independent reviewer       | 2026-11-09 |
-| `d8f7df0` | **ACCEPT WITH FOLLOW-UPS**                                   | Dispatcher cycle-2 auditor | 2026-11-09 |
-| `d8f7df0` | **REJECT** — 1 remaining blocking defect (unknown-intent FK) | Adversarial re-reviewer    | 2026-11-09 |
-| `6c0ffb9` | **ACCEPT** (focused re-verification, all probes pass, 69/69, CI PASS) | Independent re-verifier | 2026-11-09 |
+| Head      | Verdict                                                               | Reviewer                   | Date       |
+| --------- | --------------------------------------------------------------------- | -------------------------- | ---------- |
+| `dec034e` | **REJECT** — 4 blocking defects                                       | Independent reviewer       | 2026-11-09 |
+| `d8f7df0` | **ACCEPT WITH FOLLOW-UPS**                                            | Dispatcher cycle-2 auditor | 2026-11-09 |
+| `d8f7df0` | **REJECT** — 1 remaining blocking defect (unknown-intent FK)          | Adversarial re-reviewer    | 2026-11-09 |
+| `6c0ffb9` | **ACCEPT** (focused re-verification, all probes pass, 69/69, CI PASS) | Independent re-verifier    | 2026-11-09 |
 
 ## The four original blocking defects (fixed in `d8f7df0`)
 
