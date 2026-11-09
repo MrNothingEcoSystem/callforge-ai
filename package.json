@@ -1,0 +1,51 @@
+{
+  "name": "callforge",
+  "version": "0.2.0",
+  "description": "CALLFORGE AI — UAE Business Calling & AI Receptionist Platform (v0.2 Simulation Baseline)",
+  "type": "module",
+  "main": "core.mjs",
+  "scripts": {
+    "start": "node core.mjs",
+    "dev": "node --watch core.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint . --ext .mjs,.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc -p tsconfig.json",
+    "db:init": "node -e \"import('./store.mjs').then(m => m.initDatabase())\"",
+    "demo": "node demo.mjs"
+  },
+  "keywords": [
+    "callforge",
+    "ai",
+    "voice",
+    "telephony",
+    "uae",
+    "business",
+    "receptionist",
+    "mcp"
+  ],
+  "author": "AgentRunMe",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "packageManager": "pnpm@12.18.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "better-sqlite3": "^11.0.0",
+    "uuid": "^14.0.3",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.10",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "globals": "^15.0.0",
+    "prettier": "^3.3.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
