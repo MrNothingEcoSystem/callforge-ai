@@ -36,3 +36,12 @@
 - Gate check: PRs #22 (m03-2-quota-wiring), #24 (m04-uae-compliance), #26 (m09-remote-mcp), #31 (sec003-scope-rederivation), #33 (cleanup-m01-followups-rebased) all MERGEABLE with `verify` CI pass. Cycle 27's conclusion stands: no unblocked engineering.
 - Blocker unchanged: owner merge-order decision for the five merge-ready draft PRs, and SEC-001 IdP decision (issue #1; management/SEC001_IDP_DOSSIER.md exists). EXT-001..EXT-009 unchanged. No merge/deploy/live-call/spend, no Telegram send (no new milestone, finding, blocker, or gate failure; no approval request beyond the standing merge/IdP decisions).
 - Resource usage: ~10 min wall clock, 0 new branches beyond the ledger branch, no processes left running. Remaining work estimate: unchanged from cycle 27 — unblocked only when owner merge-order + IdP decisions land; assumed ≤1 cycle to reconcile PR52-series ledger after merges.
+
+## 2026-11-09 — Cycle 29 (dispatcher, 20:35 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`; working tree clean. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0. `pnpm test` on main = 13 files, 108/108 passed.
+- Gate check (independently re-verified this cycle): draft PRs #22, #24, #26, #31, #33 all MERGEABLE with verify CI pass (runs 42577389226, 42580338393, 42596890167, 42609583403, 42605140819). Cycle 28's conclusion stands: no unblocked engineering exists outside these PRs; all remaining milestones are owner-gated or await these merges.
+- One task executed: ledger sync. ASCENSION_MILESTONES.json / ASCENSION_PROGRESS.md / ASCENSION_NEXT_ACTIONS.md updated to actual merged state (M02 PR #7, M03 PR #9 + PR #20 merged; previously stale since cycle 1/07:25Z). Committed on top of docs/ascension-cycle-028 and pushed to update draft PR #46 instead of opening a duplicate PR. No merge/deploy/live-call/spend.
+- Telegram: one concise digest sent (last recorded digest cycle 1, ~04:12Z, >6h ago). Receipt: success, telegram chat 8400775109, message_id 589.
+- Resource usage: ~15 min wall clock, no new branches, no processes left running. Remaining work estimate: unchanged — bounded solely by owner merge-order + SEC-001 IdP decisions (unestimable until decided); post-merge ledger reconciliation assumed ≤1 cycle.
