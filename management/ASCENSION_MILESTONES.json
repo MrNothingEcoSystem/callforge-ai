@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-09T10:25:00Z",
+  "updated_at": "2026-11-09T10:57:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -18,7 +18,8 @@
       "sha": "76bb06235e098904fae390acf48b11b1f57aa7d8",
       "blockers": [
         "SRC-001"
-      ]
+      ],
+      "tech002": "PR #33 (rebased PR #14) head 4c99e8c verified cycle 14: 112/112, ACCEPT; owner merge pending"
     },
     {
       "id": "M02",
@@ -185,7 +186,7 @@
     "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 13,
-    "last_cycle": "2026-11-09T10:25:00Z"
+    "cycles_proven": 14,
+    "last_cycle": "2026-11-09T10:57:00Z"
   }
 }

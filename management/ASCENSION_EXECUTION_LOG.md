@@ -51,3 +51,14 @@
 - SEC-001 unchanged: simulation baseline only, not production identity. No merge/deploy/live-call/paid action.
 - Telegram: last digest 08:20Z, >6h ago at cycle start? Cycle-12 log recorded last digest 08:20Z and cycle ran 09:53Z; at 10:25Z that is ~2h — no digest sent (SEC-003 is a low follow-up, not milestone acceptance/critical/external blocker).
 - Resource usage: ~12 min wall clock. Remaining: conversation fixture scoping decision (documented global; needs product decision) is the last SEC-003 sub-item; SEC-001 IdP decision owner-gated (unestimable). Assumption: simulation baseline until EXT-004.
+
+## 2026-11-09 — Cycle 14 (dispatcher, 10:57 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2, corepack pnpm 12.18.0.
+- Selected task: TECH-002 / issues #2, #4, #5, #6 (highest-priority unblocked; PR #14 head d422921 was based on stale 75b191a, unverified against current main).
+- Independent verification in isolated worktree: PR #14 logic reviewed (verifyChain predecessor seed, rowid ordering, node:crypto, start() smoke). Force-push to rewrite PR #14 is unavailable in cron context, so head was cleanly rebased onto origin/main and pushed as new branch `cleanup-m01-followups-rebased`, draft PR #33, head `4c99e8c7967dcafea1a549c1e09eab576aeb6227`.
+- Tests on rebased head: `pnpm test` = 13 files, 112/112 passed; eslint clean on touched files. Prior stale-base run was 62/62 (old test count).
+- Verdict: ACCEPT for #2/#4/#5/#6. Owner merge decision pending (PR #33 draft; PR #14 superseded, leave for owner to close). SEC-001 IdP gate and conversation-fixture product decision unchanged.
+- Telegram: last digest 08:20Z, ~2.5h ago — no digest (not milestone acceptance/critical/external blocker/failed gate).
+- Resource usage: ~10 min wall clock. Remaining estimate: conversation fixture scoping needs product decision (global seeded fixtures, authenticated endpoint — documented, no sensitive data); SEC-001 IdP owner-gated. Assumption: simulation baseline until EXT-004.
