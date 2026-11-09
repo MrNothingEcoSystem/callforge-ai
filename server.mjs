@@ -15,6 +15,10 @@ import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
+import { checkQuota, consumeQuota, getQuotaRow } from './workflow/quota.mjs';
+
+// Quota resource consumed when a call intent is created (F-M03-2a).
+const QUOTA_RESOURCE = 'call_intents';
 
 const PORT = process.env.PORT || 3000;
 const SIMULATION_MODE = process.env.SIMULATION_MODE !== 'false'; // Default true for v0.2
@@ -339,25 +343,53 @@ class CallforgeHttpServer {
       return;
     }
 
-    // Create call intent
+    // Create call intent, atomically consuming one quota unit when the
+    // tenant has a quota rule for this resource (hasQuota → deny 429).
+    // No rule = unlimited (F-M03-2a/F-M03-2c).
     const callIntentId = crypto.randomUUID();
 
-    db.prepare(
-      `
-      INSERT INTO call_intents (id, tenant_id, idempotency_key, direction, from_number, to_number, language, voice_config, business_context, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
-    `,
-    ).run(
-      callIntentId,
-      tenant_id,
-      idempotency_key,
-      direction,
-      from_number || null,
-      to_number || null,
-      language || 'en',
-      JSON.stringify(voice_config || {}),
-      JSON.stringify(business_context || {}),
-    );
+    const createIntent = db.transaction(() => {
+      if (getQuotaRow(db, tenant_id, QUOTA_RESOURCE)) {
+        const check = checkQuota(db, tenant_id, QUOTA_RESOURCE);
+        if (!check.allowed) {
+          return { quotaDenied: true, check };
+        }
+        const consumed = consumeQuota(db, tenant_id, QUOTA_RESOURCE);
+        if (!consumed.consumed) {
+          return { quotaDenied: true, check };
+        }
+      }
+      db.prepare(
+        `
+        INSERT INTO call_intents (id, tenant_id, idempotency_key, direction, from_number, to_number, language, voice_config, business_context, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+      `,
+      ).run(
+        callIntentId,
+        tenant_id,
+        idempotency_key,
+        direction,
+        from_number || null,
+        to_number || null,
+        language || 'en',
+        JSON.stringify(voice_config || {}),
+        JSON.stringify(business_context || {}),
+      );
+      return { callIntentId };
+    });
+
+    const created = createIntent();
+    if (created.quotaDenied) {
+      res.writeHead(429, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: 'quota_exceeded',
+          limit: created.check.limit,
+          used: created.check.used,
+        }),
+      );
+      return;
+    }
 
     // Log audit event
     await this.auditLogger.log({

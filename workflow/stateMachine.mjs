@@ -8,6 +8,11 @@
 import { createHash } from 'node:crypto';
 import { generateId } from '../store.mjs';
 import { enqueue } from './outbox.mjs';
+import { releaseQuota } from './quota.mjs';
+
+// Transitions that return the consumed quota unit: the call never happens.
+const QUOTA_RELEASE_STATES = new Set(['rejected', 'cancelled']);
+const QUOTA_RESOURCE = 'call_intents';
 
 export const STATES = [
   'pending',
@@ -67,6 +72,10 @@ export function transition(db, { intentId, to, actor = 'system', reason = null, 
       .run(to, intentId, from);
     if (updated.changes !== 1) {
       throw new StaleStateError(`Call intent ${intentId} changed concurrently`);
+    }
+
+    if (QUOTA_RELEASE_STATES.has(to)) {
+      releaseQuota(db, intent.tenant_id, QUOTA_RESOURCE);
     }
 
     const seqRow = db
