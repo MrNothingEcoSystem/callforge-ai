@@ -123,17 +123,20 @@ export function transition(db, { intentId, to, actor = 'system', reason = null, 
       tenant_id: intent.tenant_id,
       event_type: 'call_state_transition',
       actor_type: 'system',
+      actor_id: null, // must match audit.mjs hash input keys exactly
       action: 'transition_call_intent',
       resource_type: 'call_intent',
       resource_id: intentId,
       payload: { from, to, actor, reason },
-      previous_hash: chainHead ? chainHead.event_hash : null,
+      // audit.mjs genesis convention: '0' repeated 64, and the hashed
+      // created_at must be the value actually stored (review finding).
+      previous_hash: chainHead ? chainHead.event_hash : '0'.repeat(64),
       created_at: new Date().toISOString(),
     };
     auditEvent.event_hash = hashEventSync(auditEvent);
     db.prepare(
-      `INSERT INTO audit_events (id, tenant_id, event_type, actor_type, action, resource_type, resource_id, payload, previous_hash, event_hash)
-       VALUES (?, ?, ?, 'system', ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO audit_events (id, tenant_id, event_type, actor_type, action, resource_type, resource_id, payload, previous_hash, event_hash, created_at)
+       VALUES (?, ?, ?, 'system', ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       auditEvent.id,
       intent.tenant_id,
@@ -144,6 +147,7 @@ export function transition(db, { intentId, to, actor = 'system', reason = null, 
       JSON.stringify(auditEvent.payload),
       auditEvent.previous_hash,
       auditEvent.event_hash,
+      auditEvent.created_at,
     );
 
     return { from, to, sequence };

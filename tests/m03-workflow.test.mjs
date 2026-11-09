@@ -114,6 +114,10 @@ describe('M03 durable workflow', () => {
     for (let i = 0; i < 6; i += 1) {
       claimBatch(db, { workerId: 'w', limit: 10 });
       fail(db, row.id, 'w', 'boom');
+      // Backoff is honored (available_at in future); fast-forward for the test.
+      db.prepare("UPDATE outbox SET available_at = datetime('now', '-1 second') WHERE id = ?").run(
+        row.id,
+      );
     }
     const final = db.prepare('SELECT status FROM outbox WHERE id = ?').get(row.id);
     expect(final.status).toBe('dead');
@@ -178,6 +182,33 @@ describe('M03 durable workflow', () => {
     const report = applyRetention(db, { dryRun: true });
     expect(report).toHaveLength(1);
     expect(report[0].dry_run).toBe(true);
+  });
+
+  it('backoff is honored: failed rows are not immediately reclaimable', () => {
+    const db = getDatabase();
+    const { tenantId, intentId } = seedTenantAndIntent(db);
+    const { row } = enqueue(db, {
+      tenantId,
+      aggregateType: 'call_intent',
+      aggregateId: intentId,
+      type: 'x',
+      dedupKey: `bo-${intentId}`,
+    });
+    claimBatch(db, { workerId: 'w', limit: 10 });
+    fail(db, row.id, 'w', 'boom');
+    const immediate = claimBatch(db, { workerId: 'w2', limit: 10 });
+    expect(immediate.some(r => r.id === row.id)).toBe(false);
+  });
+
+  it('audit chain remains valid after transitions (review finding)', async () => {
+    const db = getDatabase();
+    const { intentId } = seedTenantAndIntent(db);
+    transition(db, { intentId, to: 'approved', actor: 'test' });
+    const { createAuditLogger } = await import('../audit.mjs');
+    const logger = createAuditLogger();
+    await logger.initialize();
+    const verification = await logger.verifyChain();
+    expect(verification.valid).toBe(true);
   });
 
   it('backup and restore round-trip', () => {

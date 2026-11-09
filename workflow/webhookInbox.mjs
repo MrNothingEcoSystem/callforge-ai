@@ -49,23 +49,39 @@ export function reconcileProviderEvent(
   db,
   { provider, providerEventId, callIntentId, eventType, payload = {} },
 ) {
-  const id = generateId();
-  const stored = db
-    .prepare(
-      `INSERT OR IGNORE INTO provider_events (id, provider, provider_event_id, call_intent_id, event_type, payload)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-    )
-    .run(id, provider, providerEventId, callIntentId || null, eventType, JSON.stringify(payload));
-  if (stored.changes === 0) {
+  const target = PROVIDER_EVENT_MAP[eventType];
+  const already = db
+    .prepare('SELECT id FROM provider_events WHERE provider = ? AND provider_event_id = ?')
+    .get(provider, providerEventId);
+  if (already) {
     return { applied: false, ignored_duplicate: true, ignored_stale: false };
   }
-  const target = PROVIDER_EVENT_MAP[eventType];
-  if (!target || !callIntentId) {
+  // Unknown intents are recorded as stale, never as FK violations (review finding).
+  const intent = callIntentId
+    ? db.prepare('SELECT id FROM call_intents WHERE id = ?').get(callIntentId)
+    : null;
+  const recordEvent = () =>
+    db
+      .prepare(
+        `INSERT OR IGNORE INTO provider_events (id, provider, provider_event_id, call_intent_id, event_type, payload)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        generateId(),
+        provider,
+        providerEventId,
+        callIntentId || null,
+        eventType,
+        JSON.stringify(payload),
+      );
+
+  if (!target || !intent) {
+    recordEvent();
     return {
       applied: false,
       ignored_duplicate: false,
       ignored_stale: true,
-      reason: 'unmapped event',
+      reason: !target ? 'unmapped event' : 'unknown call intent',
     };
   }
   try {
@@ -75,9 +91,11 @@ export function reconcileProviderEvent(
       actor: 'provider',
       payload: { provider, providerEventId },
     });
+    recordEvent();
     return { applied: true, ignored_duplicate: false, ignored_stale: false, ...result };
   } catch (error) {
     if (error instanceof InvalidTransitionError) {
+      recordEvent();
       return {
         applied: false,
         ignored_duplicate: false,
@@ -85,6 +103,8 @@ export function reconcileProviderEvent(
         reason: error.message,
       };
     }
+    // StaleStateError and other transient failures: do NOT record the
+    // provider event, so a retry can re-apply it (review finding).
     throw error;
   }
 }

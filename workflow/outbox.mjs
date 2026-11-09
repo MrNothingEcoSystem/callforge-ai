@@ -15,9 +15,10 @@ export function enqueue(
 ) {
   const id = generateId();
   if (dedupKey) {
+    // `IS` (not `=`) so NULL-tenant system rows dedup correctly (review finding).
     const existing = db
-      .prepare('SELECT * FROM outbox WHERE tenant_id = ? AND dedup_key = ?')
-      .get(tenantId, dedupKey);
+      .prepare('SELECT * FROM outbox WHERE tenant_id IS ? AND dedup_key = ?')
+      .get(tenantId ?? null, dedupKey);
     if (existing) {
       return { row: existing, inserted: false };
     }
@@ -38,7 +39,7 @@ export function claimBatch(db, { workerId, limit = 10, leaseSeconds = 60 }) {
            lease_expires_at = datetime('now', ?), attempts = attempts + 1
        WHERE id IN (
          SELECT id FROM outbox
-         WHERE status = 'pending'
+         WHERE (status = 'pending' AND available_at <= datetime('now'))
             OR (status = 'claimed' AND lease_expires_at < datetime('now'))
          ORDER BY available_at
          LIMIT ?
