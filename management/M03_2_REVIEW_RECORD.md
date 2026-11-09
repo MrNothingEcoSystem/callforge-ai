@@ -79,3 +79,23 @@ The original 92 tests did not cover: HTTP webhook status codes, replay, concurre
 6. Required conversation resolution before merge.
 
 Trade-off: if rulesets (instead of legacy protection) are preferred, the same settings apply as a repository ruleset for `main`. Either way, this must be set before M04/M09 production-critical work. SEC-001 stays open regardless.
+
+## Re-review (2026-11-09) — **ACCEPT**
+
+Re-reviewed at remediation head `8ef939bd80b5be572026e4754f795f481ef748fb` from a fresh clone
+(`git clone`, detached at that SHA), 108/108 tests, hosted CI PASS (run 42576201523).
+Independent probes at 8ef939b:
+
+- F1: webhook reaches `processed` with `processed_at`; crash-between-processing-and-ack →
+  recovery + redelivery completes to `processed`, outbox `acked`; two concurrent dispatchers →
+  5/5 processed, no double-processing; reinspector `stuck_webhooks=0`.
+- F3: `executeRetention()` with the double gate open deletes 0 audit rows
+  (`excluded: audit_chain_protected`); `verifyChain()` valid before and after.
+- F2: NULL-lease claimed rows reclaimed; stale reclaimed, fresh preserved.
+- F4/F5: handler returns 413 oversize, 400 malformed provider, 401 malformed signature,
+  202 valid, 200 replay (mock-handler tests).
+
+**Verdict: ACCEPT.** M03-2 meets the plan's acceptance bar (crash-recovery proof, quota never
+over limit, retention never deletes without both flags, /ready gating, timers don't block
+shutdown). Merge decision remains with the owner. SEC-001 stays OPEN. Archive/retention
+policy for audit_events must still be owner-approved before any deletion is ever enabled.
