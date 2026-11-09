@@ -35,3 +35,11 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 10 — F-PR26-1..4 remediation (2026-11-09, PR #26 head 87ae898)
+
+Status: FIXED on branch, pending independent re-audit. Do not treat as M09 acceptance until re-audited. SEC-001 remains the production-identity gate regardless.
+- F-PR26-1 FIXED: real registry dispatch via `getMcpToolHandlers()` (tools/index.mjs); schema validation in mcp.mjs before dispatch; invalid args -> 400/-32602. Verified by new test: simulate_call via /mcp creates a real simulated intent.
+- F-PR26-2 FIXED: tests added for scope denial, cross-tenant get_call_status, 413, malformed JSON, invalid args.
+- F-PR26-3 FIXED: idempotentHint false for creating tools.
+- F-PR26-4 FIXED: try/catch around callTool -> 500/-32603.
