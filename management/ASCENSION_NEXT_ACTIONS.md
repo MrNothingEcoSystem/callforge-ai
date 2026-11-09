@@ -1,6 +1,11 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-09T08:20Z (cycle 9)
+
+## Cycle 9 update
+
+- PR #26 (M09 remote MCP, 62973e1) independently audited: NOT ACCEPTED as M09. Tenant/scope contract verified, 114/114 + CI PASS, but 8/10 tools are stubs returning fake success (F-PR26-1..4 in ASCENSION_BLOCKERS.md). Fix dispatch or return explicit not-implemented errors before any merge as M09.
+- Owner-gated, unchanged: merge decisions on PRs #22, #24, #25, #26; SEC-001 IdP choice (decision package in PR #26); EXT-001..EXT-009.
 
 ## Highest priority (supervisor-verified 2026-11-09T04:30Z)
 

@@ -35,3 +35,23 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 9 — PR #26 (M09 remote MCP) independent audit (2026-11-09, head 62973e1)
+
+Verdict: NOT ACCEPTED as M09 milestone. Draft scaffolding increment only; do not merge as production M09.
+
+Verified (read-only, isolated worktree, removed after):
+- Tenant ONLY from token: adaptRemoteArgs rejects mismatched client tenant_id (403), deletes + re-injects token tenant; create_dev_token excluded from remote registry; tenant_id stripped from public schemas.
+- Auth: unauthenticated /mcp -> 401 (tested); per-tool scopes checked via guard() second call; 1 MiB body limit -> 413; parse error -> 400.
+- get_call_status query is tenant-scoped (id AND tenant_id); check_readiness functional.
+- Tests: 114/114 passed (14 files, 5.33s), eslint clean, tsc clean, prettier clean; CI verify PASS (run 42582626341).
+
+Blocking follow-ups before M09 merge:
+- F-PR26-1 (functional): handleMcp callTool is a stub for 8/10 tools — returns {simulated:true} without dispatching the tool registry, without schema validation, and without quota consume/release. simulate_call via /mcp creates NO call intent, contradicting mcp.mjs header ("same simulated path as /simulate/*"). Either dispatch the real registry or return an explicit not-implemented JSON-RPC error; fake success is a correctness hazard for MCP clients.
+- F-PR26-2 (tests): no tests for per-tool scope denial (e.g. read-only token -> simulate_call), get_call_status cross-tenant isolation, 413 body limit, or malformed JSON.
+- F-PR26-3 (annotations): idempotentHint:true is advertised for simulate_call/simulate_conversation, which create intents — should be false until idempotency keys are wired.
+- F-PR26-4 (robustness): no try/catch around callTool in createMcpHandler — a DB/registry throw leaves the request hanging (unhandled rejection).
+
+Non-blocking: double guard() call per tools/call (authenticate runs twice; harmless, wasteful); PR #26 also touches root milestone-ledger.json + management/ASCENSION_MILESTONES.json, overlapping dispatcher PR #25 — expect a trivial conflict on merge.
+
+SEC-001 remains the production-identity gate for M09 regardless of F-PR26 fixes.
