@@ -6,12 +6,12 @@ authorization. No protected-branch merges without approval.
 
 ## Current PR graph (2026-11-09)
 
-| PR | Branch → main | Head | Gate status |
-|---|---|---|---|
-| #7 M02 identity | `m02-oauth-tenant-isolation` | `4368955` | Audit ACCEPT WITH FOLLOW-UPS; CI PASS; SEC-001 blocks production identity, not simulation merge |
-| #9 M03-1 durability | `m03-durable-workflow` | `d8f7df0` | Re-review in flight |
-| #11 docs | `docs/ascension-supervisor-sync` | `0f54842` | CI PASS |
-| Orphan | `docs/ascension-cycle-001` | `f2cfdd5` | No PR; content superseded by #11 — **do not delete** (unauthorized) |
+| PR                  | Branch → main                    | Head      | Gate status                                                                                     |
+| ------------------- | -------------------------------- | --------- | ----------------------------------------------------------------------------------------------- |
+| #7 M02 identity     | `m02-oauth-tenant-isolation`     | `4368955` | Audit ACCEPT WITH FOLLOW-UPS; CI PASS; SEC-001 blocks production identity, not simulation merge |
+| #9 M03-1 durability | `m03-durable-workflow`           | `d8f7df0` | Re-review in flight                                                                             |
+| #11 docs            | `docs/ascension-supervisor-sync` | `0f54842` | CI PASS                                                                                         |
+| Orphan              | `docs/ascension-cycle-001`       | `f2cfdd5` | No PR; content superseded by #11 — **do not delete** (unauthorized)                             |
 
 ## Dependency analysis
 
