@@ -28,3 +28,15 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-09 — Cycle 7 (dispatcher, 07:06 UTC)
+
+- Sync: `git fetch origin`; remote main = `28c90405b5da65807b9139f05ce0f30bc232bcfe` (owner merged PR #20 M03-2). Local main fast-forwarded to `28c9040`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain: Node v24.22.2, corepack pnpm 12.18.0 (verified).
+- Concurrent worker active on `m04-uae-compliance` (d73cc85, 07:06 UTC) — its write lease was not touched.
+- Selected task: F-M03-2a (+F-M03-2c), the top unblocked item from the cycle-6 audit.
+- Implemented on branch `m03-2-quota-wiring` (one write lease): POST /simulate/call pre-checks + atomically consumes one `call_intents` quota unit when a rule exists (429 `quota_exceeded` otherwise; no rule = unlimited); stateMachine releases the unit in-transaction on rejected/cancelled; quota.mjs documents the fail-open default via `getQuotaRow` (F-M03-2c closed). Added `tests/m03-quota-wiring.test.mjs` (4 regression tests: consume+429, release on reject, re-create after release, unlimited default).
+- Verification: `pnpm test` = 14 files, 112/112 passed (main was 108/108). `pnpm lint` clean, prettier clean. Committed `8adef30`, pushed, draft PR #22 opened: https://github.com/MrNothingEcoSystem/callforge-ai/pull/22. No merge/deploy/live-call/spend.
+- Ledger synced on branch `docs/ascension-cycle-007` (M03 status → merged, blockers, next actions, progress, milestone JSONs). Push via reviewable docs PR — see PR link below.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate this cycle; last digest (cycle 1, ~04:12 UTC) < 6h ago — no digest sent.
+- Resource usage: ~10 min wall clock; tests + lint only, no worktrees left behind, no persistent processes. Remaining work: owner merge decision on PR #22 (then M03 closed except F-M03-2b → M05); SEC-001 IdP decision owner's (unestimable); TECH-004 owner verdict pending; M04 in progress by concurrent worker; open docs PRs #10/#12/#16/#17/#18/#19/#21 awaiting owner merge decision. Assumption: SQLite remains store until the Postgres gate opens; simulation baseline until EXT-004.
