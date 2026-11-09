@@ -7,10 +7,14 @@
  */
 
 import { createServer } from 'http';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import { parse } from 'url';
 import { initDatabase, getDatabase, closeStore } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
 import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
+import { receiveWebhook } from './workflow/webhookInbox.mjs';
+import { runRecovery } from './workflow/recovery.mjs';
+import { createDispatcher } from './workflow/dispatcher.mjs';
 
 const PORT = process.env.PORT || 3000;
 const SIMULATION_MODE = process.env.SIMULATION_MODE !== 'false'; // Default true for v0.2
@@ -37,10 +41,17 @@ class CallforgeHttpServer {
     this.server = null;
     this.auditLogger = null;
     this.oauth = createOAuthServer();
+    this.recoveryDone = false;
+    this.dispatcher = null;
   }
 
   async initialize() {
     await initDatabase();
+    // M03-2: crash recovery before /ready is reported healthy.
+    const recovery = runRecovery(getDatabase());
+    this.recoveryDone = true;
+    this.dispatcher = createDispatcher(getDatabase());
+    this.dispatcher.start();
     this.auditLogger = createAuditLogger();
     await this.auditLogger.initialize();
 
@@ -48,7 +59,7 @@ class CallforgeHttpServer {
       event_type: 'http_server_initialized',
       actor_type: 'system',
       action: 'initialize_http_server',
-      payload: { simulation_mode: SIMULATION_MODE, port: PORT },
+      payload: { simulation_mode: SIMULATION_MODE, port: PORT, recovery },
     });
   }
 
@@ -101,15 +112,16 @@ class CallforgeHttpServer {
       return;
     }
 
-    // Readiness check
+    // Readiness check — 503 until M03-2 crash recovery has completed.
     if (path === '/ready' && method === 'GET') {
-      const db = getDatabase();
-      const result = db.prepare('SELECT 1').get();
+      const db = this.recoveryDone ? getDatabase() : null;
+      const result = db ? db.prepare('SELECT 1').get() : null;
       res.writeHead(result ? 200 : 503, { 'Content-Type': 'application/json' });
       res.end(
         JSON.stringify({
           ready: !!result,
           database: !!result,
+          recovery: this.recoveryDone,
           timestamp: new Date().toISOString(),
         }),
       );
@@ -156,21 +168,48 @@ class CallforgeHttpServer {
       }
     }
 
-    // Webhook endpoints (disabled in v0.2)
+    // Webhook endpoints (M03-2): HMAC-verified store; 202 stored, 200 duplicate, 401 on bad signature (nothing stored)
     if (path.startsWith('/webhook/')) {
-      res.writeHead(501, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          error: 'Webhooks disabled in v0.2 simulation mode',
-          message: 'Live provider integration requires M05 completion',
-        }),
-      );
+      await this.handleWebhook(req, res, path.slice('/webhook/'.length));
       return;
     }
 
     // 404
     res.writeHead(404, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ error: 'Not found' }));
+  }
+
+  /** M03-2: HMAC-verified webhook store. 401 + nothing stored on failure. */
+  async handleWebhook(req, res, provider) {
+    const chunks = [];
+    for await (const chunk of req) {
+      chunks.push(chunk);
+    }
+    const rawBody = Buffer.concat(chunks).toString();
+    const secret = process.env.WEBHOOK_SECRET || '';
+    const signature = req.headers['x-signature'] || '';
+    if (!secret) {
+      res.writeHead(503, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Webhook receiver not configured' }));
+      return;
+    }
+    const expected = createHmac('sha256', secret).update(rawBody).digest('hex');
+    const given = Buffer.from(signature);
+    const want = Buffer.from(expected);
+    if (given.length !== want.length || !timingSafeEqual(given, want)) {
+      res.writeHead(401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid webhook signature' }));
+      return;
+    }
+    const dedupKey = req.headers['x-dedup-key'] || undefined;
+    const result = receiveWebhook(getDatabase(), {
+      provider: provider || 'unknown',
+      dedupKey,
+      rawBody,
+      signature,
+    });
+    res.writeHead(result.stored ? 202 : 200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ stored: result.stored, id: result.row.id }));
   }
 
   /** M02: authenticate + scope-check. Returns context or sends error response. */

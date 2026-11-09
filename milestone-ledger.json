@@ -1,15 +1,13 @@
 {
   "format_version": "1.1",
-  "updated_at": "2026-11-09T04:05:00Z",
+  "updated_at": "2026-11-09T06:30:00Z",
   "repository": "MrNothingEcoSystem/callforge-ai",
   "source_repository": "Davidcarmelalex/CALLFORGE",
   "acceptance": {
-    "verdict": "ACCEPT WITH FOLLOW-UPS",
-    "accepted_commit": "76bb06235e098904fae390acf48b11b1f57aa7d8",
-    "accepted_by": "INDEPENDENT-AUDITOR",
-    "accepted_at": "2026-11-09T03:58:00Z",
-    "gates_closed": ["REV-001", "CI-001"],
-    "follow_up_issues": "tracked in canonical repository (6 audit follow-ups)"
+    "controlled_integration_merges": "#11 078a34a, #13 24ae222, #15 d77bffe, #7 75308c5, #9 b5c40bc \u2014 all merged, main CI success",
+    "final_main_sha": "b5c40bc11f7fa72495f571ae1250314b15091c52",
+    "post_merge_gate": "typecheck/lint/format PASS, 84/84 tests PASS (11 files)",
+    "SEC-001": "OPEN \u2014 no IdP/prod auth approved"
   },
   "provenance": {
     "SRC-001": "Original v0.2 source bundle unavailable; implementation is specification-derived and is not claimed equivalent to the missing original source. This limitation remains open and is not resolved by M01 acceptance."

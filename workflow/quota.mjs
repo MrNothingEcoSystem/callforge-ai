@@ -1,8 +1,10 @@
 /**
- * CALLFORGE AI — Tenant quota + retention hooks (M03-1)
+ * CALLFORGE AI — Tenant quota + retention (M03-1 + M03-2)
  *
- * checkQuota is enforced at the API layer. applyRetention is dry-run only
- * in M03-1: it reports deletable counts and never deletes.
+ * checkQuota/consumeQuota/releaseQuota: atomic single-guarded-UPDATE
+ * counters; quota can never exceed its limit under parallel consume.
+ * Retention: report-only by default; chunked deletes run only behind the
+ * double env gate (RETENTION_ENABLED=1 AND RETENTION_DRY_RUN=0).
  */
 
 export function checkQuota(db, tenantId, resource) {
@@ -57,4 +59,80 @@ export function applyRetention(db, { dryRun = true } = {}) {
     });
   }
   return report;
+}
+
+/**
+ * M03-2: atomically consume one unit. Single guarded UPDATE…RETURNING —
+ * used < limit is checked in the same statement, so parallel consumes can
+ * never exceed the limit. Returns false when at/over limit or no quota row.
+ */
+export function consumeQuota(db, tenantId, resource) {
+  const row = db
+    .prepare(
+      `UPDATE tenant_quotas SET used = used + 1
+       WHERE tenant_id = ? AND resource = ? AND (limit_value <= 0 OR used < limit_value)
+       RETURNING used, limit_value`,
+    )
+    .get(tenantId, resource);
+  return row ? { consumed: true, used: row.used, limit: row.limit_value } : { consumed: false };
+}
+
+/** M03-2: release one unit (never below zero). */
+export function releaseQuota(db, tenantId, resource) {
+  const row = db
+    .prepare(
+      `UPDATE tenant_quotas SET used = MAX(used - 1, 0)
+       WHERE tenant_id = ? AND resource = ? RETURNING used`,
+    )
+    .get(tenantId, resource);
+  return row ? { released: true, used: row.used } : { released: false };
+}
+
+const RETENTION_DELETE_SQL = {
+  audit_events: `DELETE FROM audit_events WHERE id IN (
+    SELECT id FROM audit_events WHERE tenant_id = ? AND created_at < datetime('now', ?)
+    LIMIT 500)`,
+  call_events: `DELETE FROM call_events WHERE id IN (
+    SELECT ce.id FROM call_events ce JOIN call_intents ci ON ci.id = ce.call_intent_id
+    WHERE ci.tenant_id = ? AND ci.status IN ('completed','failed','rejected','cancelled')
+      AND ce.created_at < datetime('now', ?) LIMIT 500)`,
+  outbox: `DELETE FROM outbox WHERE id IN (
+    SELECT id FROM outbox WHERE tenant_id = ? AND status = 'acked'
+      AND acked_at < datetime('now', ?) LIMIT 500)`,
+};
+
+/** M03-2: plan what would be deleted (report-only). */
+export function planRetention(db) {
+  return applyRetention(db, { dryRun: true });
+}
+
+/**
+ * M03-2: execute chunked deletes (500 rows per statement) behind the double
+ * env gate. Both RETENTION_ENABLED=1 and RETENTION_DRY_RUN=0 are required;
+ * otherwise report-only. Loop terminates when a chunk deletes nothing.
+ */
+export function executeRetention(db, { chunkGuard = 1000 } = {}) {
+  const enabled = process.env.RETENTION_ENABLED === '1';
+  const dryRun = process.env.RETENTION_DRY_RUN !== '0';
+  if (!enabled || dryRun) {
+    return { executed: false, reason: 'double_gate_closed', report: planRetention(db) };
+  }
+  const policies = db.prepare('SELECT * FROM retention_policies').all();
+  const result = [];
+  for (const policy of policies) {
+    const sql = RETENTION_DELETE_SQL[policy.resource];
+    if (!sql) {
+      continue;
+    }
+    let deleted = 0;
+    for (let i = 0; i < chunkGuard; i++) {
+      const r = db.prepare(sql).run(policy.tenant_id, `-${policy.retain_days} days`);
+      deleted += r.changes;
+      if (r.changes === 0) {
+        break;
+      }
+    }
+    result.push({ tenant_id: policy.tenant_id, resource: policy.resource, deleted });
+  }
+  return { executed: true, deleted: result };
 }
