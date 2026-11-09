@@ -9,3 +9,8 @@ Updated: 2026-11-09T04:30Z (cycles 1; supervisor verified)
 - M04-M16: pending/design, blocked as listed in ASCENSION_MILESTONES.json.
 
 No completion percentages are claimed. Remote main at last sync: 75b191acff9cde5a3e8ee6d62033fcd80380a7c2.
+
+## Cycle 17 (2026-11-09T12:34Z)
+
+- Cycle 16 ledger published as draft PR #35 (99760e1).
+- PR #33 (TECH-002 issues #2/#4/#5/#6): independently ACCEPT at head 4c99e8c (112/112 local, CI verify pass). Owner merge pending.
