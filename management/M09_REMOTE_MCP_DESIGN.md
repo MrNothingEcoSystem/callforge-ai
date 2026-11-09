@@ -96,3 +96,25 @@ G. Interop: MCP Inspector + ChatGPT custom connector + Codex, both protocol vers
 3. Remove tenant_id params; enforce token-derived context; delete create_dev_token from remote registry.
 4. Add annotations/securitySchemes/structured outputs; implement elicitation for C2.
 5. Edge rate limiting + Origin + header validation; conformance suite (§7) in CI; OpenAI app-review pass.
+
+## 8. Status update 2026-11-09 (post-M03-2)
+
+M03-2 is MERGED on main (28c9040, 108/108, independently accepted). Security-relevant
+surfaces that now exist and must feed the M09 build:
+
+- Outbox dispatcher (M03-2) with HMAC-verified webhook ingress: 202/200/401/413/400
+  semantics — reuse the same HMAC + size-limit patterns at the /mcp edge.
+- Atomic quota (consume/release) now exists — M09 rate limits should reuse these
+  counters per tenant+tool instead of inventing a new mechanism.
+- Audit events are EXCLUDED from destructive retention (hash-chain integrity).
+  Tool-surface audit rows must follow the same rule.
+
+Blocking gates before /mcp ships:
+
+1. SEC-001 real IdP (nothing network-exposed until then).
+2. Issue #8: token-derived tenant context + scope enforcement on the MCP tool
+   surface (requireScopes is still a no-op in tools/index.mjs).
+3. Remove tenant_id from all tool schemas; 403 on mismatch.
+4. RFC9728 discovery + RFC8707 aud binding to the canonical /mcp URI.
+
+M09 remains design-only: no public endpoint, no deployment, no publication.
