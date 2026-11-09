@@ -16,13 +16,13 @@
 
 ## Technical blockers
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                             | Schedule into M02/M03 branches                  |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
+| ID       | Blocker                                                                                       | Status                                    | Next action |
+| -------- | --------------------------------------------------------------------------------------------- | ----------------------------------------- | ----------- |
+| TECH-001 | Done (cycle 1, ACCEPT WITH FOLLOW-UPS) + PR #31 SEC-003 scope re-derivation ACCEPT (cycle 18) | Owner merge of draft PRs #22/#31/#33      |
+| TECH-002 | Done — PR #33 (112/112, CI SUCCESS, audited ACCEPT cycle 17)                                  | Owner merge of PR #33                     |
+| TECH-003 | Done — M03-1 (PR #9) + M03-2 (PR #20) merged at 28c9040                                       | Quota wiring PR #22 awaiting merge        |
+| TECH-004 | Done (cycle 4) — SQLite retained, rationale documented                                        | Revisit only if scale requirements change |
+| TECH-005 | Done — 19+ cycles executed and logged                                                         | None                                      |
 
 Engineering continues on independent work whenever a gate is blocked.
 
