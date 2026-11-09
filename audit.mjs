@@ -111,7 +111,9 @@ export function createAuditLogger() {
             'SELECT event_hash FROM audit_events WHERE rowid < (SELECT rowid FROM audit_events WHERE id = ?) ORDER BY rowid DESC LIMIT 1',
           )
           .get(fromEventId);
-        if (predecessor) previousHash = predecessor.event_hash;
+        if (predecessor) {
+          previousHash = predecessor.event_hash;
+        }
       }
       let valid = true;
       const errors = [];
