@@ -22,7 +22,7 @@
 | TECH-002 | Issues #2, #4, #5, #6 M01 follow-ups              | **Fixed in draft PR #14 (cycle 3, head d422921, CI PASS)**                                      | Merge decision by owner; issues close on merge                                                                                       |
 | TECH-003 | No durable workflow layer yet                     | M03 design dispatched                                                                           | Implement increment 1                                                                                                                |
 | TECH-004 | Postgres vs SQLite decision                       | **Evaluation filed management/TECH004_POSTGRES_EVALUATION.md (cycle 4); owner verdict pending** | Owner accepts recommendation (SQLite baseline; Postgres gate before multi-writer/live); portability follow-ups a–d scoped into M03-2 |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                                                                                         | Run + verify recovery                                                                                                                |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | **Proven (cycle 5, 2026-11-09)**                                                                | Run + verify recovery                                                                                                                |
 
 Engineering continues on independent work whenever a gate is blocked.
 
