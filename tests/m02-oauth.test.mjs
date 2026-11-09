@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import http from 'node:http';
 import { CallforgeHttpServer } from '../server.mjs';
-import { pkceS256, generateCodeVerifier } from '../oauth.mjs';
+import { pkceS256, generateCodeVerifier, validateAccessToken } from '../oauth.mjs';
 import { generateId, getDatabase, setTestDatabasePath } from '../store.mjs';
 
 const TEST_DB_DIR = mkdtempSync(join(tmpdir(), 'callforge-m02-'));
@@ -224,5 +224,44 @@ describe('M02 OAuth/PKCE and tenant isolation', () => {
     });
     const token = server.oauth.exchange({ code: auth.code, code_verifier: verifier });
     expect(token.scope).toBe('read');
+  });
+
+  it('invalidates the code after a failed PKCE exchange (F5)', async () => {
+    const verifier = generateCodeVerifier();
+    const auth = server.oauth.authorize({
+      tenant_id: tenantA,
+      role: 'operator',
+      scope: ['read'],
+      code_challenge: pkceS256(verifier),
+      code_challenge_method: 'S256',
+    });
+    const bad = server.oauth.exchange({ code: auth.code, code_verifier: 'wrong-verifier' });
+    expect(bad.error).toMatch(/PKCE/);
+    const retry = server.oauth.exchange({ code: auth.code, code_verifier: verifier });
+    expect(retry.error).toMatch(/already used/);
+  });
+
+  it('rejects conversation requests without authentication (F4)', async () => {
+    const res = await request(port, 'POST', '/simulate/conversation', {
+      body: { language: 'en', scenario: 'appointment' },
+    });
+    expect(res.status).toBe(401);
+  });
+
+  it('fails closed when no token secret is configured (F1)', async () => {
+    const savedSecret = process.env.CALLFORGE_TOKEN_SECRET;
+    const savedDev = process.env.CALLFORGE_ALLOW_DEV_SECRET;
+    delete process.env.CALLFORGE_TOKEN_SECRET;
+    delete process.env.CALLFORGE_ALLOW_DEV_SECRET;
+    try {
+      expect(() => validateAccessToken('a.b.c')).toThrow(/CALLFORGE_TOKEN_SECRET/);
+    } finally {
+      if (savedSecret !== undefined) {
+        process.env.CALLFORGE_TOKEN_SECRET = savedSecret;
+      }
+      if (savedDev !== undefined) {
+        process.env.CALLFORGE_ALLOW_DEV_SECRET = savedDev;
+      }
+    }
   });
 });

@@ -343,6 +343,10 @@ class CallforgeHttpServer {
       return;
     }
 
+    // Conversation fixtures are intentionally global seeded data (no tenant
+    // column in conversation_fixtures); the endpoint is still authenticated
+    // + scope-checked above. Tenant-scoped fixtures require a schema change
+    // and must not be added without tenant filtering (M02 audit F4).
     const db = getDatabase();
     const fixture = db
       .prepare('SELECT * FROM conversation_fixtures WHERE language = ? AND scenario = ?')

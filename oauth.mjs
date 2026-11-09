@@ -29,7 +29,17 @@ export const ROLES = {
 const ALL_SCOPES = new Set(Object.values(ROLES).flat());
 
 function tokenSecret() {
-  return process.env.CALLFORGE_TOKEN_SECRET || 'callforge-dev-secret-change-me';
+  // Fail closed: never fall back to a hardcoded secret (M02 audit F1).
+  const secret = process.env.CALLFORGE_TOKEN_SECRET;
+  if (secret) {
+    return secret;
+  }
+  if (process.env.CALLFORGE_ALLOW_DEV_SECRET === 'true') {
+    return 'callforge-dev-secret-change-me';
+  }
+  throw new Error(
+    'CALLFORGE_TOKEN_SECRET is required (or CALLFORGE_ALLOW_DEV_SECRET=true for local tests)',
+  );
 }
 
 function b64url(input) {
@@ -182,7 +192,13 @@ export function createOAuthServer() {
       if (record.client_id !== client_id) {
         return { error: 'Client mismatch' };
       }
-      if (!code_verifier || pkceS256(code_verifier) !== record.code_challenge) {
+      const presented = code_verifier ? Buffer.from(pkceS256(code_verifier)) : Buffer.alloc(0);
+      const expected = Buffer.from(record.code_challenge);
+      const verifierOk =
+        presented.length === expected.length && timingSafeEqual(presented, expected);
+      if (!verifierOk) {
+        // OAuth 2.1: invalidate the code after a failed PKCE check (F5).
+        record.used = true;
         return { error: 'PKCE verification failed' };
       }
       record.used = true;
