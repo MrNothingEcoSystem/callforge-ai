@@ -64,3 +64,13 @@
 - No source changes, no merge/deploy/live-call/spend. Draft PR opened for this branch.
 - Telegram: no milestone acceptance / critical finding this cycle (format fix on a docs draft, not a milestone); a failed gate existed on PR #41 but is remediated in this cycle's draft — no approval request sent. Digest rule: last digest was cycle 1 per main log; however no milestone-level event occurred, so no message sent this cycle.
 - Resource usage: ~6 min wall clock, no worktree, no persistent processes. Remaining work: 0 engineering hours before owner merge decision; SEC-001 unestimable until IdP decision. Assumption: simulation baseline remains deployment mode until EXT-004.
+
+## 2026-11-09 — Cycle 25 (dispatcher, 17:22 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/? (legacy repo untouched).
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Gate check: engineering drafts #22/#24/#26/#31/#33 all OPEN, MERGEABLE, `verify: SUCCESS` at their heads (re-verified this cycle). Main `pnpm test` = 13 files, 108/108 passed. Issues #1, #2, #4, #5, #6, #8 remain open, addressed in accepted drafts awaiting owner merge. No failed gate.
+- No unblocked engineering task: M04 implementation gated on owner merge-order signal for #22/#24/#26/#31/#33; SEC-001 gated on owner IdP decision (EXT-001..EXT-009 unchanged). Blocker recorded, no code change.
+- Ledger bump only (cycles_proven 25) on branch `docs/ascension-cycle-025`, draft PR; no source changes, no merge/deploy/live-call/spend.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate this cycle; no message sent. Digest rule: last digest was cycle 1; no milestone-level event occurred, so no message sent.
+- Resource usage: ~5 min wall clock, no worktree, no persistent processes. Remaining work: 0 engineering hours before owner merge decision; SEC-001 unestimable until IdP decision. Assumption: simulation baseline remains deployment mode until EXT-004.
