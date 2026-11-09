@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Progress
 
-Updated: 2026-11-09T04:30Z (cycles 1; supervisor verified)
+Updated: 2026-11-09T17:54Z (cycle 26; gate check all-green, blocked on owner merge/IdP)
 
 - M00 Discovery: complete (ef277d2)
 - M01 Baseline stabilization: accepted with follow-ups (76bb062), blocker SRC-001/EXT-001
@@ -8,4 +8,6 @@ Updated: 2026-11-09T04:30Z (cycles 1; supervisor verified)
 - M03 Durable workflow: M03-1 implemented on draft PR #9 (head dec034e, 66/66 tests, CI PASS) — migrations, outbox, state machine, webhook inbox, backup/restore. Independent review pending.
 - M04-M16: pending/design, blocked as listed in ASCENSION_MILESTONES.json.
 
-No completion percentages are claimed. Remote main at last sync: 75b191acff9cde5a3e8ee6d62033fcd80380a7c2.
+No completion percentages are claimed. Remote main at last sync: 28c90405b5da65807b9139f05ce0f30bc232bcfe.
+
+- Cycle 26 (17:54Z): main 28c9040, 108/108 local, PRs #24/#26/#31/#33 MERGEABLE/CLEAN verify SUCCESS. Blocked on owner merge-order + SEC-001 IdP decision; EXT-001..EXT-009 unchanged.
