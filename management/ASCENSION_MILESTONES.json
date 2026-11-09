@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-09T07:25:00Z",
+  "updated_at": "2026-11-09T08:20:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -78,8 +78,11 @@
     {
       "id": "M09",
       "name": "Production remote MCP server",
-      "status": "pending",
-      "blockers": ["M02"]
+      "status": "in_progress",
+      "sha": "62973e11428a8998259aa4d51b48a325f8541345",
+      "tests": "114/114 local + CI PASS on PR #26 head 62973e1 (audit only)",
+      "verdict": "NOT ACCEPTED as M09 (cycle 9 audit, PR #26): tenant/scope contract verified; 8/10 tools stubbed, fake success. Draft scaffolding only.",
+      "blockers": ["SEC-001 production IdP (shared with M02)", "F-PR26-1..4 (see ASCENSION_BLOCKERS.md cycle 9)"]
     },
     {
       "id": "M10",
@@ -139,7 +142,7 @@
     "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 1,
-    "last_cycle": "2026-11-09T04:12Z"
+    "cycles_proven": 9,
+    "last_cycle": "2026-11-09T08:20Z"
   }
 }
