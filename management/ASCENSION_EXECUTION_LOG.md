@@ -28,3 +28,49 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-09 — Cycle 22 (dispatcher, 15:14 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Gate check: engineering drafts #22, #24, #26, #31, #33 all `verify: pass`. No failed gate. Issues #1, #2, #4, #5, #6, #8 remain open, addressed in draft PRs #31/#33 awaiting owner merge.
+- Main tests: `pnpm test` = 13 files, 108/108 passed.
+- No unblocked engineering task: M04 implementation gated on owner merge-order signal for #22/#24/#26/#31/#33; SEC-001 gated on owner IdP decision (EXT-001..EXT-009 unchanged). Blocker recorded, no code change.
+- Ledger bump only (cycles_proven 22) on branch `docs/ascension-cycle-022`, draft PR; no source changes, no merge/deploy/live-call/spend.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate this cycle; no message sent.
+- Resource usage: ~5 min wall clock, no worktree, no persistent processes. Remaining work: 0 engineering hours before owner merge decision; M04 implementation ~1 focused session once merge order signaled; SEC-001 unestimable until IdP decision. Assumption: simulation baseline remains deployment mode until EXT-004.
+
+## 2026-11-09 — Cycle 23 (dispatcher, 15:45 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task: independent re-audit of PR #26 (M09 remote MCP) at head `5785f0f` — G-1/G-2 remediation had no verdict at exact head (cycle-11 verdict covered 87ae898).
+- Audit (read-only, isolated worktree): local `pnpm test` = 14 files, 122/122 passed. Exact-head CI `verify` SUCCESS (run 42596890167, headSha 5785f0f confirmed). Probe of `listRemoteTools()`: 10 tools, creating tools readOnlyHint=false / read tools true, consistent with idempotentHint. Code inspection: `guard()` now runs before body read in `createMcpHandler.handle`; unauthenticated oversize body rejected 401/403.
+- Verdict posted on PR #26 (comment 6744361644): ACCEPT WITH FOLLOW-UPS as simulation baseline; G-1/G-2 CLOSED; SEC-001 remains the production gate. No merge authorized.
+- Gate check: engineering drafts #22/#24/#26/#31/#33 all `verify: pass` at their heads; #22/#24/#31/#33 already carry ACCEPT verdicts. No failed gate.
+- Blocker unchanged: owner merge-order decision for drafts #22/#24/#26/#31/#33 and SEC-001 IdP decision (EXT-001..EXT-009). M04 implementation still gated on merge-order signal to avoid stacking on unmerged branches.
+- Ledger bump only on branch `docs/ascension-cycle-023`, draft PR; no source changes, no merge/deploy/live-call/spend.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate this cycle; no message sent.
+- Resource usage: ~8 min wall clock, 1 isolated worktree (removed), no persistent processes. Remaining work: 0 engineering hours before owner merge decision; SEC-001 unestimable until IdP decision. Assumption: simulation baseline remains deployment mode until EXT-004.
+
+## 2026-11-09 — Cycle 24 (dispatcher, 16:49 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task: fix the failed gate on docs draft PR #41 (verify FAILURE at `cb222a6`, step `format:check`, file `management/ASCENSION_MILESTONES.json` only). Reproduced locally (`pnpm format:check` failed on that file only).
+- Fix on branch `docs/ascension-cycle-024` (from cycle-023 tip, supersedes PR #41): prettier-formatted `management/ASCENSION_MILESTONES.json`; ledger bump cycles_proven 24. `pnpm format:check` now passes; `pnpm test` = 13 files, 108/108 passed locally.
+- Gate check: engineering drafts #22/#24/#26/#31/#33 all MERGEABLE with `verify: SUCCESS` at their heads (re-verified this cycle). Issues #1, #2, #4, #5, #6, #8 remain open, addressed in accepted drafts awaiting owner merge. No new failed gate on engineering drafts.
+- Blocker unchanged: owner merge-order decision for drafts #22/#24/#26/#31/#33 and SEC-001 IdP decision (EXT-001..EXT-009). M04 implementation still gated on merge-order signal to avoid stacking on unmerged branches.
+- No source changes, no merge/deploy/live-call/spend. Draft PR opened for this branch.
+- Telegram: no milestone acceptance / critical finding this cycle (format fix on a docs draft, not a milestone); a failed gate existed on PR #41 but is remediated in this cycle's draft — no approval request sent. Digest rule: last digest was cycle 1 per main log; however no milestone-level event occurred, so no message sent this cycle.
+- Resource usage: ~6 min wall clock, no worktree, no persistent processes. Remaining work: 0 engineering hours before owner merge decision; SEC-001 unestimable until IdP decision. Assumption: simulation baseline remains deployment mode until EXT-004.
+
+## 2026-11-09 — Cycle 25 (dispatcher, 17:22 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/? (legacy repo untouched).
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Gate check: engineering drafts #22/#24/#26/#31/#33 all OPEN, MERGEABLE, `verify: SUCCESS` at their heads (re-verified this cycle). Main `pnpm test` = 13 files, 108/108 passed. Issues #1, #2, #4, #5, #6, #8 remain open, addressed in accepted drafts awaiting owner merge. No failed gate.
+- No unblocked engineering task: M04 implementation gated on owner merge-order signal for #22/#24/#26/#31/#33; SEC-001 gated on owner IdP decision (EXT-001..EXT-009 unchanged). Blocker recorded, no code change.
+- Ledger bump only (cycles_proven 25) on branch `docs/ascension-cycle-025`, draft PR; no source changes, no merge/deploy/live-call/spend.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate this cycle; no message sent. Digest rule: last digest was cycle 1; no milestone-level event occurred, so no message sent.
+- Resource usage: ~5 min wall clock, no worktree, no persistent processes. Remaining work: 0 engineering hours before owner merge decision; SEC-001 unestimable until IdP decision. Assumption: simulation baseline remains deployment mode until EXT-004.
