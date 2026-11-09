@@ -147,7 +147,11 @@ describe('Audit Logger', () => {
 
   it('should verify a mid-chain segment without a spurious chain-broken error (issue #2)', async () => {
     await auditLogger.log({ event_type: 'partial_1', actor_type: 'system', action: 'test' });
-    const mid = await auditLogger.log({ event_type: 'partial_2', actor_type: 'system', action: 'test' });
+    const mid = await auditLogger.log({
+      event_type: 'partial_2',
+      actor_type: 'system',
+      action: 'test',
+    });
     await auditLogger.log({ event_type: 'partial_3', actor_type: 'system', action: 'test' });
 
     const full = await auditLogger.verifyChain();
@@ -161,8 +165,16 @@ describe('Audit Logger', () => {
 
   it('should detect tampering inside a mid-chain segment (issue #2)', async () => {
     await auditLogger.log({ event_type: 'seg_1', actor_type: 'system', action: 'test' });
-    const mid = await auditLogger.log({ event_type: 'seg_2', actor_type: 'system', action: 'test' });
-    const tail = await auditLogger.log({ event_type: 'seg_3', actor_type: 'system', action: 'test' });
+    const mid = await auditLogger.log({
+      event_type: 'seg_2',
+      actor_type: 'system',
+      action: 'test',
+    });
+    const tail = await auditLogger.log({
+      event_type: 'seg_3',
+      actor_type: 'system',
+      action: 'test',
+    });
 
     // Tamper with the segment head's payload.
     const db = getDatabase();
