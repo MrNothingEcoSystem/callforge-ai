@@ -1,13 +1,13 @@
 {
   "format_version": "1.1",
-  "updated_at": "2026-11-09T07:25:00Z",
+  "updated_at": "2026-11-09T07:12:00Z",
   "repository": "MrNothingEcoSystem/callforge-ai",
   "source_repository": "Davidcarmelalex/CALLFORGE",
   "acceptance": {
     "controlled_integration_merges": "#11 078a34a, #13 24ae222, #15 d77bffe, #7 75308c5, #9 b5c40bc \u2014 all merged, main CI success",
     "final_main_sha": "b5c40bc11f7fa72495f571ae1250314b15091c52",
-    "M03-2 PR#20": "ACCEPT at 8ef939b (re-review, 108/108) \u2014 merge awaits owner authorization; SEC-001 OPEN",
-    "M03-2 tests": "98/98 at e21b341+review-tests",
+    "M03-2 PR#20": "MERGED at main 28c9040 (gate 108/108); F-M03-2a/F-M03-2c in draft PR #22 (8adef30, 112/112) \u2014 awaiting owner merge; SEC-001 OPEN",
+    "M03-2 tests": "112/112 at 8adef30 (PR #22)",
     "SEC-001": "OPEN \u2014 no IdP/prod auth approved",
     "branch_protection": "proposed in M03_2_REVIEW_RECORD.md \u2014 main currently unprotected, requires owner authorization to apply"
   },

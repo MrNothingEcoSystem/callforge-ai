@@ -1,21 +1,18 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-09T07:12Z (cycle 7; dispatcher)
 
-## Highest priority (supervisor-verified 2026-11-09T04:30Z)
+## Merged since cycle 6
 
-M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 fixed in 65ff410 (73/73, CI PASS). Remaining before M02 can be accepted as production identity:
+M03-2 PR #20 merged to main at `28c9040` (owner; main gate 108/108). F-M03-2a quota API wiring + F-M03-2c default docs implemented in draft PR #22 (head `8adef30`, 112/112 tests, eslint clean) — awaiting owner merge decision. SEC-001 remains OPEN (production blocker; simulation baseline only).
 
-1. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step. Until then M02 is a simulation baseline and must not be network-exposed.
-2. Non-blocking: scope re-derivation from role at token validation; conversation fixture scoping decision (currently documented global).
-3. Owner merge decision on PR #7 (draft, unmerged).
+## Highest priority
 
-## Next engineering
-
-- M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
-- Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
-- M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
+1. PR #22 review/merge decision (owner). On merge, M03 closes except F-M03-2b (webhook processed state — M05) and TECH-004 Postgres verdict.
+2. M04: concurrent worker active on branch `m04-uae-compliance` (d73cc85) — do not touch its write lease.
+3. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step (owner IdP decision; dossier management/SEC001_IDP_DOSSIER.md).
+4. TECH-004 owner verdict: SQLite baseline / Postgres gate recommendation (management/TECH004_POSTGRES_EVALUATION.md).
 
 ## Gates needing owner
 
-EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken by dispatcher.
