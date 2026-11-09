@@ -1,15 +1,18 @@
 {
   "format_version": "1.1",
-  "updated_at": "2026-11-09T07:25:00Z",
+  "updated_at": "2026-11-09T07:45:00Z",
   "repository": "MrNothingEcoSystem/callforge-ai",
   "source_repository": "Davidcarmelalex/CALLFORGE",
   "acceptance": {
     "controlled_integration_merges": "#11 078a34a, #13 24ae222, #15 d77bffe, #7 75308c5, #9 b5c40bc \u2014 all merged, main CI success",
     "final_main_sha": "b5c40bc11f7fa72495f571ae1250314b15091c52",
-    "M03-2 PR#20": "ACCEPT at 8ef939b (re-review, 108/108) \u2014 merge awaits owner authorization; SEC-001 OPEN",
+    "M03-2 PR#20": "MERGED 28c9040 (main CI PASS)",
     "M03-2 tests": "98/98 at e21b341+review-tests",
-    "SEC-001": "OPEN \u2014 no IdP/prod auth approved",
-    "branch_protection": "proposed in M03_2_REVIEW_RECORD.md \u2014 main currently unprotected, requires owner authorization to apply"
+    "SEC-001": "OPEN \u2014 decision package prepared (Option A recommended)",
+    "branch_protection": "proposal prepared \u2014 NOT APPLIED, pending owner authorization",
+    "PR#22 quota-wiring": "ACCEPT at 8adef30 (112/112) \u2014 merged pending owner authorization",
+    "PR#24 M04/M09 docs": "MERGE-READY (docs-only) \u2014 legal/prod gates stay OPEN",
+    "M09 PR#26": "in progress, draft, 114/114"
   },
   "provenance": {
     "SRC-001": "Original v0.2 source bundle unavailable; implementation is specification-derived and is not claimed equivalent to the missing original source. This limitation remains open and is not resolved by M01 acceptance."
@@ -128,5 +131,10 @@
       "status": "pending",
       "depends_on": ["M11"]
     }
-  ]
+  ],
+  "metrics": {
+    "engineering_completion_pct": 55,
+    "publication_readiness_pct": 24,
+    "method": "Evidence-based weighting: M00-M03-2 accepted/merged; M04 design, M09 in-progress, SEC-001 open, no production deployment, no telephony, no plugin submission. Publication readiness unchanged at 24% until SEC-001 + carrier/counsel resolve."
+  }
 }
