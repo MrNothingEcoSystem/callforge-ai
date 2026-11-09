@@ -1,20 +1,16 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-09T06:45Z (cycle 6; dispatcher)
 
-## Highest priority (supervisor-verified 2026-11-09T04:30Z)
+## Merged since cycle 5 (owner, main b5c40bc)
 
-M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 fixed in 65ff410 (73/73, CI PASS). Remaining before M02 can be accepted as production identity:
+M02 PR #7, M03-1 PR #9, docs PRs #11/#13/#15 merged. Open draft PRs: #10, #12, #14, #16, #17, #18, #19 (docs/cleanup), #20 (M03-2), plus this cycle's docs PR.
 
-1. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step. Until then M02 is a simulation baseline and must not be network-exposed.
-2. Non-blocking: scope re-derivation from role at token validation; conversation fixture scoping decision (currently documented global).
-3. Owner merge decision on PR #7 (draft, unmerged).
+## Highest priority
 
-## Next engineering
-
-- M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
-- Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
-- M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
+1. M03-2 PR #20: audited ACCEPT WITH FOLLOW-UPS (cycle 6). Next increment: F-M03-2a — wire consumeQuota/releaseQuota into POST /simulate/call and stateMachine transitions; F-M03-2c — document quota default.
+2. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step (owner IdP decision; dossier management/SEC001_IDP_DOSSIER.md). M02 remains a simulation baseline until then.
+3. TECH-004 owner verdict: SQLite baseline / Postgres gate recommendation (management/TECH004_POSTGRES_EVALUATION.md).
 
 ## Gates needing owner
 

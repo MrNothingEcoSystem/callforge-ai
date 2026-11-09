@@ -1,8 +1,8 @@
 {
-  "program": "CALLFORGE OMEGA \u2014 Project Ascension",
+  "program": "CALLFORGE OMEGA — Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-09T04:25:00Z",
+  "updated_at": "2026-11-09T06:45:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -21,16 +21,12 @@
     {
       "id": "M02",
       "name": "Production identity and tenant isolation",
-      "status": "changes_requested",
+      "status": "merged (simulation baseline; SEC-001 remains production blocker)",
       "branch": "m02-oauth-tenant-isolation",
       "pr": 7,
-      "sha": "ac0adcba2f87efe95e647bb1eda08ba790f0492a",
-      "tests": "70/70",
-      "blockers": [
-        "SEC-001 self-asserted tenant/role at authorize",
-        "SEC-002 default token secret fallback",
-        "independent verdict recorded 2026-11-09 cycle 1"
-      ],
+      "sha": "43689559bf5722c0a27e8e529e6bd6d5f6e83fd9",
+      "tests": "73/73",
+      "blockers": ["SEC-001 self-asserted tenant/role at authorize (owner IdP decision)"],
       "verdict": "REJECT for production identity; ACCEPTABLE only as simulation baseline",
       "audit": {
         "date": "2026-11-09",
@@ -42,20 +38,27 @@
     {
       "id": "M03",
       "name": "Durable persistence and workflow engine",
-      "status": "design",
-      "blockers": ["M02 acceptance", "PostgreSQL evaluation"]
+      "status": "in_review (M03-1 merged; M03-2 PR #20 audited ACCEPT WITH FOLLOW-UPS cycle 6)",
+      "blockers": [
+        "F-M03-2a quota API wiring",
+        "F-M03-2b webhook processed state (M05)",
+        "PostgreSQL evaluation (TECH-004)",
+        "SEC-001"
+      ],
+      "sha": "6c0ffb9876a35d473acb8ccaeda709ba0c2970dd",
+      "tests": "92/92 (PR #20 head e21b341)"
     },
     {
       "id": "M04",
       "name": "UAE compliance and human approval",
       "status": "pending",
-      "blockers": ["M02", "M03", "EXT-002 legal review"]
+      "blockers": ["M03 audit follow-ups", "EXT-002 legal review"]
     },
     {
       "id": "M05",
       "name": "Provider-neutral telephony architecture",
       "status": "pending",
-      "blockers": ["M03", "EXT-003 carrier authorization"]
+      "blockers": ["M03 audit follow-ups", "EXT-003 carrier authorization"]
     },
     {
       "id": "M06",
@@ -139,7 +142,7 @@
     "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 1,
+    "cycles_proven": 6,
     "last_cycle": "2026-11-09T04:12Z"
   }
 }
