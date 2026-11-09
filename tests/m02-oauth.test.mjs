@@ -5,7 +5,8 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import http from 'node:http';
 import { CallforgeHttpServer } from '../server.mjs';
-import { pkceS256, generateCodeVerifier, validateAccessToken } from '../oauth.mjs';
+import { pkceS256, generateCodeVerifier, validateAccessToken, ISSUER, AUDIENCE } from '../oauth.mjs';
+import { createHmac } from 'node:crypto';
 import { generateId, getDatabase, setTestDatabasePath } from '../store.mjs';
 
 const TEST_DB_DIR = mkdtempSync(join(tmpdir(), 'callforge-m02-'));
@@ -63,6 +64,19 @@ async function issueToken(
     throw new Error(token.error);
   }
   return token.access_token;
+}
+
+
+function forgeToken(claims) {
+  const b64 = v => Buffer.from(v).toString('base64url');
+  const header = b64(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
+  const body = b64(JSON.stringify(claims));
+  const sig = b64(createHmac('sha256', 'callforge-dev-secret-change-me').update(`${header}.${body}`).digest());
+  return `${header}.${body}.${sig}`;
+}
+function baseClaims(over = {}) {
+  const now = Math.floor(Date.now() / 1000);
+  return { iss: ISSUER, aud: AUDIENCE, sub: 't', tenant_id: 't', role: 'auditor', scope: ['read'], iat: now, exp: now + 900, ...over };
 }
 
 describe('M02 OAuth/PKCE and tenant isolation', () => {
@@ -264,5 +278,26 @@ describe('M02 OAuth/PKCE and tenant isolation', () => {
         process.env.CALLFORGE_ALLOW_DEV_SECRET = savedDev;
       }
     }
+  });
+
+  it('SEC-003: rejects a token whose scope exceeds its role (forged auditor+simulate)', () => {
+    const forged = forgeToken(baseClaims({ scope: ['read', 'simulate'] }));
+    const result = validateAccessToken(forged);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/scope exceeds role/);
+  });
+
+  it('SEC-003: rejects a token with an unknown role', () => {
+    const forged = forgeToken(baseClaims({ role: 'superuser' }));
+    const result = validateAccessToken(forged);
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/unknown role/);
+  });
+
+  it('SEC-003: accepts a token whose scope is within its role', () => {
+    const forged = forgeToken(baseClaims({ role: 'tenant_admin', scope: ['simulate', 'admin'] }));
+    const result = validateAccessToken(forged);
+    expect(result.valid).toBe(true);
+    expect(result.context.scopes).toEqual(['simulate', 'admin']);
   });
 });
