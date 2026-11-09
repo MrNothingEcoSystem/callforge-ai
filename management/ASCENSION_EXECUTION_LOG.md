@@ -28,3 +28,13 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-09 — Cycle 18 (dispatcher, 13:06 UTC)
+
+- Sync: `git fetch`; local HEAD = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, pnpm 12.18.0.
+- Selected task: independent verification of PR #31 (SEC-003 scope re-derivation, head `7e680a6`). Repo-wide open-draft CI check: PRs 22/24/26/31/33 all `verify: SUCCESS` — no failed gate.
+- Verification (isolated worktree at `7e680a6`, removed afterwards): `pnpm test` = 13 files, 111/111 passed. Mutation check with pre-fix `oauth.mjs` (28c9040): 2 of 3 SEC-003 regression tests fail (scope-exceeds + unknown-role); with fix all pass. The third (within-role positive) passes in both, as expected.
+- Verdict: ACCEPT for PR #31. `validateAccessToken` now re-derives scopes from `ROLES[role]`, fails closed on unknown role / empty scope / scope beyond role. SEC-003 scope re-derivation is closed pending owner merge (draft PR #31, not merged by dispatcher).
+- Remote SHA verified: `git rev-parse origin/main` = `28c9040...` after push of ledger branch; docs pushed as draft PR (see next entry).
+- Resource usage: ~5 min wall clock, 1 ephemeral worktree, no persistent processes. Remaining work estimate: SEC-001 blocked on owner IdP decision (Option A/B + counsel + budget); 4 other draft PRs (22 quota wiring, 24 M04 plan, 26 M09, 33 M01 follow-ups) all CI-green and awaiting owner merge — no engineering required. M04 implementation start is the next engineering task once owner signals merge order. Assumption: simulation baseline remains deployment mode until EXT-004.
