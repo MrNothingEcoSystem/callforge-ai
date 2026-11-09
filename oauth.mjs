@@ -100,7 +100,17 @@ export function validateAccessToken(token, nowSeconds = Math.floor(Date.now() / 
   if (!claims.tenant_id) {
     return { valid: false, error: 'Token has no tenant binding' };
   }
+  // SEC-003: never trust the in-token scope claim. Re-derive the
+  // authorized scope set from the token's role and fail closed if the
+  // claimed scopes exceed what that role may hold (or role is unknown).
+  if (!claims.role || !ROLES[claims.role]) {
+    return { valid: false, error: 'Token has unknown role' };
+  }
+  const roleScopes = ROLES[claims.role];
   const scopes = Array.isArray(claims.scope) ? claims.scope : [];
+  if (scopes.length === 0 || scopes.some(s => !roleScopes.includes(s))) {
+    return { valid: false, error: 'Token scope exceeds role' };
+  }
   return {
     valid: true,
     context: {
