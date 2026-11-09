@@ -139,7 +139,7 @@ describe('M03-2 orchestration', () => {
     ).run(tenantId, 'outbox', 0);
     // Seed deletable rows: acked outbox rows older than the retention window.
     db.prepare(
-      'UPDATE outbox SET status = \'acked\', tenant_id = ?, acked_at = datetime(\'now\', \'-2 days\')',
+      "UPDATE outbox SET status = 'acked', tenant_id = ?, acked_at = datetime('now', '-2 days')",
     ).run(tenantId);
     const before = db.prepare('SELECT COUNT(*) n FROM outbox').get().n;
     delete process.env.RETENTION_ENABLED;
