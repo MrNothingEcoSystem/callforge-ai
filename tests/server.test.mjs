@@ -1,7 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+process.env.CALLFORGE_ALLOW_DEV_SECRET ??= 'true';
 import { join } from 'node:path';
 import { mkdirSync } from 'node:fs';
 import { CallforgeHttpServer } from '../server.mjs';
+import { pkceS256, generateCodeVerifier } from '../oauth.mjs';
 import {
   closeStore,
   generateId,
@@ -51,14 +53,31 @@ describe('HTTP simulation tenant isolation', () => {
 
   it('does not return another tenant call intent by ID', async () => {
     const server = new CallforgeHttpServer();
+    const verifier = generateCodeVerifier();
+    const auth = server.oauth.authorize({
+      tenant_id: tenantA,
+      role: 'operator',
+      scope: ['read'],
+      code_challenge: pkceS256(verifier),
+      code_challenge_method: 'S256',
+    });
+    const { access_token } = server.oauth.exchange({ code: auth.code, code_verifier: verifier });
     const response = createResponse();
 
-    await server.handleSimulateStatus({}, response, {
-      tenant_id: tenantA,
-      call_intent_id: callIntentId,
-    });
+    await server.handleSimulateStatus(
+      { headers: { authorization: `Bearer ${access_token}` } },
+      response,
+      { call_intent_id: callIntentId },
+    );
 
     expect(response.statusCode).toBe(404);
     expect(JSON.parse(response.body).error).toBe('Call intent not found');
+  });
+
+  it('rejects unauthenticated status requests', async () => {
+    const server = new CallforgeHttpServer();
+    const response = createResponse();
+    await server.handleSimulateStatus({ headers: {} }, response, { call_intent_id: callIntentId });
+    expect(response.statusCode).toBe(401);
   });
 });
