@@ -35,3 +35,13 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 8 — PR #22 independent audit (2026-11-09, PR #22 head 8adef30)
+
+| ID       | Finding                                                                                                                                                                                                                                         |
+| -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F-PR22-1 | Release-after-quota-row-added edge: intent created while tenant was unlimited (no row), quota row added later, then rejected/cancelled → `releaseQuota` decrements a counter that was never incremented. Bounded (floors at 0); favours tenant. | Non-blocking note             |
+| F-PR22-2 | `consumeQuota` increments `used` even for `limit_value <= 0` ("unlimited") rows; `used` grows unbounded and a later limit change inherits a high counter.                                                                                       | Non-blocking                  |
+| F-PR22-3 | Fail-open default (no quota row = unlimited) is correct for simulation but must flip to fail-closed before M04 campaign dialing.                                                                                                                | Design follow-up before M04-1 |
+
+Verdict: **ACCEPT WITH FOLLOW-UPS** — 112/112 local tests, eslint/prettier clean, CI `verify` SUCCESS.

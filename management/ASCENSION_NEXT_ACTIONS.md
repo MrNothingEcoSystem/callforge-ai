@@ -1,21 +1,19 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-09T07:45Z (cycle 8)
 
-## Highest priority (supervisor-verified 2026-11-09T04:30Z)
+## Highest priority
 
-M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 fixed in 65ff410 (73/73, CI PASS). Remaining before M02 can be accepted as production identity:
+1. Owner merge decision on draft PR #22 (quota wiring, audit ACCEPT WITH FOLLOW-UPS, 112/112 + CI PASS). No merge taken by dispatcher.
+2. SEC-001 production IdP: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step. Owner decision required (IdP choice). Until then: simulation baseline only, no network exposure.
+3. Owner merge decision on draft PR #24 (M04/M09 design docs, unmerged).
 
-1. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step. Until then M02 is a simulation baseline and must not be network-exposed.
-2. Non-blocking: scope re-derivation from role at token validation; conversation fixture scoping decision (currently documented global).
-3. Owner merge decision on PR #7 (draft, unmerged).
+## Next engineering (unblocked)
 
-## Next engineering
-
-- M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
-- Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
-- M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
+- M04 implementable controls (M04-1 quota-gated campaign dialing on top of PR #22; M04-2 DNCR/consent registry) — design only until EXT-002 sign-off; see draft PR #24.
+- PR #22 follow-ups (non-blocking): skip unused-increment for limit<=0 rows; release-after-quota-row-added edge; fail-closed default for M04 campaign dialing.
+- M09 MCP surface (issue #8) before M09 milestone.
 
 ## Gates needing owner
 
-EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken by dispatcher.
