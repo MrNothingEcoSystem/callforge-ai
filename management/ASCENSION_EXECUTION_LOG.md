@@ -28,3 +28,12 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-09 — Cycle 26 (dispatcher, 17:54 UTC)
+
+- Sync: `git fetch`; local HEAD = origin/main = `28c9040` (merge PR #20 m03-2-orchestration). No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2, corepack pnpm 12.18.0.
+- Gate check: `pnpm test` on main = 13 files, 108/108 passed. Engineering PRs #24 (M04/M09 docs), #26 (M09 MCP), #31 (SEC-003), #33 (M01 follow-ups) all MERGEABLE/CLEAN with CI `verify` SUCCESS; latest ledger PR #43 also green.
+- No unblocked engineering task: all remaining engineering sits in draft PRs awaiting the owner merge-order decision; production identity blocked on SEC-001 IdP decision; EXT-001..EXT-009 unchanged. No source changes this cycle.
+- Recorded in draft PR #44 (ledger only). No merge, deploy, live calls, spend, or publish.
+- Resource usage: ~8 min wall clock, local test run only, no worktrees. Remaining work: unchanged from cycle 25 — 4 engineering PRs pending one owner merge-order + IdP decision; SEC-001 unestimable until IdP chosen (assumption: simulation baseline remains deployment mode until EXT-004).
