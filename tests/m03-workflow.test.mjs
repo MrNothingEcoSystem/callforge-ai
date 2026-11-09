@@ -168,6 +168,21 @@ describe('M03 durable workflow', () => {
     );
   });
 
+  it('records unknown-intent provider events as stale without FK errors', () => {
+    const db = getDatabase();
+    const result = reconcileProviderEvent(db, {
+      provider: 'sandbox',
+      providerEventId: 'pe-unknown',
+      callIntentId: generateId(),
+      eventType: 'call.completed',
+    });
+    expect(result.ignored_stale).toBe(true);
+    const row = db
+      .prepare('SELECT call_intent_id FROM provider_events WHERE provider_event_id = ?')
+      .get('pe-unknown');
+    expect(row.call_intent_id).toBeNull();
+  });
+
   it('quota hooks allow/deny and retention is dry-run only', () => {
     const db = getDatabase();
     const { tenantId } = seedTenantAndIntent(db);

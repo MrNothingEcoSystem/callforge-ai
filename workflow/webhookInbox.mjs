@@ -70,7 +70,9 @@ export function reconcileProviderEvent(
         generateId(),
         provider,
         providerEventId,
-        callIntentId || null,
+        // Unknown intents MUST be recorded with NULL FK — inserting the
+        // bogus id throws FOREIGN KEY constraint failed (re-review finding).
+        intent ? callIntentId : null,
         eventType,
         JSON.stringify(payload),
       );
