@@ -2,12 +2,12 @@
 
 ## Verdict history (PR #9, `m03-durable-workflow`)
 
-| Head      | Verdict                                                      | Reviewer                   | Date       |
-| --------- | ------------------------------------------------------------ | -------------------------- | ---------- |
-| `dec034e` | **REJECT** — 4 blocking defects                              | Independent reviewer       | 2026-11-09 |
-| `d8f7df0` | **ACCEPT WITH FOLLOW-UPS**                                   | Dispatcher cycle-2 auditor | 2026-11-09 |
-| `d8f7df0` | **REJECT** — 1 remaining blocking defect (unknown-intent FK) | Adversarial re-reviewer    | 2026-11-09 |
-| `6c0ffb9` | Re-verification pending                                      | —                          | —          |
+| Head      | Verdict                                                               | Reviewer                   | Date       |
+| --------- | --------------------------------------------------------------------- | -------------------------- | ---------- |
+| `dec034e` | **REJECT** — 4 blocking defects                                       | Independent reviewer       | 2026-11-09 |
+| `d8f7df0` | **ACCEPT WITH FOLLOW-UPS**                                            | Dispatcher cycle-2 auditor | 2026-11-09 |
+| `d8f7df0` | **REJECT** — 1 remaining blocking defect (unknown-intent FK)          | Adversarial re-reviewer    | 2026-11-09 |
+| `6c0ffb9` | **ACCEPT** (focused re-verification, all probes pass, 69/69, CI PASS) | Independent re-verifier    | 2026-11-09 |
 
 ## The four original blocking defects (fixed in `d8f7df0`)
 
@@ -24,8 +24,10 @@
 Two independent reviews of `d8f7df0` disagreed: the cycle-2 auditor
 accepted; the adversarial re-reviewer rejected on defect (4). The
 adversarial finding was reproduced and is correct — the acceptance was
-premature. Head `6c0ffb9` (69/69 tests, CI PASS) requires one more
-re-verification before M03-1 can be recorded as accepted.
+premature. Head `6c0ffb9` received a focused re-verification: **ACCEPT**
+(69/69 tests, CI PASS run 42563370184). M03-1 is accepted pending owner
+merge authorization per the dependency-safe sequence (rebase onto merged
+M02 first).
 
 ## Non-blocking follow-ups (M03-2)
 
