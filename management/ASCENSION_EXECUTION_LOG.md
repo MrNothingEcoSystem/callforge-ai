@@ -28,3 +28,11 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-09 — Cycle 28 (dispatcher, 20:03 UTC)
+
+- Sync: local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`; working tree clean. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2, corepack pnpm; `pnpm test` on main = 13 files, 108/108 passed.
+- Gate check: PRs #22 (m03-2-quota-wiring), #24 (m04-uae-compliance), #26 (m09-remote-mcp), #31 (sec003-scope-rederivation), #33 (cleanup-m01-followups-rebased) all MERGEABLE with `verify` CI pass. Cycle 27's conclusion stands: no unblocked engineering.
+- Blocker unchanged: owner merge-order decision for the five merge-ready draft PRs, and SEC-001 IdP decision (issue #1; management/SEC001_IDP_DOSSIER.md exists). EXT-001..EXT-009 unchanged. No merge/deploy/live-call/spend, no Telegram send (no new milestone, finding, blocker, or gate failure; no approval request beyond the standing merge/IdP decisions).
+- Resource usage: ~10 min wall clock, 0 new branches beyond the ledger branch, no processes left running. Remaining work estimate: unchanged from cycle 27 — unblocked only when owner merge-order + IdP decisions land; assumed ≤1 cycle to reconcile PR52-series ledger after merges.
