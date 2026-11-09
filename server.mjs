@@ -10,14 +10,33 @@ import { createServer } from 'http';
 import { parse } from 'url';
 import { initDatabase, getDatabase, closeStore } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
+import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
 
 const PORT = process.env.PORT || 3000;
 const SIMULATION_MODE = process.env.SIMULATION_MODE !== 'false'; // Default true for v0.2
+
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let body = '';
+    req.on('data', chunk => {
+      body += chunk;
+    });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(body || '{}'));
+      } catch (e) {
+        reject(e);
+      }
+    });
+    req.on('error', reject);
+  });
+}
 
 class CallforgeHttpServer {
   constructor() {
     this.server = null;
     this.auditLogger = null;
+    this.oauth = createOAuthServer();
   }
 
   async initialize() {
@@ -97,18 +116,40 @@ class CallforgeHttpServer {
       return;
     }
 
-    // Simulation endpoints (v0.2 only)
+    // OAuth 2.1 endpoints (M02): authorize + token + discovery
+    if (path === '/oauth/authorize' && method === 'POST') {
+      await this.handleOAuthAuthorize(req, res);
+      return;
+    }
+    if (path === '/oauth/token' && method === 'POST') {
+      await this.handleOAuthToken(req, res);
+      return;
+    }
+    if (path === '/.well-known/oauth-authorization-server' && method === 'GET') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          issuer: ISSUER,
+          audience: AUDIENCE,
+          authorization_endpoint: '/oauth/authorize',
+          token_endpoint: '/oauth/token',
+          code_challenge_methods_supported: ['S256'],
+          grant_types_supported: ['authorization_code'],
+        }),
+      );
+      return;
+    }
+
+    // Simulation endpoints (v0.2 only) — M02: authenticated + scoped
     if (SIMULATION_MODE) {
       if (path === '/simulate/call' && method === 'POST') {
         await this.handleSimulateCall(req, res);
         return;
       }
-
       if (path === '/simulate/conversation' && method === 'POST') {
         await this.handleSimulateConversation(req, res);
         return;
       }
-
       if (path === '/simulate/status' && method === 'GET') {
         await this.handleSimulateStatus(req, res, query);
         return;
@@ -132,14 +173,79 @@ class CallforgeHttpServer {
     res.end(JSON.stringify({ error: 'Not found' }));
   }
 
+  /** M02: authenticate + scope-check. Returns context or sends error response. */
+  guard(req, res, requiredScopes) {
+    const auth = this.oauth.authenticate(req);
+    if (!auth.valid) {
+      res.writeHead(auth.status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: auth.error }));
+      return null;
+    }
+    const check = this.oauth.authorizeScopes(auth.context, requiredScopes);
+    if (!check.authorized) {
+      res.writeHead(check.status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: check.error }));
+      return null;
+    }
+    return auth.context;
+  }
+
+  /** M02: a client-supplied tenant_id must never widen the token tenant. */
+  rejectTenantMismatch(res, claimedTenantId, context) {
+    if (claimedTenantId && claimedTenantId !== context.tenantId) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({ error: 'Tenant mismatch: token tenant does not match request tenant' }),
+      );
+      return true;
+    }
+    return false;
+  }
+
+  async handleOAuthAuthorize(req, res) {
+    const body = await readJsonBody(req);
+    const result = this.oauth.authorize(body);
+    if (result.error) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: result.error }));
+      return;
+    }
+    await this.auditLogger.log({
+      tenant_id: body.tenant_id,
+      event_type: 'oauth_authorize',
+      actor_type: 'system',
+      action: 'authorize',
+      payload: { client_id: body.client_id || 'callforge-sim', role: body.role || 'operator' },
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(result));
+  }
+
+  async handleOAuthToken(req, res) {
+    const body = await readJsonBody(req);
+    const result = this.oauth.exchange(body);
+    if (result.error) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: result.error }));
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(result));
+  }
+
   async handleSimulateCall(req, res) {
+    const context = this.guard(req, res, ['simulate']);
+    if (!context) {
+      return;
+    }
+    const tenant_id = context.tenantId;
     let body = '';
     for await (const chunk of req) {
       body += chunk;
     }
 
     const {
-      tenant_id,
+      tenant_id: claimed_tenant_id,
       idempotency_key,
       direction,
       from_number,
@@ -149,11 +255,12 @@ class CallforgeHttpServer {
       business_context,
     } = JSON.parse(body || '{}');
 
-    if (!tenant_id || !idempotency_key || !direction) {
+    if (this.rejectTenantMismatch(res, claimed_tenant_id, context)) {
+      return;
+    }
+    if (!idempotency_key || !direction) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({ error: 'Missing required fields: tenant_id, idempotency_key, direction' }),
-      );
+      res.end(JSON.stringify({ error: 'Missing required fields: idempotency_key, direction' }));
       return;
     }
 
@@ -219,6 +326,10 @@ class CallforgeHttpServer {
   }
 
   async handleSimulateConversation(req, res) {
+    const context = this.guard(req, res, ['read']);
+    if (!context) {
+      return;
+    }
     let body = '';
     for await (const chunk of req) {
       body += chunk;
@@ -255,11 +366,19 @@ class CallforgeHttpServer {
   }
 
   async handleSimulateStatus(req, res, query) {
-    const { tenant_id, call_intent_id } = query;
+    const context = this.guard(req, res, ['read']);
+    if (!context) {
+      return;
+    }
+    const tenant_id = context.tenantId;
+    const { tenant_id: claimed_tenant_id, call_intent_id } = query;
 
-    if (!tenant_id || !call_intent_id) {
+    if (this.rejectTenantMismatch(res, claimed_tenant_id, context)) {
+      return;
+    }
+    if (!call_intent_id) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: 'Missing tenant_id or call_intent_id query parameter' }));
+      res.end(JSON.stringify({ error: 'Missing call_intent_id query parameter' }));
       return;
     }
 
@@ -308,7 +427,7 @@ class CallforgeHttpServer {
 
   async shutdown() {
     if (this.server) {
-      this.server.close();
+      await new Promise(resolve => this.server.close(() => resolve(undefined)));
     }
     await closeStore();
   }

@@ -6,20 +6,20 @@ hardware discipline applied to a simulation-first voice platform.
 
 ## Assets
 
-| Asset | File | Use |
-|---|---|---|
-| Primary mark | `callforge-mark.svg` | App icon, favicon source, avatars |
-| Banner | `callforge-banner.svg` | README header, docs, presentations |
+| Asset        | File                   | Use                                |
+| ------------ | ---------------------- | ---------------------------------- |
+| Primary mark | `callforge-mark.svg`   | App icon, favicon source, avatars  |
+| Banner       | `callforge-banner.svg` | README header, docs, presentations |
 
 ## Palette
 
-| Token | Hex | Role |
-|---|---|---|
-| `--cf-obsidian` | `#0B0F16` | Deep background, chip body |
-| `--cf-graphite` | `#1B2230` | Raised surfaces |
-| `--cf-gold` | `#C9A227` | Primary accent, pins, wordmark gradient |
-| `--cf-gold-light` | `#F2D98C` | Highlights, signal core |
-| `--cf-bone` | `#F5E7C1` | Primary text on dark |
+| Token             | Hex       | Role                                    |
+| ----------------- | --------- | --------------------------------------- |
+| `--cf-obsidian`   | `#0B0F16` | Deep background, chip body              |
+| `--cf-graphite`   | `#1B2230` | Raised surfaces                         |
+| `--cf-gold`       | `#C9A227` | Primary accent, pins, wordmark gradient |
+| `--cf-gold-light` | `#F2D98C` | Highlights, signal core                 |
+| `--cf-bone`       | `#F5E7C1` | Primary text on dark                    |
 
 ## Typography
 
