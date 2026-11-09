@@ -1,0 +1,11 @@
+node_modules/
+data/
+coverage/
+.vitest-cache/
+.vite/
+.vite-temp/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
