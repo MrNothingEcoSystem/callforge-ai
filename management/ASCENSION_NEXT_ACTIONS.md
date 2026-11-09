@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:52Z (cycle 3)
+Updated: 2026-11-09T05:30Z (cycle 4)
 
 ## Highest priority (supervisor-verified 2026-11-09T04:30Z)
 
@@ -11,6 +11,8 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 3. Owner merge decision on PR #7 (draft, unmerged).
 
 ## Next engineering
+
+- TECH-004 evaluation filed this cycle (`management/TECH004_POSTGRES_EVALUATION.md`): owner verdict requested on SQLite-baseline / Postgres-gate recommendation. Portability follow-ups (a–d) scouted for M03-2.
 
 - M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
 - Issues #2, #4, #5, #6: FIXED in draft PR #14 (cycle 3, head d422921, CI PASS). Issue #8 (MCP surface) before M09 — see M09_REMOTE_MCP_DESIGN.md (filed management/ this cycle, design only, M09 blocked by M02).

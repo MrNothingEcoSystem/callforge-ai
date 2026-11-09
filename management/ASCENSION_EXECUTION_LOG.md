@@ -50,3 +50,13 @@
 - Filed research artifacts into management/ on this docs branch: M09_REMOTE_MCP_DESIGN.md (design only, M09 blocked by M02) and UAE_COMPLIANCE_REGISTER.md (M04 register draft, EXT-002 still required).
 - Telegram: no milestone acceptance / critical finding / external blocker / failed gate this cycle; last digest (cycle 1) < 6h ago — no digest sent.
 - Resource usage: ~13 min wall clock; installs/tests only, no persistent processes. Remaining work: owner merge decisions on PRs #7, #9, #10, #12, #14 (all draft/unmerged); M03-2 needs M02+M03-1 merged first; SEC-001 IdP decision owner's (unestimable); issue #8 (MCP surface) before M09. Assumption: SQLite remains store until TECH-004 concludes; simulation baseline until EXT-004.
+
+## 2026-11-09 — Cycle 4 (dispatcher, 05:21 UTC)
+
+- Sync: `git fetch origin`; local branch `docs/ascension-cycle-003` at `6eb15aa7c2b4d349fb0e6ab604ee62477b6ac8f6` = origin; remote main = `75b191acff9cde5a3e8ee6d62033fcd80380a7c2`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain: Node v24.22.2, corepack 0.36.0, pnpm 12.18.0 at /root/.hermes/cache/scratch/node24/bin. Verified.
+- Selected highest-priority unblocked task: TECH-004 (Postgres vs SQLite design deliverable). SEC-001 IdP decision and M02/M03 merges remain owner-gated; M03-2 precondition (M02+M03-1 merged) not met; TECH-002 already fixed in draft PR #14.
+- Delivered `management/TECH004_POSTGRES_EVALUATION.md` on branch `docs/ascension-cycle-004`: evidence against main `75b191a` + M03 head `6c0ffb9`; recommendation = keep SQLite for simulation baseline, adopt Postgres before multi-writer/live (EXT-004-adjacent gate), four portability follow-ups scoped into M03-2. No migration, merge, deploy, live call, or spend.
+- Tests: `pnpm test` on this branch = 9 files, 58/58 passed in 1.41s. Docs-only change; CI pending on PR.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate this cycle; last digest (cycle 1) < 6h ago — no digest sent.
+- Resource usage: ~12 min wall clock; tests + read-only git inspection, no persistent processes, no worktree left behind. Remaining work: owner verdict on TECH-004 recommendation + merge decisions on PRs #7, #9, #10, #12, #14; M03-2 (dispatcher loop + F-M03-01/02/04 + TECH-004 follow-ups a–d) ~1 focused session after M02+M03-1 merge; SEC-001 IdP decision owner's (unestimable). Assumption: SQLite remains store until the Postgres gate opens; simulation baseline until EXT-004.
