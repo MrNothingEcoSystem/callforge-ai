@@ -5,12 +5,26 @@
  * counters; quota can never exceed its limit under parallel consume.
  * Retention: report-only by default; chunked deletes run only behind the
  * double env gate (RETENTION_ENABLED=1 AND RETENTION_DRY_RUN=0).
+ *
+ * Quota default (F-M03-2c): a tenant with NO tenant_quotas row for a
+ * resource is UNLIMITED (fail-open) — checkQuota returns {allowed:true}.
+ * consumeQuota still fails closed ({consumed:false}) when no row exists,
+ * so callers MUST use getQuotaRow and only treat deny as a limit when a
+ * row actually exists. Enforced by POST /simulate/call (consume on
+ * create) and released by stateMachine transitions to rejected/cancelled.
+ * A limit_value <= 0 also means unlimited; otherwise the limit is a hard
+ * cap enforced atomically at consume time.
  */
 
-export function checkQuota(db, tenantId, resource) {
-  const row = db
+/** Returns the quota rule row, or undefined when the tenant is unlimited. */
+export function getQuotaRow(db, tenantId, resource) {
+  return db
     .prepare('SELECT limit_value, used FROM tenant_quotas WHERE tenant_id = ? AND resource = ?')
     .get(tenantId, resource);
+}
+
+export function checkQuota(db, tenantId, resource) {
+  const row = getQuotaRow(db, tenantId, resource);
   if (!row || row.limit_value <= 0) {
     return { allowed: true };
   }
