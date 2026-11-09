@@ -28,3 +28,11 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-09 — Cycle 29 (dispatcher, 21:09 UTC)
+
+- Sync: `git fetch`; local HEAD = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm. `pnpm test` on main: 13 files, 108/108 passed (726ms). CI: run 42577000284 success at 28c9040.
+- Gate check: PRs #22 (quota wiring), #24 (M04/M09 docs), #26 (M09 remote MCP), #31 (SEC-003 scope re-derivation), #33 (M01 follow-ups), #46 (cycle-28 ledger) all MERGEABLE + CLEAN. No unblocked engineering task identified; work remains blocked on owner merge-order decision and SEC-001 IdP decision (issue #1; dossier in management/SEC001_IDP_DOSSIER.md). EXT-001..009 unchanged.
+- No merge/deploy/live-call/spend. No Telegram send (no milestone acceptance, critical finding, or approval request this cycle; last digest check per log — none recorded since cycle 1 policy window, and no digest trigger met).
+- Resource usage: ~6 min wall clock, read-only except ledger branch. Remaining work: unchanged from cycle 28 — owner merge-order + IdP decisions unblock downstream; estimate not possible until decided. Assumption: simulation-baseline posture holds.
