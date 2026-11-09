@@ -1,8 +1,8 @@
 {
-  "program": "CALLFORGE OMEGA — Project Ascension",
+  "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-09T04:15:00Z",
+  "updated_at": "2026-11-09T04:25:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -21,12 +21,23 @@
     {
       "id": "M02",
       "name": "Production identity and tenant isolation",
-      "status": "in_review",
+      "status": "changes_requested",
       "branch": "m02-oauth-tenant-isolation",
       "pr": 7,
       "sha": "ac0adcba2f87efe95e647bb1eda08ba790f0492a",
       "tests": "70/70",
-      "blockers": ["independent security verdict pending"]
+      "blockers": [
+        "SEC-001 self-asserted tenant/role at authorize",
+        "SEC-002 default token secret fallback",
+        "independent verdict recorded 2026-11-09 cycle 1"
+      ],
+      "verdict": "REJECT for production identity; ACCEPTABLE only as simulation baseline",
+      "audit": {
+        "date": "2026-11-09",
+        "tests_local": "70/70",
+        "ci": "pass (run 42559869614)",
+        "head": "ac0adcba2f87efe95e647bb1eda08ba790f0492a"
+      }
     },
     {
       "id": "M03",
@@ -125,9 +136,10 @@
     "EXT-009"
   ],
   "dispatcher": {
-    "status": "initializing",
+    "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 0
+    "cycles_proven": 1,
+    "last_cycle": "2026-11-09T04:12Z"
   }
 }
