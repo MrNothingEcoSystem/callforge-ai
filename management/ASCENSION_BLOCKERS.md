@@ -19,7 +19,7 @@
 | ID       | Blocker                                           | Status                           | Next action                                     |
 | -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
 | TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                             | Schedule into M02/M03 branches                  |
+| TECH-002 | Issues #2, #4, #5, #6 M01 follow-ups | **Fixed in draft PR #14 (cycle 3, head d422921, CI PASS)** | Merge decision by owner; issues close on merge |
 | TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
 | TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
 | TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |

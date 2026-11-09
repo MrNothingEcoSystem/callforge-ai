@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:50Z (cycle 2)
+Updated: 2026-11-09T04:52Z (cycle 3)
 
 ## Highest priority (supervisor-verified 2026-11-09T04:30Z)
 
@@ -13,8 +13,8 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Next engineering
 
 - M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
-- Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
-- M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
+- Issues #2, #4, #5, #6: FIXED in draft PR #14 (cycle 3, head d422921, CI PASS). Issue #8 (MCP surface) before M09 — see M09_REMOTE_MCP_DESIGN.md (filed management/ this cycle, design only, M09 blocked by M02).
+- M04 research track: UAE requirements register draft filed (management/UAE_COMPLIANCE_REGISTER.md); needs EXT-002 legal review before any public claim.
 
 ## Gates needing owner
 
