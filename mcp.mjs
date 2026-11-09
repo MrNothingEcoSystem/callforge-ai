@@ -66,7 +66,7 @@ export function listRemoteTools() {
     inputSchema: publicSchema(name),
     annotations: {
       title: name.replace(/_/g, ' '),
-      readOnlyHint: !(TOOL_SCOPES[name] ?? []).includes('simulate'),
+      readOnlyHint: !CREATING_TOOLS.has(name),
       destructiveHint: false,
       idempotentHint: !CREATING_TOOLS.has(name),
       openWorldHint: false,
@@ -100,6 +100,11 @@ export function adaptRemoteArgs(name, rawArgs, context) {
 
 export function createMcpHandler({ guard, callTool }) {
   async function handle(req, res) {
+    // G-2: authenticate before reading the body (defense in depth).
+    const context = guard(req, res, []);
+    if (!context) {
+      return; // guard already responded
+    }
     const chunks = [];
     let length = 0;
     const maxBytes = Number(process.env.MCP_MAX_BODY_BYTES || 1048576);
@@ -131,10 +136,6 @@ export function createMcpHandler({ guard, callTool }) {
         }),
       );
       return;
-    }
-    const context = guard(req, res, []);
-    if (!context) {
-      return; // guard already responded
     }
     const { method, params = {}, id = null } = envelope;
     if (method === 'tools/list') {

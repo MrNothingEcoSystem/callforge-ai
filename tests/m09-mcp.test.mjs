@@ -187,6 +187,33 @@ describe('M09 remote MCP endpoint', () => {
     expect(byName.check_readiness.annotations.idempotentHint).toBe(true);
   });
 
+  it('G-1: readOnlyHint derived from creating-tool set, consistent with idempotentHint', async () => {
+    const token = issueToken();
+    const r = await rpc(token, 'tools/list');
+    const byName = Object.fromEntries(r.json.result.tools.map(t => [t.name, t]));
+    // Admin creating tools must NOT advertise read-only.
+    expect(byName.onboard_tenant.annotations.readOnlyHint).toBe(false);
+    expect(byName.configure_business.annotations.readOnlyHint).toBe(false);
+    expect(byName.simulate_call.annotations.readOnlyHint).toBe(false);
+    // Pure read tools advertise read-only + idempotent.
+    expect(byName.check_readiness.annotations.readOnlyHint).toBe(true);
+    expect(byName.get_call_status.annotations.readOnlyHint).toBe(true);
+    // validate_compliance: creating-tool set member => hints consistent (both false).
+    expect(byName.validate_compliance.annotations.readOnlyHint).toBe(
+      byName.validate_compliance.annotations.idempotentHint,
+    );
+    for (const t of r.json.result.tools) {
+      expect(t.annotations.readOnlyHint).toBe(t.annotations.idempotentHint);
+    }
+  });
+
+  it('G-2: unauthenticated oversize body is rejected by auth before body is consumed', async () => {
+    // No token: guard must reject (401) without requiring a parseable body.
+    const big = Buffer.alloc(2 * 1024 * 1024, 0x61);
+    const r = await rpcRaw(null, [big]);
+    expect([401, 403]).toContain(r.status);
+  });
+
   it('F-PR26-1: invalid arguments return explicit 400, not fake success', async () => {
     const token = issueToken();
     const r = await rpc(token, 'tools/call', {
