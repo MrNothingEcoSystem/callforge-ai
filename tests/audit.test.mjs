@@ -145,6 +145,72 @@ describe('Audit Logger', () => {
     expect(verification.errors.length).toBeGreaterThan(0);
   });
 
+  it('should verify a mid-chain segment without a spurious chain-broken error (issue #2)', async () => {
+    await auditLogger.log({ event_type: 'partial_1', actor_type: 'system', action: 'test' });
+    const mid = await auditLogger.log({
+      event_type: 'partial_2',
+      actor_type: 'system',
+      action: 'test',
+    });
+    await auditLogger.log({ event_type: 'partial_3', actor_type: 'system', action: 'test' });
+
+    const full = await auditLogger.verifyChain();
+    expect(full.valid).toBe(true);
+
+    const partial = await auditLogger.verifyChain(mid.id);
+    expect(partial.valid).toBe(true);
+    expect(partial.errors).toHaveLength(0);
+    expect(partial.events_checked).toBe(2);
+  });
+
+  it('should detect tampering inside a mid-chain segment (issue #2)', async () => {
+    await auditLogger.log({ event_type: 'seg_1', actor_type: 'system', action: 'test' });
+    const mid = await auditLogger.log({
+      event_type: 'seg_2',
+      actor_type: 'system',
+      action: 'test',
+    });
+    const tail = await auditLogger.log({
+      event_type: 'seg_3',
+      actor_type: 'system',
+      action: 'test',
+    });
+
+    // Tamper with the segment head's payload.
+    const db = getDatabase();
+    db.prepare('UPDATE audit_events SET payload = ? WHERE id = ?').run(
+      '{"tampered":"mid"}',
+      mid.id,
+    );
+
+    const partial = await auditLogger.verifyChain(mid.id);
+    expect(partial.valid).toBe(false);
+    expect(partial.errors.some(e => e.event_id === mid.id)).toBe(true);
+    // Untouched tail alone is still consistent (hash mismatch upstream only
+    // flags the tampered event; link check on the tail sees its stored hashes).
+    expect(partial.errors.some(e => e.event_id === tail.id)).toBe(false);
+  });
+
+  it('should return deterministic order for same-timestamp events (issue #4)', async () => {
+    const sameTime = '2026-11-09T04:00:00.000Z';
+    for (let i = 0; i < 5; i++) {
+      await auditLogger.log({
+        event_type: `ts_order_${i}`,
+        actor_type: 'system',
+        action: 'test',
+        created_at: sameTime,
+      });
+    }
+    const events = await auditLogger.getEvents({ limit: 5 });
+    expect(events.map(e => e.event_type)).toEqual([
+      'ts_order_4',
+      'ts_order_3',
+      'ts_order_2',
+      'ts_order_1',
+      'ts_order_0',
+    ]);
+  });
+
   it('should retrieve events with filters', async () => {
     await auditLogger.log({
       tenant_id: testTenantId,

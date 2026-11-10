@@ -3,6 +3,7 @@
  * v0.2 Simulation Baseline
  */
 
+import { createHash } from 'node:crypto';
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import {
   initDatabase,
@@ -117,8 +118,7 @@ describe('Auth Middleware', () => {
     const db = getDatabase();
     const keyId = generateId();
     const rawToken = 'cf_dev_expired_token';
-    const crypto = require('crypto');
-    const keyHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const keyHash = createHash('sha256').update(rawToken).digest('hex');
     const expiredAt = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(); // 1 day ago
 
     db.prepare(
