@@ -36,6 +36,8 @@
 - Failed gate: required `/root/.hermes/cache/scratch/node24/bin` is absent. System `corepack` is 0.24.0, but `corepack pnpm --version` fails because `/root/.cache/node/corepack/pnpm/12.18.0/bin/pnpm.cjs` is missing (`MODULE_NOT_FOUND`, system Node v22.22.1). Per dispatcher policy, no fallback toolchain was used and no product task or tests were run.
 - Blocker: TECH-006 opened. Next action is to restore the canonical Node 24 + corepack pnpm 12.18.0 installation, verify both versions, then rerun task selection.
 - Review: no milestone completed, so no independent milestone review requested.
+- Reviewable record: draft PR #63 (`https://github.com/MrNothingEcoSystem/callforge-ai/pull/63`), initial commit `d5b947317ce6c5554dcf0cc08a7237c50fdd90ff`.
+- Telegram: failed-gate alert sent to `telegram:8400775109`; `hermes send` receipt: `sent`.
 - Safety: no merge, deploy, live-call activation, spend, publication, or legacy-repository write.
 - Resource usage: ~4 minutes wall clock; one isolated worktree/branch; no persistent processes; no paid services.
 - Estimated remaining work: toolchain restoration is expected to be one bounded maintenance cycle, assuming cached/install artifacts are available; engineering-task effort is intentionally not estimated until the prerequisite gate passes. No completion percentage claimed.
