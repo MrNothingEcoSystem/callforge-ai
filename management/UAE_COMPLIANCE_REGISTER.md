@@ -183,3 +183,19 @@
 9. Res.57 penalty tables — Arabic verification (R19).
 
 _Sources retrieved 2026-11-09. Arabic official texts prevail over English translations. This register is engineering research, not legal advice._
+
+## Source re-verification (2026-11-10)
+
+Re-check performed from this sandbox (curl, browser UA, 15s request timeout) as part of the M04 research track. HTTP status only — content was not re-parsed where the host blocks non-browser clients.
+
+| Source | Result | Note |
+| ------ | ------ | ---- |
+| https://tdra.gov.ae/en/FAQs | 200 | Reachable |
+| https://rulebook.centralbank.ae/en/rulebook/article-9-do-not-call-registry-dncr | 200 | Reachable |
+| https://uaelegislation.gov.ae/en/legislations/2519 | 403 | Bot protection in sandbox; not re-fetchable today (retrieved 2026-11-09) |
+| https://uaelegislation.gov.ae/en/legislations/2523 | 403 | same |
+| https://uaelegislation.gov.ae/en/legislations/1972 | 403 | same |
+| https://uaelegislation.gov.ae/en/policy/details/the-uae-charter-for-the-development-and-use-of-artificial-intelligence | 403 | same |
+| https://thenationalnews.com/news/uae/2026/08/06/dh19-million-in-fines-issued-and-9400-numbers-disconnected-for-telemarketing-violations/ | 301 | Reachable (redirect) |
+
+Finding: all R-rule statuses unchanged. TDRA and CBUAE sources re-confirmed reachable; the uaelegislation.gov.ae corpus could not be re-fetched from this sandbox (consistent bot protection), so the 2026-11-09 retrieval remains the cited basis. No rule changed jurisdiction/effective-date/status. Register remains engineering research, not legal advice; Arabic official texts prevail over English translations.
