@@ -1,21 +1,25 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-10T04:28:00Z (cycle 38)
 
-## Highest priority (supervisor-verified 2026-11-09T04:30Z)
+## Reconciliation complete (this cycle)
 
-M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 fixed in 65ff410 (73/73, CI PASS). Remaining before M02 can be accepted as production identity:
+management/ASCENSION_MILESTONES.json reconciled with verified reality on branch docs/ascension-cycle-038 (from origin/main 28c90405):
+- M02 PR #7 merged (75308c5) into main 28c90405; SEC-001 code self-assertion remediated; status = merged (simulation baseline); production-identity acceptance awaits owner IdP/prod-auth decision.
+- M03-1 PR #9 (b5c40bc) ACCEPT 66/66; M03-2 PR #20 (28c90405) independent re-review ACCEPT at 8ef939b, 108/108, CI run 42576201523; status = implemented (M03-1 + M03-2 merged).
+- Tests green: 13 files, 108 passed, 0 failed (Node v24.22.1 via /usr/local/bin/mrnothing-node, vitest v5.1.0).
 
-1. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step. Until then M02 is a simulation baseline and must not be network-exposed.
-2. Non-blocking: scope re-derivation from role at token validation; conversation fixture scoping decision (currently documented global).
-3. Owner merge decision on PR #7 (draft, unmerged).
+## Highest priority (unblocked)
 
-## Next engineering
-
-- M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
-- Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
-- M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
+None — all engineering paths are gated:
+- M02 production-identity acceptance: owner IdP/prod-auth decision (SEC-001 open; EXT-004-adjacent).
+- M04: EXT-002 qualified UAE legal review.
+- Draft PRs awaiting owner merge decisions: PR #51 (TECH-002 cleanup, branch cleanup-m01-followups), PR #26 (issue #8 MCP surface, branch m09-remote-mcp).
 
 ## Gates needing owner
 
-EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/spend/publish without explicit owner authorization.
+
+## Telegram
+
+None this cycle — no trigger event; digest not due (last digest 2026-11-10T03:21Z < 6h).
