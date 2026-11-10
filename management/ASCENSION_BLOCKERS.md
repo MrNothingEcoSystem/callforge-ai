@@ -23,6 +23,7 @@
 | TECH-003 | Durable workflow layer (M03-1)                    | Done — merged PR #9, ACCEPT      | None                                                |
 | TECH-004 | Postgres vs SQLite decision                       | Resolved — SQLite/better-sqlite3, deferred Postgres with rationale | None |
 | TECH-005 | Dispatcher proven over cycles                     | Multiple cycles executed (docs/ascension-cycle-001…030, gate checks green) | Unattended recovery not exercised this cycle |
+| TECH-006 | Issue #8 MCP surface (remote /mcp endpoint)       | Implemented + verified — `m09-remote-mcp` @ `5785f0f`, draft PR #26 → main, 14 files / 122 tests passed on Node v24.22.2 | Owner merge decision on PR #26; M09 cannot close until M02/SEC-001 resolved |
 
 ## Cycle security audit (2026-11-09, M02 head 4368955)
 
@@ -32,4 +33,4 @@
 | SEC-002 | `tokenSecret()` fell back to hardcoded `callforge-dev-secret-change-me` when `CALLFORGE_TOKEN_SECRET` unset; tokens forgeable.                                                | Critical for production                                                          | Fixed in `65ff410` — fail closed without env secret; regression test added                              |
 | SEC-003 | PKCE compare not timing-safe; used codes retained (marked, not deleted); token handler trusts in-token `scope`; conversation fixtures not tenant-scoped.                         | Low                                                                              | Partially fixed in `65ff410` — timing-safe compare + code invalidation on failed PKCE; scope re-derivation and fixture scoping remain open |
 
-Local verification this cycle: Node v24.22.2, vitest — 13 files, 112/112 passed on branch `cleanup/m01-followups` (4c99e8c, pushed as PR #51 draft). System Node v22.22.1 cannot load the better-sqlite3 native binding (ERR_DLOPEN_FAILED) — node24 toolchain required. Signature tampering correctly rejected; the SEC-001 flaw is issuance, not verification.
+Local verification this cycle: Node v24.22.2, vitest — 14 files, 122/122 passed against `m09-remote-mcp` @ `5785f0f` (issue #8 MCP surface, draft PR #26). System Node v22.22.1 cannot load the better-sqlite3 native binding (ERR_DLOPEN_FAILED) — node24 toolchain required. Signature tampering correctly rejected; the SEC-001 flaw is issuance, not verification.

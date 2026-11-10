@@ -16,7 +16,9 @@
       "status": "accepted",
       "verdict": "ACCEPT WITH FOLLOW-UPS",
       "sha": "76bb06235e098904fae390acf48b11b1f57aa7d8",
-      "blockers": ["SRC-001/EXT-001"]
+      "blockers": [
+        "SRC-001/EXT-001"
+      ]
     },
     {
       "id": "M02",
@@ -89,73 +91,116 @@
       "id": "M05",
       "name": "Provider-neutral telephony architecture",
       "status": "pending",
-      "blockers": ["M03", "EXT-003 carrier authorization"]
+      "blockers": [
+        "M03",
+        "EXT-003 carrier authorization"
+      ]
     },
     {
       "id": "M06",
       "name": "Conversational voice intelligence",
       "status": "pending",
-      "blockers": ["M03", "M05", "EXT-005 voice credentials"]
+      "blockers": [
+        "M03",
+        "M05",
+        "EXT-005 voice credentials"
+      ]
     },
     {
       "id": "M07",
       "name": "Business workflow integrations",
       "status": "pending",
-      "blockers": ["M03", "EXT-006 CRM OAuth registrations"]
+      "blockers": [
+        "M03",
+        "EXT-006 CRM OAuth registrations"
+      ]
     },
     {
       "id": "M08",
       "name": "AgentRunMe business console",
       "status": "pending",
-      "blockers": ["M02", "M07"]
+      "blockers": [
+        "M02",
+        "M07"
+      ]
     },
     {
       "id": "M09",
       "name": "Production remote MCP server",
       "status": "pending",
-      "blockers": ["M02", "issue #8 MCP surface"]
+      "blockers": [
+        "M02 (SEC-001 owner IdP decision)",
+        "issue #8 MCP surface — implemented + verified on m09-remote-mcp @ 5785f0f, draft PR #26 open → awaiting owner merge"
+      ],
+      "mcp_surface": {
+        "branch": "m09-remote-mcp",
+        "sha": "5785f0ff95dc8537e39022e5121bfee03659fcbc",
+        "pr": 26,
+        "tests": "122/122 (14 files, Node v24.22.2)",
+        "status": "draft PR open, awaiting owner merge; simulation-only until SEC-001 resolved"
+      }
     },
     {
       "id": "M10",
       "name": "Commercial SaaS architecture",
       "status": "pending",
-      "blockers": ["M02", "M08", "EXT-007 billing approval"]
+      "blockers": [
+        "M02",
+        "M08",
+        "EXT-007 billing approval"
+      ]
     },
     {
       "id": "M11",
       "name": "Security, reliability and observability",
       "status": "pending",
-      "blockers": ["M01-M10"]
+      "blockers": [
+        "M01-M10"
+      ]
     },
     {
       "id": "M12",
       "name": "Release candidate and production readiness",
       "status": "pending",
-      "blockers": ["M11", "EXT-004 deployment approval"]
+      "blockers": [
+        "M11",
+        "EXT-004 deployment approval"
+      ]
     },
     {
       "id": "M13",
       "name": "ChatGPT plugin package",
       "status": "pending",
-      "blockers": ["M09", "M12"]
+      "blockers": [
+        "M09",
+        "M12"
+      ]
     },
     {
       "id": "M14",
       "name": "ChatGPT integration verification",
       "status": "pending",
-      "blockers": ["M13", "EXT-008 publisher verification"]
+      "blockers": [
+        "M13",
+        "EXT-008 publisher verification"
+      ]
     },
     {
       "id": "M15",
       "name": "Publication submission",
       "status": "pending",
-      "blockers": ["M14", "EXT-009 publication approval"]
+      "blockers": [
+        "M14",
+        "EXT-009 publication approval"
+      ]
     },
     {
       "id": "M16",
       "name": "Post-publication operations",
       "status": "pending",
-      "blockers": ["actual publication approval"]
+      "blockers": [
+        "actual publication approval"
+      ]
     }
   ],
   "external_gates": [
@@ -174,7 +219,7 @@
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
     "cycles_proven": "multiple (docs/ascension-cycle-001…030 on origin)",
-    "last_cycle": "2026-11-10T01:30Z",
+    "last_cycle": "2026-11-10T02:11:22Z",
     "last_sync_sha": "28c90405b5da65807b9139f05ce0f30bc232bcfe"
   }
 }
