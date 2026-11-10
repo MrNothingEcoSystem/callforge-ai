@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-10T05:33Z (cycle 40)
+Updated: 2026-11-10T06:17Z (cycle 41)
 
 ## State (reconciled with remote main `28c90405` this cycle)
 
@@ -10,8 +10,8 @@ Updated: 2026-11-10T05:33Z (cycle 40)
 
 ## Next engineering (unblocked — no owner action required)
 
-1. TECH-004: PostgreSQL vs SQLite design deliverable (D-006: SQLite remains system of record for the simulation baseline; PG evaluation is a pre-migration design deliverable, no migration commitment).
-2. Keep management/ ledger in sync with remote main each cycle (this cycle: ASCENSION_MILESTONES.json, ASCENSION_EXECUTION_LOG.md, ASCENSION_NEXT_ACTIONS.md).
+1. TECH-004: PostgreSQL vs SQLite design deliverable — DELIVERED this cycle on `tech-004-postgres-vs-sqlite-design` (management/TECH-004-POSTGRES-VS-SQLITE.md; D-006 reaffirmed: SQLite remains system of record, PG is pre-migration design only, no migration commitment). Awaiting review on open draft PR; owner merge decision.
+2. Keep management/ ledger in sync with remote main each cycle (this cycle: ASCENSION_EXECUTION_LOG.md, ASCENSION_NEXT_ACTIONS.md; ASCENSION_MILESTONES.json verified consistent — no milestone status change).
 
 ## Awaiting owner action (no engineering work until decided)
 
