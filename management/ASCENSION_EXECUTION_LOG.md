@@ -56,3 +56,19 @@
 - Draft PR #50 opened: https://github.com/MrNothingEcoSystem/callforge-ai/pull/50 (`docs/ascension-cycle-032` → main, head `fcd484e`). Remote SHA verified: `git ls-remote origin docs/ascension-cycle-032` = `fcd484eb040aabc9087b791003d333a0ef2e3f62` = local commit (no merge, no deploy, no live calls, no spend).
 - Telegram: concise digest pending (>6h since last digest 2026-11-09T04:30Z) — subject to success receipt.
 - Resource usage: ~15 min wall clock, 1 isolated worktree + checkout, no persistent processes left running (scratch worktree to be reclaimed). Remaining work: owner merge decision on PR #22 (not an engineering action); TECH-002 cleanup PR (one focused session estimate); issue #8 MCP surface before M09; M04 research track parallelizable. No completion percentages claimed.
+
+## 2026-11-10 — Cycle 33 (dispatcher, ~01:30 UTC)
+
+- Sync: `git fetch origin`; origin/main `28c90405b5da65807b9139f05ce0f30bc232bcfe` = local main. No writes to legacy Davidcarmelalex/CALLFORGE. Note: management/ on main is stale — cycle-31/32 ledger updates live only on unmerged draft PR #49/PR #50; this cycle bases on `docs/ascension-cycle-032` @ `8303386`.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin; vitest invoked directly via the node24 binary (system Node v22 cannot load the better-sqlite3 native binding).
+- Selected highest-priority unblocked task: TECH-002 — bundle issues #2, #4, #5, #6 into one cleanup PR (next-action item #1). Work already complete on local branch `cleanup-m01-followups` @ `4c99e8c` (commits 695a569 fix + 18afe1e/4c99e8c style), based on origin/main `28c9040`.
+- Review of the fix (read-only, on checkout):
+  - #2 `audit.mjs verifyChain(fromEventId)`: seeds `previousHash` from the actual predecessor event instead of genesis `'0'.repeat(64)`; removes broken genesis-skip fast-path that mis-verified mid-chain segments; existing tamper-detection tests still pass.
+  - #4 `audit.mjs getEvents`: orders by `rowid DESC` (deterministic under equal `created_at`); same-timestamp ordering coverage added in tests/audit.test.mjs.
+  - #5 `tests/store.test.mjs`, `tests/auth.test.mjs`: `import { createHash } from 'node:crypto'` replaces `require('crypto')` (ESM convention, matches m03-2-http-webhook.test.mjs).
+  - #6 `tests/esm-runtime.test.mjs`: ephemeral-port (`PORT=0`) `start()` → `/health` → close smoke test in the child-process ESM runtime suite.
+- Tests: `vitest run` on Node v24.22.2 = 13 files, 112/112 passed in 626ms.
+- Push: new remote branch `cleanup/m01-followups` @ `4c99e8c` → draft PR #51: https://github.com/MrNothingEcoSystem/callforge-ai/pull/51 (`cleanup/m01-followups` → main). Remote `origin/cleanup-m01-followups` left untouched (diverged, destructive pre-M03 lineage d422921 — not fast-forwardable, not overwritten). No merge, no deploy, no live calls, no spend.
+- Management/ rewritten on branch `docs/ascension-cycle-033`: TECH-002 marked resolved pending owner merge; PR #51 link recorded; next actions retargeted to issue #8 + M04 research; dispatcher last_cycle = 2026-11-10T01:30Z.
+- Telegram: no milestone acceptance this cycle (TECH-002 is engineering completion awaiting owner merge); last digest 2026-11-09T04:30Z (>6h ago) — one concise digest permitted this cycle, subject to successful `hermes send` receipt.
+- Resource usage: ~18 min wall clock, 1 branch checkout, no persistent processes. Remaining work: owner merge decision on PR #51 (not an engineering action); issue #8 MCP surface before M09; M04 research track parallelizable; SEC-001 owner-gated (unestimable until IdP decision). No completion percentages claimed.
