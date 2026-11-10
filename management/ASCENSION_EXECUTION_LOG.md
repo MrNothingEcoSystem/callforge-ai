@@ -28,3 +28,14 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-10 — Cycle (dispatcher, ~00:17 UTC)
+
+- Sync: `git fetch origin`; local HEAD = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. No writes to legacy Davidcarmelalex/CALLFORGE. Discovered remote main had advanced past cycle-1 state: M02 (PR #7), M03-1 (PR #9), and M03-2 orchestration (PR #20) are merged on main; management/ ledger on main was stale and has been rewritten on this cycle's branch.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin. (corepack/system pnpm shims not executable in this sandbox; vitest invoked directly via the node24 binary.)
+- Selected highest-priority unblocked task: M03-2a quota wiring (branch `m03-2-quota-wiring` @ `8adef30`, already pushed, synced with origin).
+- Tests: `vitest run` on Node v24.22.2 = 14 files, 112/112 passed in 0.832s, including new `tests/m03-quota-wiring.test.mjs`.
+- PR #22 (draft, `m03-2-quota-wiring` → main, head `8adef30`) already open: https://github.com/MrNothingEcoSystem/callforge-ai/pull/22 . No merge, no deploy, no live calls, no spend.
+- Management/ rewritten on branch `docs/ascension-cycle-031`: M02 recorded as merged simulation baseline; M03-1 (ACCEPT, 6c0ffb9) and M03-2 orchestration (independent re-review ACCEPT, a2ebe0c) recorded; TECH-001 narrowed to SEC-001 owner-gated IdP; TECH-003/004 marked done; next actions retargeted to PR #22 review + issues #2/#4/#5/#6 cleanup.
+- Telegram: last digest 2026-11-09T04:30Z (>6h ago). Concise digest decision recorded at end of cycle report.
+- Resource usage: <20 min wall clock, 1 branch checkout, no persistent processes. Remaining: independent review of PR #22, owner merge decision; SEC-001 owner-gated (unestimable until IdP decision).
