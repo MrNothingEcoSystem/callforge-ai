@@ -136,10 +136,11 @@
     "EXT-009"
   ],
   "dispatcher": {
-    "status": "active",
+    "status": "blocked_toolchain",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
     "cycles_proven": 1,
-    "last_cycle": "2026-11-09T04:12Z"
+    "last_cycle": "2026-11-10T17:52Z",
+    "last_cycle_result": "blocked: canonical Node 24 path absent and corepack pnpm 12.18.0 unavailable (TECH-006)"
   }
 }

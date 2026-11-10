@@ -19,3 +19,9 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 43 blocker (2026-11-10T17:52Z)
+
+1. Restore `/root/.hermes/cache/scratch/node24/bin` with Node 24 and functional corepack pnpm 12.18.0.
+2. Verify `node --version` and `corepack pnpm --version` from that exact path.
+3. Rerun dispatcher task selection; do not use the system Node v22 fallback.
