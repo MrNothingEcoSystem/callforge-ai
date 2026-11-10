@@ -23,6 +23,7 @@
 | TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
 | TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
 | TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
+| TECH-006 | Required canonical Node 24 toolchain `/root/.hermes/cache/scratch/node24/bin` unavailable; corepack pnpm cannot resolve pnpm 12.18.0 (`MODULE_NOT_FOUND`) | Open — failed prerequisite gate in cycle 43 (2026-11-10T17:52Z) | Restore the canonical Node 24 + corepack pnpm installation, then rerun the highest-priority task |
 
 Engineering continues on independent work whenever a gate is blocked.
 
