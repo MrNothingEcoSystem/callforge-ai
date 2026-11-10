@@ -47,7 +47,7 @@
 - Selected highest-priority unblocked task: TECH-004 PostgreSQL vs SQLite design deliverable (D-006; unblocked, no owner action required). Branch: `tech-004-postgres-vs-sqlite-design` from reconciled base `38f34f6`.
 - Deliverable: `management/TECH-004-POSTGRES-VS-SQLITE.md` — retains SQLite as system of record for the simulation baseline; PostgreSQL recorded as pre-migration design evaluation only; no migration commitment; all external gates unchanged.
 - Tests: `vitest run` = 13 files, 108/108 passed, 0 failed (633ms); `tsc -p tsconfig.json` PASS; `eslint . --ext .mjs,.js` PASS; `prettier --check` PASS on changed files.
-- Commit pending on `tech-004-postgres-vs-sqlite-design` (SHA TBD); to be pushed and opened as a draft PR for review (no merge).
+- Commit `bb501b4` on `tech-004-postgres-vs-sqlite-design`; pushed to origin. Draft PR #61 open for review: https://github.com/MrNothingEcoSystem/callforge-ai/pull/61 (no merge requested).
 - No merge/deploy/live-call activation/spend/publish; no writes to legacy repo.
 - Review: `delegate_task` unavailable in cron environment; direct read-only verification performed. Design deliverable — not a milestone acceptance, no milestone verdict claimed. Draft PR open for owner/independent review.
 - Telegram: none — no trigger event (not milestone acceptance, critical security finding, external blocker, failed gate, or approval request); last digest 2026-11-10T03:21Z (< 6h ago).
