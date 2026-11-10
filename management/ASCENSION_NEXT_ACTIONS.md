@@ -18,7 +18,7 @@ Updated: 2026-11-10T05:33Z (cycle 40)
 - SEC-001 IdP/prod-auth decision (M02 production identity; EXT-004-adjacent).
 - EXT-002 qualified UAE legal/privacy review (M04 closure, public claims).
 - EXT-004 production hosting + deployment approval (M12).
-- Owner merge decisions on open draft PRs: #51 TECH-002 cleanup (`cleanup/m01-followups` @ `4c99e8c796`, 112/112), #26 MCP surface (`m09-remote-mcp` @ `5785f0ff`), #58 this cycle (`docs/ascension-cycle-040`), plus unmerged cycle drafts #52–#57.
+- Owner merge decisions on open draft PRs: #51 TECH-002 cleanup (`cleanup/m01-followups` @ `4c99e8c796`, 112/112), #26 MCP surface (`m09-remote-mcp` @ `5785f0ff`), #60 this cycle (`docs/ascension-cycle-040`), plus unmerged cycle drafts #52–#57.
 
 ## Gates needing owner
 
