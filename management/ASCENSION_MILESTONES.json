@@ -1,8 +1,8 @@
 {
-  "program": "CALLFORGE OMEGA \u2014 Project Ascension",
+  "program": "CALLFORGE OMEGA — Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-09T07:25:00Z",
+  "updated_at": "2026-11-10T01:30Z",
   "milestones": [
     {
       "id": "M00",
@@ -16,112 +16,191 @@
       "status": "accepted",
       "verdict": "ACCEPT WITH FOLLOW-UPS",
       "sha": "76bb06235e098904fae390acf48b11b1f57aa7d8",
-      "blockers": ["SRC-001"]
+      "blockers": [
+        "SRC-001/EXT-001"
+      ]
     },
     {
       "id": "M02",
       "name": "Production identity and tenant isolation",
-      "status": "changes_requested",
-      "branch": "m02-oauth-tenant-isolation",
+      "status": "merged to main as simulation baseline (not production-identity accepted)",
       "pr": 7,
-      "sha": "ac0adcba2f87efe95e647bb1eda08ba790f0492a",
-      "tests": "70/70",
+      "sha": "4368955",
+      "tests": "73/73",
       "blockers": [
-        "SEC-001 self-asserted tenant/role at authorize",
-        "SEC-002 default token secret fallback",
-        "independent verdict recorded 2026-11-09 cycle 1"
+        "SEC-001: unauthenticated /oauth/authorize self-asserts tenant/role — owner IdP decision required before production-identity acceptance; blocks external deployment"
       ],
-      "verdict": "REJECT for production identity; ACCEPTABLE only as simulation baseline",
+      "verdict": "REJECT for production identity; ACCEPTABLE only as simulation baseline (PR #7 merged, head 4368955)",
       "audit": {
         "date": "2026-11-09",
-        "tests_local": "70/70",
-        "ci": "pass (run 42559869614)",
-        "head": "ac0adcba2f87efe95e647bb1eda08ba790f0492a"
+        "tests_local": "73/73",
+        "ci": "pass (run 42560741400)",
+        "head": "4368955",
+        "fixes": "65ff410 SEC-002 fail-closed token secret + SEC-003 timing-safe PKCE/code invalidation/conversation auth test"
       }
     },
     {
       "id": "M03",
       "name": "Durable persistence and workflow engine",
-      "status": "design",
-      "blockers": ["M02 acceptance", "PostgreSQL evaluation"]
+      "status": "in progress",
+      "blockers": [
+        "none — M02 acceptance not required for independent engineering; PostgreSQL deferred with documented rationale"
+      ],
+      "increments": {
+        "M03-1": {
+          "pr": 9,
+          "sha": "dec034e",
+          "status": "merged (PR #9), verdict ACCEPT at 6c0ffb9, tests 66/66, CI pass"
+        },
+        "M03-2": {
+          "pr": 20,
+          "sha": "28c9040",
+          "status": "merged (PR #20), independent re-review verdict ACCEPT at a2ebe0c"
+        },
+        "M03-2a": {
+          "branch": "m03-2-quota-wiring",
+          "sha": "8adef30",
+          "pr": 22,
+          "status": "draft PR open; independent review ACCEPT — no blocking findings; tests 14 files / 112 passed on Node v24.22.2 (re-verified 2026-11-10T00:55Z)",
+          "review": {
+            "verdict": "ACCEPT",
+            "date": "2026-11-10T00:53Z",
+            "runner": "node24 v24.22.2 vitest",
+            "tests": "112/112 (14 files)",
+            "scope": [
+              "workflow/quota.mjs",
+              "workflow/stateMachine.mjs",
+              "server.mjs",
+              "tests/m03-quota-wiring.test.mjs"
+            ]
+          }
+        }
+      }
     },
     {
       "id": "M04",
       "name": "UAE compliance and human approval",
       "status": "pending",
-      "blockers": ["M02", "M03", "EXT-002 legal review"]
+      "blockers": [
+        "M02 production-identity gate (SEC-001 owner IdP decision)",
+        "M03 closure",
+        "EXT-002 legal review"
+      ]
     },
     {
       "id": "M05",
       "name": "Provider-neutral telephony architecture",
       "status": "pending",
-      "blockers": ["M03", "EXT-003 carrier authorization"]
+      "blockers": [
+        "M03",
+        "EXT-003 carrier authorization"
+      ]
     },
     {
       "id": "M06",
       "name": "Conversational voice intelligence",
       "status": "pending",
-      "blockers": ["M03", "M05", "EXT-005 voice credentials"]
+      "blockers": [
+        "M03",
+        "M05",
+        "EXT-005 voice credentials"
+      ]
     },
     {
       "id": "M07",
       "name": "Business workflow integrations",
       "status": "pending",
-      "blockers": ["M03", "EXT-006 CRM OAuth registrations"]
+      "blockers": [
+        "M03",
+        "EXT-006 CRM OAuth registrations"
+      ]
     },
     {
       "id": "M08",
       "name": "AgentRunMe business console",
       "status": "pending",
-      "blockers": ["M02", "M07"]
+      "blockers": [
+        "M02",
+        "M07"
+      ]
     },
     {
       "id": "M09",
       "name": "Production remote MCP server",
       "status": "pending",
-      "blockers": ["M02"]
+      "blockers": [
+        "M02 (SEC-001 owner IdP decision)",
+        "issue #8 MCP surface — implemented + verified on m09-remote-mcp @ 5785f0f, draft PR #26 open → awaiting owner merge"
+      ],
+      "mcp_surface": {
+        "branch": "m09-remote-mcp",
+        "sha": "5785f0ff95dc8537e39022e5121bfee03659fcbc",
+        "pr": 26,
+        "tests": "122/122 (14 files, Node v24.22.2)",
+        "status": "draft PR open, awaiting owner merge; simulation-only until SEC-001 resolved"
+      }
     },
     {
       "id": "M10",
       "name": "Commercial SaaS architecture",
       "status": "pending",
-      "blockers": ["M02", "M08", "EXT-007 billing approval"]
+      "blockers": [
+        "M02",
+        "M08",
+        "EXT-007 billing approval"
+      ]
     },
     {
       "id": "M11",
       "name": "Security, reliability and observability",
       "status": "pending",
-      "blockers": ["M01-M10"]
+      "blockers": [
+        "M01-M10"
+      ]
     },
     {
       "id": "M12",
       "name": "Release candidate and production readiness",
       "status": "pending",
-      "blockers": ["M11", "EXT-004 deployment approval"]
+      "blockers": [
+        "M11",
+        "EXT-004 deployment approval"
+      ]
     },
     {
       "id": "M13",
       "name": "ChatGPT plugin package",
       "status": "pending",
-      "blockers": ["M09", "M12"]
+      "blockers": [
+        "M09",
+        "M12"
+      ]
     },
     {
       "id": "M14",
       "name": "ChatGPT integration verification",
       "status": "pending",
-      "blockers": ["M13", "EXT-008 publisher verification"]
+      "blockers": [
+        "M13",
+        "EXT-008 publisher verification"
+      ]
     },
     {
       "id": "M15",
       "name": "Publication submission",
       "status": "pending",
-      "blockers": ["M14", "EXT-009 publication approval"]
+      "blockers": [
+        "M14",
+        "EXT-009 publication approval"
+      ]
     },
     {
       "id": "M16",
       "name": "Post-publication operations",
       "status": "pending",
-      "blockers": ["actual publication approval"]
+      "blockers": [
+        "actual publication approval"
+      ]
     }
   ],
   "external_gates": [
@@ -139,7 +218,8 @@
     "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 1,
-    "last_cycle": "2026-11-09T04:12Z"
+    "cycles_proven": "multiple (docs/ascension-cycle-001…030 on origin)",
+    "last_cycle": "2026-11-10T02:11:22Z",
+    "last_sync_sha": "28c90405b5da65807b9139f05ce0f30bc232bcfe"
   }
 }

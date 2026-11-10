@@ -1,21 +1,19 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated:  (this cycle)
 
-## Highest priority (supervisor-verified 2026-11-09T04:30Z)
+## In flight
 
-M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 fixed in 65ff410 (73/73, CI PASS). Remaining before M02 can be accepted as production identity:
+- M03-2a quota wiring: PR #22 (draft, `m03-2-quota-wiring` @ `8adef30`) → main. Wires remaining-call quotas into POST /simulate/call and stateMachine releases (workflow/quota.mjs, workflow/stateMachine.mjs, server.mjs). Tests: Node v24.22.2 vitest — 14 files, 112/112 passed (re-verified 2026-11-10T00:55Z), including new tests/m03-quota-wiring.test.mjs. Independent review ACCEPT — no blocking findings; verdict recorded in ASCENSION_MILESTONES.json + ASCENSION_PROGRESS.md. Awaiting owner merge decision. No merge without authorization.
+- Cleanup PR #51 (TECH-002, issues #2/#4/#5/#6): draft, `cleanup/m01-followups` @ `4c99e8c` → main. Fixes: verifyChain predecessor seed (#2), rowid ordering in getEvents (#4), node:crypto imports in tests (#5), start()/close smoke test (#6). Tests: 13 files / 112/112 passed on Node v24.22.2. Awaiting owner merge decision. No merge without authorization.
+- Issue #8 MCP surface: draft PR #26 (`m09-remote-mcp` @ `5785f0f`) → main. Verified this cycle: 14 files / 122 tests passed on Node v24.22.2, incl. new tests/m09-mcp.test.mjs. Token-derived tenant enforcement, `create_dev_token` excluded from remote registry, scope enforcement, 413/400/-32602/-32601 handling, auth-before-body. Awaiting owner merge decision. No merge without authorization.
+- Cycle 33 ledger: PR #52 (`docs/ascension-cycle-033` @ `0fadbc1` → main) draft, open.
 
-1. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step. Until then M02 is a simulation baseline and must not be network-exposed.
-2. Non-blocking: scope re-derivation from role at token validation; conversation fixture scoping decision (currently documented global).
-3. Owner merge decision on PR #7 (draft, unmerged).
+## Next engineering (unblocked; independent of owner gates)
 
-## Next engineering
+1. M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status (feeds EXT-002).
+2. Issue #8 is code-complete; no further engineering work until owner merge of PR #26.
 
-- M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
-- Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
-- M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
+## Gates needing owner (no engineering action possible)
 
-## Gates needing owner
-
-EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). SEC-001 IdP decision blocks M02 production-identity acceptance and any external deployment; M09 cannot close until M02/SEC-001 resolves. No merge/deploy/live-call/paid action taken this cycle.
