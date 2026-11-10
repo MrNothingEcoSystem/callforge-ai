@@ -39,3 +39,20 @@
 - Management/ rewritten on branch `docs/ascension-cycle-031`: M02 recorded as merged simulation baseline; M03-1 (ACCEPT, 6c0ffb9) and M03-2 orchestration (independent re-review ACCEPT, a2ebe0c) recorded; TECH-001 narrowed to SEC-001 owner-gated IdP; TECH-003/004 marked done; next actions retargeted to PR #22 review + issues #2/#4/#5/#6 cleanup.
 - Telegram: last digest 2026-11-09T04:30Z (>6h ago). Concise digest decision recorded at end of cycle report.
 - Resource usage: <20 min wall clock, 1 branch checkout, no persistent processes. Remaining: independent review of PR #22, owner merge decision; SEC-001 owner-gated (unestimable until IdP decision).
+
+## 2026-11-10 — Cycle 32 (dispatcher, ~00:53 UTC)
+
+- Sync: `git fetch origin`; origin/main `28c90405b5da65807b9139f05ce0f30bc232bcfe` = local main; checkout on `docs/ascension-cycle-032` (based on previous cycle's pushed branch `docs/ascension-cycle-031` @ `f553b0e`, already open as draft PR #49 → main). No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin; vitest invoked directly via the node24 binary (system Node v22 cannot load the better-sqlite3 native binding).
+- Selected highest-priority unblocked task: independent review of PR #22 (M03-2a quota wiring, `m03-2-quota-wiring` @ `8adef30`, draft PR → main, head verified = `8adef30833781a971e03085bd314292f653b5dc1`).
+- Review (read-only, isolated worktree at `8adef30`):
+  - `workflow/quota.mjs` — atomic consume via guarded `UPDATE … RETURNING` (parallel-safe cap; never exceeds limit), `releaseQuota` bounded at zero, retention report-only by default behind double env gate (`RETENTION_ENABLED=1` AND `RETENTION_DRY_RUN=0`), `audit_events` excluded from deletion (audit chain protected).
+  - `workflow/stateMachine.mjs` — transitions validated + optimistic-guarded (`WHERE status = ?`), quota released on `rejected`/`cancelled` only (failed calls retain consumed unit — by design), audit hash chain extended per transition.
+  - `server.mjs` — POST /simulate/call wraps quota check + consume + intent insert in one transaction; quota denial returns 429 without creating an intent.
+  - `tests/m03-quota-wiring.test.mjs` — 4 tests: first call consumes unit, second denied 429 with no intent created, rejected releases quota, post-release call succeeds, tenant without quota rule unlimited (F-M03-2c).
+- Tests: `vitest run` on Node v24.22.2 against `8adef30` = 14 files, 112/112 passed in 1.62s (re-verified independently this cycle; matches prior run on same branch).
+- Verdict: PR #22 M03-2a quota wiring = ACCEPT, no blocking findings. Non-blocking observation: stateMachine releases quota on rejected/cancelled only (by design).
+- Recorded in ASCENSION_MILESTONES.json (M03-2a review record: ACCEPT, 112/112), ASCENSION_PROGRESS.md, ASCENSION_NEXT_ACTIONS.md (review moved to completed; TECH-002 issues #2/#4/#5/#6 cleanup PR retargeted as next engineering task #1). SEC-001 remains owner-gated (IdP decision), unestimable until decided.
+- Draft PR `docs/ascension-cycle-032` → main to be opened for this cycle's ledger/verdict; PR link + remote SHA verification to be added once created (no merge, no deploy, no live calls, no spend).
+- Telegram: concise digest pending (>6h since last digest 2026-11-09T04:30Z) — subject to success receipt.
+- Resource usage: ~15 min wall clock, 1 isolated worktree + checkout, no persistent processes left running (scratch worktree to be reclaimed). Remaining work: owner merge decision on PR #22 (not an engineering action); TECH-002 cleanup PR (one focused session estimate); issue #8 MCP surface before M09; M04 research track parallelizable. No completion percentages claimed.
