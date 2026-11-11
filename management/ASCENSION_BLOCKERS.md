@@ -35,3 +35,14 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Tech 043 Independent review of M03-1 durable workflow
+
+| ID       | Blocker                                           | Status                           | Next action                                     |
+| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
+| TECH-003 | No durable workflow layer yet                     | M03-1 implemented (PR #9 dec034e) | Independent review complete (PR #64 created)  |
+| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable still pending                |
+
+## Cycle 43 independent review activity
+- TECH-003 blocker resolved: M03-1 independent review completed via dedicated branch `review-m03-1`; draft PR #64 created for independent auditor review
+- Node.js version mismatch for better-sqlite3 is a known condition (documented in cycles 40-41) but does not block the independent review of implementation

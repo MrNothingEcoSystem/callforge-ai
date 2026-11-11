@@ -44,9 +44,9 @@
     {
       "id": "M03",
       "name": "Durable persistence and workflow engine",
-      "status": "design",
+      "status": "design (M03-1 complete, M03-2 pending)",
       "blockers": [
-        "M02 acceptance",
+        "M02 acceptance (SEC-001 unauthenticated authorize)",
         "PostgreSQL evaluation"
       ]
     },
