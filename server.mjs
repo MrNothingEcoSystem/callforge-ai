@@ -204,23 +204,45 @@ class CallforgeHttpServer {
 
   async handleOAuthAuthorize(req, res) {
     const body = await readJsonBody(req);
-    const result = this.oauth.authorize(body);
+    // Authenticate request using bearer token
+    const authResult = this.oauth.authenticate(req);
+    if (!authResult.valid) {
+        res.writeHead(authResult.status || 401, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: authResult.error }));
+        return;
+    }
+    const authContext = authResult.context;
+    // Ensure tenant_id in request matches token tenant (M02 security gate)
+    if (body.tenant_id && body.tenant_id !== authContext.tenantId) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Tenant mismatch: token tenant does not match request tenant' }));
+        return;
+    }
+    // Build authorize payload using token's authenticated tenant and role
+    const authorizePayload = {
+        tenant_id: authContext.tenantId,
+        client_id: body.client_id || 'callforge-sim',
+        role: body.role || authContext.role || 'operator',
+        scope: body.scope || [],
+        code_challenge: body.code_challenge,
+        code_challenge_method: body.code_challenge_method || 'S256',
+    };
+    const result = this.oauth.authorize(authorizePayload);
     if (result.error) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: result.error }));
-      return;
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: result.error }));
+        return;
     }
     await this.auditLogger.log({
-      tenant_id: body.tenant_id,
-      event_type: 'oauth_authorize',
-      actor_type: 'system',
-      action: 'authorize',
-      payload: { client_id: body.client_id || 'callforge-sim', role: body.role || 'operator' },
+        tenant_id: authContext.tenantId,
+        event_type: 'oauth_authorize',
+        actor_type: 'system',
+        action: 'authorize',
+        payload: { client_id: authorizePayload.client_id, role: authorizePayload.role },
     });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(result));
   }
-
   async handleOAuthToken(req, res) {
     const body = await readJsonBody(req);
     const result = this.oauth.exchange(body);
