@@ -23,7 +23,7 @@ tracked as issues #1–#6 (+ #8 MCP surface from the M02 audit).
 - Remaining deployment blockers (not simulation-baseline merge blockers):
   F2 unauthenticated authorize endpoint (real IdP required), F3 MCP surface
   (issue #8), F6 JWKS/refresh/revocation roadmapped.
-- Status: draft PR #7 awaiting owner merge decision + final acceptance.
+- Status: draft PR #7 awaiting owner merge decision + final acceptance; new fix for SEC-001 in draft PR #65 (c2a155f) provides token auth enforcement; both PRs pending owner review.
 
 ## M03 — Durable workflow: IN PROGRESS
 

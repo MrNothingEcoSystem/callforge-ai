@@ -40,3 +40,13 @@ Remaining work: owner decisions SEC-001 (IdP/prod-auth), EXT-002 (UAE legal/priv
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 44 record (2026-11-12T01:50Z)
+
+- Sync: `git fetch origin`; origin/main `28c90405b5da65807b9139f05ce0f30bc232bcfe` == local main; work on branch `m02-oauth-tenant-isolation` (dedicated for M02 fix). No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain: Node v22.22.1 (better-sqlite3 compiled mismatch with Node v24 expected; known condition documented in ASCENSION_BLOCKERS cycles 40-41); pnpm available via `/usr/bin/pnpm`; test execution blocked due to node mismatch, but security fix is a code change verification only.
+- Selected highest-priority unblocked task: SEC-001 self-asserted tenant/role at /oauth/authorize. Implement authentication requirement to enforce token authentication and reject client-supplied tenant_id mismatching token tenant.
+- Changes: Edited server.mjs on branch `m02-oauth-tenant-isolation` at handleOAuthAuthorize to add `this.oauth.authenticate(req)` and tenant mismatch validation. Commit SHA: c2a155f. Created draft PR #65 (https://github.com/MrNothingEcoSystem/callforge-ai/pull/65) for owner approval.
+- Tests: No functional tests executed due to Node version mismatch; code change static; 0 tests; 0 failures.
+- No merge/deploy/live-call activation/spend/publish; PR remains draft.
+- Remaining work: Awaiting owner merge decision on PR #65 (SEC-001 fix); after acceptance, M02 can be considered ready for production; then continue with M03-2 and PostgreSQL evaluation (TECH-004). No completion percentages claimed.
