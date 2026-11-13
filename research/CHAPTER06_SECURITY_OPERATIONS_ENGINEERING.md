@@ -715,6 +715,42 @@ Security operations governance provides the framework for managing security oper
 - **Performance**: Security operations performance and effectiveness
 
 ## |---|
+
+### 12.1.2 Governance Function: Categories and Subcategories
+Based on NIST AI RMF Core (AI 100-1, 2023), the GOVERN function consists of six primary categories with detailed subcategories to ensure comprehensive governance of AI risks:
+
+- **GOVERN 1 – Policies, Processes, Procedures, and Practices**: Establishes organization‑wide governance structures for AI risk management.
+  - GOVERN 1.1: Legal and regulatory requirements involving AI are understood, managed, and documented.
+  - GOVERN 1.2: Trustworthy AI characteristics are integrated into organizational policies, processes, procedures, and practices.
+  - GOVERN 1.3: Processes, procedures, and practices are in place to determine the needed level of risk management activities based on the organization’s risk tolerance.
+  - GOVERN 1.4: The risk management process and its outcomes are established through transparent policies, procedures, and other controls based on organizational risk priorities.
+  - GOVERN 1.5: Ongoing monitoring and periodic review of the risk management process and its outcomes are planned, and organizational roles and responsibilities are clearly defined, including determining the frequency of periodic review.
+  - GOVERN 1.6: Mechanisms are in place to inventory AI systems and are resourced according to organizational risk priorities.
+  - GOVERN 1.7: Processes and procedures are in place for decommissioning and phasing out AI systems safely and in a manner that does not increase risks or decrease the organization’s trustworthiness.
+
+- **GOVERN 2 – Accountability Structures**: Defines roles, responsibilities, and communication lines for AI risk management.
+  - GOVERN 2.1: Roles and responsibilities and lines of communication related to mapping, measuring, and managing AI risks are documented and are clear to individuals and teams throughout the organization.
+  - GOVERN 2.2: The organization’s personnel and partners receive AI risk management training to enable them to perform their duties and responsibilities consistent with related policies, procedures, and agreements.
+  - GOVERN 2.3: Executive leadership of the organization takes responsibility for decisions about risks associated with AI system development and deployment.
+
+- **GOVERN 3 – Workforce Diversity, Equity, Inclusion, and Accessibility**: Ensures diverse perspectives in AI risk decisions.
+  - GOVERN 3.1: Decision‑making related to mapping, measuring, and managing AI risks throughout the lifecycle is informed by a diverse team (e.g., diversity of demographics, disciplines, experience, expertise, and backgrounds).
+  - GOVERN 3.2: Policies and procedures are in place to define and differentiate roles and responsibilities for human‑AI configurations and oversight of AI systems.
+
+- **GOVERN 4 – Organizational Culture**: Promotes a critical thinking and safety‑first mindset.
+  - GOVERN 4.1: Organizational policies and practices are in place to foster a critical thinking and safety‑first mindset in the design, development, deployment, and uses of AI systems to minimize potential negative impacts.
+  - GOVERN 4.2: Organizational teams document the risks and potential impacts of the AI technology they design, develop, deploy, evaluate, and use, and they communicate about the impacts more broadly.
+  - GOVERN 4.3: Organizational practices are in place to enable AI testing, identification of incidents, and information sharing.
+
+- **GOVERN 5 – Processes for Robust Engagement with Relevant AI Actors**: Incorporates external stakeholder feedback.
+  - GOVERN 5.1: Organizational policies and practices are in place to collect, consider, prioritize, and integrate feedback from those external to the team that developed or deployed the AI system regarding the potential individual and societal impacts related to AI risks.
+  - GOVERN 5.2: Mechanisms are established to enable the team that developed or deployed AI systems to regularly incorporate adjudicated feedback from relevant AI actors into system design and implementation.
+
+- **GOVERN 6 – Policies and Procedures**: Addresses AI risks arising from third‑party software and data and other supply‑chain issues.
+  - GOVERN 6.1: Policies and procedures are in place that address AI risks associated with third‑party entities, including risks of infringement of a third‑party’s intellectual property or other rights.
+  - GOVERN 6.2: Contingency processes are in place to handle failures or incidents in third‑party data or AI systems deemed to be high‑risk.
+
+**Source**: NIST AI 100‑1 (2023), Table 1 “Categories and subcategories for the GOVERN function” (page 22).
 ## 12.2 Security Operations Compliance
 
 ### Compliance Framework
