@@ -33,6 +33,7 @@ This document records the completion status of Chapter 06 (Security Operations E
 ✅ Task executed: Chapter 06 expanded with source-backed content
 ✅ Content committed: 5,297 words within target range
 ✅ Source matrix created and maintained
+✅ Source claim matrix updated: added MAP function claim (commit e10485f)
 ✅ Draft PR created for review
 ✅ No writes to legacy Davidcarmelalex/CALLFORGE
 
