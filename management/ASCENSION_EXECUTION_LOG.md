@@ -41,6 +41,7 @@ This document records the completion status of Chapter 06 (Security Operations E
 - Awaiting owner review and approval of PR #66
 - Node.js version mismatch remains a blocker for functional testing but not for documentation work
 - M04-M16 milestones still pending/design
+- Resource usage: ~5 min wall clock, 1 branch (chapter-06-expansion), no persistent processes; documentation only.
 
 ### Blocker Assessment:
 ⚠️ Node.js version mismatch (better-sqlite3 compiled with Node v24, running v22) - documentation work completed without functional tests
