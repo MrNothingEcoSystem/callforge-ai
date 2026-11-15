@@ -48,7 +48,7 @@ Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7
 - TECH-003 blocker resolved: M03-1 independent review completed via dedicated branch `review-m03-1`; draft PR #64 created for independent auditor review
 - Node.js version mismatch for better-sqlite3 is a known condition (documented in cycles 40-41) but does not block the independent review of implementation
 
-## Cycle 48 Blocker Update
+## Cycle 49 Blocker Update
 
 ### NEW BLOCKER IDENTIFIED
 - **TECH-006**: Node.js version mismatch: Node v24 missing at expected path /root/.hermes/cache/scratch/node24/bin; running v22.22.1 blocks pnpm and npm functional tests (better-sqlite3 compiled for v24, toolchain required by orchestration specs). This prevents execution of the full task as specified for cycle 48.
@@ -75,7 +75,7 @@ Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7
 
 ## Chapter 06 Task Blocker
 
-**CYCLE 48 BLOCKER IDENTIFIED**:
+**CYCLE 49 BLOCKER IDENTIFIED**:
 - ❌ **Chapter 06 Expansion**: Toolchain verification failed - Node v24 not available at /root/.hermes/cache/scratch/node24/bin
 - Impact: Blocks functional testing required for complete task execution
 - Status: Stop - toolchain verification failed
