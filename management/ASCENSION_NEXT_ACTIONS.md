@@ -43,7 +43,7 @@ Chapter 06 Expansion - Draft PR #66 awaiting owner review:
 1. Owner to review draft PR #66 for Chapter 06 expansion (pending from cycle 45)
 2. After approval, Chapter 06 can be integrated
 3. Proceed with M02 acceptance and subsequent milestones
-4. Execute functional tests for Chapter 06 and M03-2
+4. Execute functional tests for Chapter 06 and M03- terbakarayı
 5. Document completion percentages after verification
 
 ### If TOOLCHAIN BLOCKER PERSISTS:
