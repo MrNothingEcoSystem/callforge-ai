@@ -835,3 +835,91 @@ Training and education programs develop security operations professionals:
 - **Assessment and Evaluation**: Assessment and evaluation for security operations
 - **Certification and Accreditation**: Certification and accreditation for security operations
 ## 12.1 Enhanced Security Operations Controls
+
+# Section 14: NIST AI RMF MAP Function Integration
+
+The MAP function of the NIST AI Risk Management Framework (AI RMF 1.0) provides a structured approach for understanding, categorizing, and mapping AI risks across the system lifecycle. This section details the six primary MAP categories (MAP 1 through MAP 5) and their subcategories, explaining how security operations engineers can systematically apply these to agentic AI deployments.
+
+## MAP 1: Context Establishment and Understanding (MAP 1.x)
+- **MAP 1.1**: Intended purposes, potentially beneficial uses, context-specific laws, norms and expectations, and prospective deployment settings are understood and documented. Considerations include: user types, potential impacts on individuals and society, AI system lifecycle assumptions, and related TEVV metrics.
+- **MAP 1.2**: Interdisciplinary AI actors, competencies, and skills reflect demographic diversity and broad domain expertise; participation is documented.
+- **MAP 1.3**: Organizational mission and AI goals are understood and documented.
+- **MAP 1.4**: Business value or context of business use is clearly defined (for existing systems, re‑evaluated).
+- **MAP 1.5**: Organizational risk tolerances are determined and documented.
+- **MAP 1.6**: System requirements (e.g., privacy) are elicited from AI actors; design decisions account for socio‑technical implications.
+
+## MAP 2: AI System Categorization (MAP 2.x)
+- **MAP 2.1**: Specific tasks and implementation methods (e.g., classifiers, generative models) are defined.
+- **MAP 2.2**: Knowledge limits and how outputs may be used by humans are documented.
+- **MAP 2.3**: Scientific integrity and TEVV considerations (data quality, representativeness, trustworthiness) are identified.
+
+## MAP 3: Capabilities, Usage, and Expected Benefits/Costs (MAP 3.x)
+- **MAP 3.1**: Potential benefits and performance are examined and documented.
+- **MAP 3.2**: Potential costs (including non‑monetary) from errors or system trustworthiness impacts are documented.
+- **MAP 3.3**: Targeted application scope is specified based on capability and context.
+- **MAP 3.4**: Operator and practitioner proficiency processes are defined, assessed, and documented.
+- **MAP 3.5**: Human‑oversight processes are defined in line with GOVERN policies.
+
+## MAP 4: Risks and Benefits Mapping for Components (MAP 4.x)
+- **MAP 4.1**: Approaches for mapping AI technology and legal risks of third‑party components (including IP infringement) are in place.
+- **MAP 4.2**: Internal risk controls for third‑party AI technologies are identified and documented.
+
+## MAP 5: Impacts to Individuals, Groups, Communities, Organizations, and Society (MAP 5.x)
+- **MAP 5.1**: Likelihood and magnitude of each identified impact (beneficial and harmful) are identified based on usage, past precedents, public incidents, external feedback, and risk tolerance.
+- **MAP 5.2**: Practices and personnel for regular engagement with AI actors and integration of impact feedback are in place.
+
+## Applying MAP to Security Operations
+- Conduct systematic context interviews and maintain a living “AI Context Registry”.
+- Use MAP 2 artifacts to drive threat modeling and secure design.
+- Leverage MAP 3 insights for risk‑based security controls.
+- Integrate MAP 4 findings into supply‑chain security assessments.
+- Use MAP 5 data to prioritize incident response and continuous monitoring.
+
+**Source**: NIST AI 100‑1 (2023), Table 2 “Categories and subcategories for the MAP function” (pages 24‑27).
+
+# Section 15: OWASP Runtime Hardening Deep Dive
+
+Runtime hardening is a critical phase in securing agentic AI deployments. The OWASP Securing Agentic Applications Guide outlines a comprehensive set of controls that protect the execution environment, memory, inter‑agent communication, and cloud infrastructure. This section expands on those controls, providing actionable engineering guidance for operators and security engineers.
+
+## 15.1 Virtual Machine (VM) Hardening
+- **Secure Base Images**: Use minimal, vetted OS images with only required packages.
+- **Patch Management**: Keep hypervisor and VM tools up‑to‑date.
+- **Network Segmentation**: Isolate agent VMs from external networks; restrict east‑west traffic.
+- **Audit Logging**: Enable immutable logs, centralized for forensic analysis.
+
+## 15.2 Container and Sandbox Isolation
+- **Minimal Runtime Containers**: Deploy distroless or hardened images.
+- **Resource Caging**: Enforce CPU, memory, I/O limits via cgroup policies.
+- **Seccomp/BPF**: Apply system‑call filtering to block dangerous operations.
+- **Read‑Only Filesystems**: Prevent malicious write‑ups in critical paths.
+
+## 15.3 Secure Memory Management
+- **Process Isolation**: Separate processes or sandboxes per agent.
+- **Encrypted In‑Memory State**: Leverage Intel SGX/AMD SEV for memory encryption.
+- **Context Segregation**: Enforce strict separation of user, agent, tool contexts (KC4.1‑KC4.6).
+- **Automatic Redaction**: Real‑time detection and redaction of PII/sensitive data.
+
+## 15.4 Observability and Forensics
+- **Unified Logging**: Central SIEM integration with JSON logs capturing actions, tool calls, decision traces.
+- **Event Correlation**: Analytics to detect anomalous behavior.
+- **Replay Capabilities**: Deterministic state snapshots for incident forensic replay.
+
+## 15.5 Cloud‑Specific Hardening
+- **IAM**: Least‑privilege roles for agent services.
+- **Network Controls**: VPC peering, security groups, AWS WAF.
+- **Encryption**: Data‑at‑rest (KMS) and in‑transit (TLS 1.3).
+- **Compliance Automation**: IaC templates embedding security policies.
+
+## 15.6 Threat Mitigation Mapping
+- **T2 (Tool Misuse)** → Tool‑approval pipelines, sandboxing, usage monitoring.
+- **T3 (Privilege Compromise)** → Least privilege, JIT access, dynamic permission adjustment.
+- **T4 (Resource Overload)** → Rate limiting, quota enforcement, DDoS mitigation.
+- **T10 (Overwhelming HITL)** → Automate routine approvals; provide scalable human review.
+
+## 15.7 Continuous Hardening Lifecycle
+- **Automated Scanning**: Vulnerability scans on images and registries.
+- **Configuration Drift Detection**: Compare running state to hardened baselines.
+- **Incident‑Driven Updates**: Incorporate lessons learned into hardening baselines.
+
+**Source**: OWASP Securing Agentic Applications Guide 1.0 (2025), “1.2 Operational Hardening” (pages 74‑78).
+
