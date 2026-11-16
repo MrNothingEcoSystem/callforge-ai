@@ -8,7 +8,7 @@
 - **Source-backed**: ✅ Using NIST AI 100-1 and OWASP Securing Agentic Applications Guide
 - **Source Claims**: ✅ 33 claims in CH06_SOURCE_CLAIM_MATRIX_2026-11-11.csv
 - **Draft PR**: ✅ #66 created for owner review (pending from cycle 45)
-- **Working Branch**: chapter-06-expansion (SHA: fdc7c12dbf0b078e898b2a6218c20bcf2a4b4977)
+- **Working Branch**: chapter-06-expansion (SHA: c14490d80107ebe7af08723936c064c764e5abdc)
 
 ### Toolchain Status
 - **Status**: ❌ BLOCKED

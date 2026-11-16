@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-15 04:06 UTC (cycle 47)
+Updated: 2026-11-16 00:27 UTC (cycle 51)
 
 ## Highest priority (supervisor-verified 2026-11-13T06:36Z)
 
@@ -27,7 +27,7 @@ Chapter 06 Expansion - Draft PR #66 awaiting owner review:
 - M02 acceptance (SEC-001 unauthenticated authorize)
 - PostgreSQL evaluation (TECH-004)
 
-## Cycle 47 Blocker Assessment
+## Cycle 51 Blocker Assessment
 
 **NEW BLOCKER IDENTIFIED**:
 - ❌ Node.js version mismatch: Node v24 missing at expected path /root/.hermes/cache/scratch/node24/bin
