@@ -307,7 +307,62 @@ Swarm architectures require unique security approaches:
 - Establish code execution validation and testing procedures
 - Implement code execution output filtering and monitoring
 
+## 5.3 KC6.3 – Database Execution
+
+### Database Execution Security
+- Use managed vector databases with role‑based access control and encryption.
+- Restrict data ingest to match the access control capability (never ingest data that can’t be protected from unauthorized users).
+- Apply data classification labels to enforce user privilege (e.g., using RBAC RAGs like Elastic RAG, Pinecone with Clerk authentication, or Aserto authorization platforms).
+
+### Query Safety Measures
+- Use parameterized or template queries/ORMs exclusively; never construct SQL using string concatenation.
+- Grant database access via least‑privilege user accounts (e.g., SELECT‑only, limited tables, or row/column‑level security).
+- Filter/block dangerous SQL keywords (e.g., DROP, TRUNCATE).
+- Validate all user inputs influencing queries; where possible, derive from controlled channels instead of the LLM context window.
+
+### RAG‑Specific Controls
+- Implement post‑retrieval filtering to check for sensitive content (PII) before agent use.
+- Apply content verification before embedding into vector stores.
+- Rate‑limit retrieval operations.
+
+### Limitation (Excessive Retrieval)
+- Enforce query result size limits and timeout policies to prevent data over‑exfiltration.
+
+## 5.7 KC6.7 – Access to IoT Devices
+
+### IoT Device Security Controls
+- Sandbox IoT device access within isolated environments (e.g., containers, VMs).
+- Enforce strict device authentication and mutual TLS for communications.
+- Apply network segmentation to limit device reach and restrict lateral movement.
+- Monitor and log all device interactions; alert on anomalous commands or state changes.
 ## 5.4 KC6.4 – Web Use
+## 5.3 KC6.3 – Database Execution
+
+### Database Execution Security
+- Use managed vector databases with role‑based access control and encryption.
+- Restrict data ingest to match the access control capability (never ingest data that can’t be protected from unauthorized users).
+- Apply data classification labels to enforce user privilege (e.g., using RBAC RAGs like Elastic RAG, Pinecone with Clerk authentication, or Aserto authorization platforms).
+
+### Query Safety Measures
+- Use parameterized or template queries/ORMs exclusively; never construct SQL using string concatenation.
+- Grant database access via least‑privilege user accounts (e.g., SELECT‑only, limited tables, or row/column‑level security).
+- Filter/block dangerous SQL keywords (e.g., DROP, TRUNCATE).
+- Validate all user inputs influencing queries; where possible, derive from controlled channels instead of the LLM context window.
+
+### RAG‑Specific Controls
+- Implement post‑retrieval filtering to check for sensitive content (PII) before agent use.
+- Apply content verification before embedding into vector stores.
+- Rate‑limit retrieval operations.
+
+### Limitation (Excessive Retrieval)
+- Enforce query result size limits and timeout policies to prevent data over‑exfiltration.
+## 5.7 KC6.7 – Access to IoT Devices
+
+### IoT Device Security Controls
+- Sandbox IoT device access within isolated environments (e.g., containers, VMs).
+- Enforce strict device authentication and mutual TLS for communications.
+- Apply network segmentation to limit device reach and restrict lateral movement.
+- Monitor and log all device interactions; alert on anomalous commands or state changes.
 
 ### Web Security Controls
 - Implement secure web frameworks and libraries
