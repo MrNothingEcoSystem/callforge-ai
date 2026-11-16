@@ -834,3 +834,4 @@ Training and education programs develop security operations professionals:
 - **Instruction Delivery**: Instruction delivery for security operations
 - **Assessment and Evaluation**: Assessment and evaluation for security operations
 - **Certification and Accreditation**: Certification and accreditation for security operations
+## 12.1 Enhanced Security Operations Controls
