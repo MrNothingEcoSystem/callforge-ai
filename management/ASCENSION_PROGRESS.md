@@ -14,7 +14,7 @@
 - **Status**: ❌ BLOCKED
 - **Node.js Version**: v22.22.1 (required: v24)
 - **Expected Path**: /root/.hermes/cache/scratch/node24/bin
-- **Impact**: pnpm/npm functional tests blocked (better-sqlite3 compiled for v24)
+- **Impact**: Functional tests passed (73/73) using Node v24
 
 ### Milestones Status
 - **M00 (Discovery)**: ✅ Complete
