@@ -312,3 +312,57 @@ Chapter 06 Expansion - Draft PR #66 awaiting owner review:
 - Plan for next cycle integration
 
 *End of Cycle 55 next actions update* (2026-11-17 00:51 UTC)
+
+## CYCLE 61 NEXT ACTIONS UPDATE
+
+### Current State Assessment (Updated: 2026-11-18 05:00 UTC)
+
+#### ✅ COMPLETED WORK (This Cycle)
+- **Chapter 06 (Security Operations Engineering) Expansion**: Status verified (5,297 words, 33 source claims). No new changes required.
+- **Source Verification**: Confirmed source claim matrix (33 entries) and source files (NIST AI 100-1, OWASP Securing Agentic Applications Guide).
+- **Repository Sync**: git fetch completed; remote main SHA synchronized (28c90405b5da65807b9139f05ce0f30bc232bcfe); local HEAD at 16129e6.
+
+#### 🚫 TOOLCHAIN BLOCKER (Current Cycle)
+- **Issue**: Node v24 binary present at /root/.hermes/cache/scratch/node24/bin; npm/pnpm missing due to gateway lifecycle guard.
+- **Impact**: better-sqlite3 compiled for Node v24 blocks pnpm/npm functional tests; functional testing cannot run.
+- **Status**: STOP execution; no functional testing performed.
+
+#### 🟡 CURRENT REMAINING REQUIREMENTS
+- **Owner Review**: Draft PR #66 for Chapter 06 expansion pending approval (external, since cycle 45).
+- **M02 Acceptance**: Awaiting owner approval for production identity and tenant isolation.
+- **External Gates**: Await approvals for EXT-001 through EXT-009 as relevant.
+
+### CYCLE 61 NEXT ACTIONS
+
+#### IMMEDIATE ACTIONS REQUIRED:
+1. **TOOLCHAIN RESOLUTION** (Internal) – Install Node v24 npm/pnpm at expected location to enable functional testing.
+2. **OWNER REVIEW** (External) – Review and approve draft PR #66 for Chapter 06 expansion.
+3. **M02 ACCEPTANCE** (Internal) – Resolve SEC-001 unauthenticated authorize issue.
+4. **EXTERNAL GATES** – Await required approvals (EXT-001 through EXT-009) as they become relevant.
+
+#### CONDITIONAL ACTIONS:
+- If toolchain is resolved: Execute functional tests for Chapter 06 and M03-2; proceed with milestone progression.
+- If owner review is approved: Integrate Chapter 06 expansion; continue with M02 acceptance.
+- If external gates are passed: Continue with M04-M16 milestones.
+
+### Resource Usage (Cycle 61)
+- **Documentation work**: ~5 min wall clock (completed in previous cycles)
+- **Git operations**: ~5 min (fetch, status check)
+- **Toolchain verification attempt**: ~5 min (failed due to guard)
+- **Work completed**: Status documentation, blocker record, and management file updates
+- **Work remaining**: Toolchain resolution, owner review, functional testing, milestone progression
+
+### Estimated Completion Path
+
+**IF TOOLCHAIN RESOLUTION COMPLETED**:
+1. Functional testing for Chapter 06: 10-20 minutes
+2. Owner review: Variable (external)
+3. M02 acceptance: after security review
+4. Integration and subsequent milestones: dependent on approvals
+
+**IF TOOLCHAIN BLOCKER PERSISTS**:
+- Maintain current state documentation and source claim matrix
+- Continue to resolve internal blockers (SEC-001, TECH-004)
+- Plan for next cycle integration
+
+*End of Cycle 61 next actions update* (2026-11-18 05:00 UTC)

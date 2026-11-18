@@ -106,3 +106,11 @@ Engineering continues on independent work whenever a gate is blocked.
   - Remote main SHA: 28c90405b5da65807b9139f05ce0f30bc232bcfe
 - Impact: Cannot synchronize with remote main; prevents any further work.
 - Status: STOP
+
+## Cycle 61 Blocker Update
+
+### NEW BLOCKER IDENTIFIED
+- **CYCLE 61 TOOLCHAIN BLOCKER**: Node v24 binary present at expected path, but npm/pnpm are unavailable due to gateway lifecycle guard (module scanning cap).
+  - Node v24 binary at /root/.hermes/cache/scratch/node24/bin exists; npm/pnpm missing.
+  - Impact: better-sqlite3 compiled for Node v24 blocks pnpm/npm functional tests; functional testing cannot run.
+- Status: STOP — toolchain verification failed; no functional tests executed.
