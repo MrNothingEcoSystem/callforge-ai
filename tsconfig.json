@@ -10,6 +10,6 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["*.mjs", "tools/**/*.mjs"],
+  "include": ["*.mjs", "tools/**/*.mjs", "db/**/*.mjs", "workflow/**/*.mjs", "scripts/**/*.mjs"],
   "exclude": ["node_modules", "data", "coverage", "tests"]
 }
