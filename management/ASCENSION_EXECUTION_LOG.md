@@ -28,3 +28,15 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-19 — Cycle 68 (dispatcher, 12:04 UTC)
+
+- Sync: `git fetch`; origin/main = `28c9040` (unchanged since cycle 67). Local checkout was on `docs/ascension-cycle-067` (64eda0d, pushed via draft PR #69) — no unpushed work. New branch `m04-compliance-gate` cut from origin/main. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.15.0 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task (cycle 67 next-actions): M04 UAE requirements register engineering, increment 1. (Owner-gated items — PR #65 SEC-001 merge, PR #67 vs #51, IdP choice — unchanged; issue #8 scoping deferred: its token-context enforcement overlaps PR #65, avoiding duplicate-dispatch.)
+- Implemented `complianceGate.mjs`: deterministic, fail-closed pre-dial gate over verifiable inputs for IMPLEMENTABLE NOW rules only — R03 CLI inventory, R06 DNCR/opt-out suppression (UAE number normalization incl. landline), R08 09:00-18:00 Asia/Dubai, R09 refusal/opt-out hard block, R10 retry ceilings (1/day, 2/week), R11/R12/R13 opener + AI disclosure, R07 consent-ref presence. LEGAL-REVIEW rules explicitly NOT decided (EXT-002 still gates M04 closure).
+- Wired additively into `validate_compliance` (optional `gate_input`; legacy self-attested path unchanged when absent — splits evidence from gate decision per M09 design §4 note).
+- Tests: new `tests/m04-compliance-gate.test.mjs` 12/12. Full suite 120/120 (14 files) on green runs. Pre-existing flakiness: intermittent "Unhandled Error" (13/14 files, 0 test failures) reproduced on clean main 28c9040 (1/3 runs, 97/108) — worker/DB teardown race, not caused by this change; recorded as TECH-006 candidate. One real bug found+fixed during cycle: landline (04…) normalization.
+- Independent review: delegate_task unavailable in cron env; verified by direct inspection + green test runs. No verdict claimed.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate; no digest sent (no digest time recorded in log; 6h rule — no message).
+- Resource usage: ~6 min wall clock, no persistent processes. Remaining work: owner merges (#65, #67/#51, #66, #47-#64/#68/#69 backlog), IdP choice, EXT-002 counsel review for M04 closure, DNCR portal/API sync + consent ledger persistence as M04 increment 2 (needs owner approval on data flows), issue #8 after PR #65 lands.

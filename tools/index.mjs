@@ -8,6 +8,7 @@
 
 import { z } from 'zod';
 import { hashEventAsync } from '../store.mjs';
+import { evaluatePreDialGate } from '../complianceGate.mjs';
 
 /**
  * Tool 1: Onboard Tenant
@@ -210,6 +211,33 @@ export const validateComplianceSchema = z.object({
     calling_hours_compliant: z.boolean(),
     recording_consent: z.boolean().optional(),
   }),
+  // Optional M04 increment 1: verifiable pre-dial inputs. When present the
+  // deterministic gate (complianceGate.mjs) is evaluated and must pass;
+  // when absent, legacy self-attested evidence behaviour is unchanged.
+  gate_input: z
+    .object({
+      destinationNumber: z.string(),
+      suppressionNumbers: z.array(z.string()).default([]),
+      registeredCliNumbers: z.array(z.string()).default([]),
+      cliNumber: z.string(),
+      scheduledAt: z.string(),
+      consumerRefused: z.boolean().default(false),
+      globalOptOut: z.boolean().default(false),
+      attempts: z.object({
+        callbacksToday: z.number().int(),
+        callbacksThisWeek: z.number().int(),
+      }),
+      opener: z.object({
+        companyName: z.string(),
+        purpose: z.string(),
+        recordingNotice: z.string(),
+        continuePrompt: z.string(),
+        automated: z.boolean().default(false),
+        aiDisclosure: z.boolean().optional(),
+      }),
+      consentRef: z.string().nullable().default(null),
+    })
+    .optional(),
 });
 
 export const TOOL_SCHEMAS = {
@@ -925,7 +953,7 @@ export async function registerTools(server, deps) {
     'Validate compliance evidence for a call intent',
     validateComplianceSchema.shape,
     async args => {
-      const { tenant_id, call_intent_id, evidence } = args;
+      const { tenant_id, call_intent_id, evidence, gate_input } = args;
 
       const intent = db
         .prepare('SELECT * FROM call_intents WHERE id = ? AND tenant_id = ?')
@@ -957,6 +985,13 @@ export async function registerTools(server, deps) {
       results.all_passed = Object.entries(results)
         .filter(([key]) => key !== 'all_passed')
         .every(([, value]) => value === true);
+
+      // M04 increment 1: deterministic gate over verifiable inputs.
+      if (gate_input) {
+        const gate = evaluatePreDialGate(gate_input);
+        results.pre_dial_gate = gate;
+        results.all_passed = results.all_passed && gate.allowed;
+      }
 
       // Update call intent with compliance evidence
       db.prepare(
