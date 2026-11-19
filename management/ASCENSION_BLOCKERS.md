@@ -64,3 +64,15 @@ Adversarial re-audit (read-only worktree of origin/m02-oauth-tenant-isolation at
 - Root cause: the chapter branch carried a stale, pre-rework variant of the SEC-001 authorize fix (`role: body.role || authContext.role`), superseded by PR #65 head 7ce247f. The chapter expansion is research/docs only, so server.mjs is reverted to origin/main — PR #66 no longer carries server code, removing a future merge conflict with PR #65.
 - Nine files failing prettier --check were formatted with prettier --write (content-only reformatting).
 - F-65-4 (bootstrap circularity) remains OPEN, unchanged. TECH-006 forks-pool SIGABRT flake reproduced locally on default pool; 108/108 passes with threads pool (PR #71 fix, green, awaiting owner merge). Not duplicated in this branch.
+
+## Cycle 78 — PR #70 independent review verdict (2026-11-19, head 97d6e7b)
+
+Adversarial re-audit (read-only worktree of origin/m04-compliance-gate at 97d6e7b; Node v24.15.0, pnpm 12.18.0):
+
+- `pnpm test` = 120/120, 14 files, pass. CI verify SUCCESS at 97d6e7b.
+- Fail-closed core verified by independent probes: empty input denied (7 checks); suppressed destination blocked across +971/00971/trunk-0 formats; unregistered CLI blocked; calling-hours boundaries correct; refusal/opt-out blocks; retry ceilings enforced; opener + AI disclosure enforced; consentRef presence required.
+- Verdict: **ACCEPT WITH FOLLOW-UPS** (simulation baseline; no dialing, M04 not closable, EXT-002 unchanged). Posted as comment on PR #70 (no merge).
+- F-70-1: Negative attempt counters bypass R10 (callbacksToday=-99 passes; require >=0).
+- F-70-2: Whitespace-only strings pass opener fields and consentRef (no trim).
+- F-70-3: Gate bypass — gate_input optional in validateCompliance (tools/index.mjs); legacy self-attested evidence can still yield all_passed=true. Require gate_input for marketing intents before live use.
+- F-70-4: R04 (natural-person ban) marked IMPLEMENTABLE NOW in UAE_COMPLIANCE_REGISTER.md but not covered by this gate; either cover or explicitly scope increment 1.

@@ -26,3 +26,9 @@ EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-cal
 - Draft PRs now all green and awaiting owner merge direction: #65 (SEC-001 rework, ACCEPT WITH FOLLOW-UPS, F-65-4 bootstrap open), #66 (chapter-06), #67 (cleanup #2/#4/#5/#6), #70 (M04 compliance gate inc. 1), #71 (TECH-006 threads pool).
 - Highest-priority unblocked work exhausted until owner decisions: next actions are owner merges + F-65-4 bootstrap decision (dev-token issuer vs real IdP). Engineering continues on independent work only when a new unblocked task emerges.
 - TECH-006: 108/108 verified with threads pool; default forks pool SIGABRT flake until PR #71 merges.
+
+## Cycle 78 update (2026-11-19)
+
+- PR #70 (M04 compliance gate, 97d6e7b) independent review: ACCEPT WITH FOLLOW-UPS (120/120, CI green). F-70-1 negative counters, F-70-2 whitespace strings, F-70-3 optional gate_input bypass, F-70-4 R04 scope gap. See ASCENSION_BLOCKERS.md cycle 78.
+- Unreviewed engineering PRs remaining: #67 (cleanup #2/#4/#5/#6), #71 (TECH-006 threads pool) — next dispatcher cycles should review one each.
+- Draft PRs green and awaiting owner merge: #65, #66, #67, #70, #71, #76, #77. F-65-4 bootstrap decision still owner-gated. EXT-001..EXT-009 unchanged.
