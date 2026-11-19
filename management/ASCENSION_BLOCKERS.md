@@ -46,3 +46,15 @@ Reworked PR #65 per Cycle 73 verdict. F-65-3 (role escalation) and F-65-5 (no HT
 - F-65-4 (bootstrap circularity) remains OPEN by design of this simulation baseline: the only token-issuance path is /oauth/token which requires a code from /oauth/authorize, and authorize now requires a Bearer token. A documented bootstrap path requires an owner decision (e.g. a separate dev-token issuer, or a real IdP) before SEC-001 can be fully closed.
 - SEC-001 status: tenant binding + role pinning + scope narrowing fixed and tested; bootstrap remains an open design decision.
 
+
+## Cycle 75 — PR #65 independent re-review verdict (2026-11-19, head 7ce247f)
+
+Adversarial re-audit (read-only worktree of origin/m02-oauth-tenant-isolation at 7ce247f; Node v24.15.0, pnpm 12.18.0):
+
+- `pnpm test` = 78/78, 10 files, pass. CI verify SUCCESS at 7ce247f.
+- Independent live HTTP probes (fresh server, operator token for tenant-A):
+  - role=tenant_admin + scope [admin, audit] → 403 "Role mismatch: role is derived from the access token" (cycle-73 role-escalation finding CLOSED)
+  - role=operator + scope [read] → 200 with code (pinned-role happy path)
+  - tenant_id=tenant-B → 403 "Tenant mismatch: token tenant does not match request tenant"
+  - unauthenticated → 401 "Missing or invalid Authorization header"
+- Verdict: **ACCEPT WITH FOLLOW-UPS**. F-65-3 and F-65-5 fixed and verified. F-65-4 (bootstrap circularity) remains OPEN by design: the only issuance path is /oauth/authorize, which now requires a Bearer token; a documented bootstrap path needs an owner decision (dev-token issuer or real IdP) before SEC-001 can be fully closed. Verdict posted as comment on PR #65 (no merge).
