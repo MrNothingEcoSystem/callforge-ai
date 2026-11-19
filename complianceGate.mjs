@@ -15,7 +15,44 @@
 
 const DUBAI_TZ = 'Asia/Dubai';
 
-/** Normalize a UAE phone number to 971XXXXXXXXX digits, or null. */
+/** @typedef {Object} AttemptCounters
+ * @property {number} [callbacksToday]
+ * @property {number} [callbacksThisWeek]
+ */
+
+/** @typedef {Object} Opener
+ * @property {string} [companyName]
+ * @property {string} [purpose]
+ * @property {string} [recordingNotice]
+ * @property {string} [continuePrompt]
+ * @property {boolean} [automated]
+ * @property {boolean} [aiDisclosure]
+ */
+
+/** @typedef {Object} PreDialInput
+ * @property {string} [destinationNumber]
+ * @property {string[]} [suppressionNumbers] DNCR + opt-out union (raw numbers ok)
+ * @property {string[]} [registeredCliNumbers] licence-registered CLI inventory
+ * @property {string} [cliNumber] CLI the call would present
+ * @property {Date|string} [scheduledAt]
+ * @property {boolean} [consumerRefused] consumer already refused this offer (R09)
+ * @property {boolean} [globalOptOut] consumer requested global opt-out (R09)
+ * @property {AttemptCounters} [attempts] R10 counters
+ * @property {Opener} [opener]
+ * @property {string|null} [consentRef] consent ledger reference (R07-present; basis mapping is LEGAL-REVIEW)
+ */
+
+/** @typedef {Object} GateCheck
+ * @property {string} id
+ * @property {string} rule
+ * @property {boolean} passed
+ * @property {string} reason
+ */
+
+/** Normalize a UAE phone number to 971XXXXXXXXX digits, or null.
+ * @param {unknown} raw
+ * @returns {string|null}
+ */
 export function normalizeUaeNumber(raw) {
   if (typeof raw !== 'string') {
     return null;
@@ -36,7 +73,10 @@ export function normalizeUaeNumber(raw) {
   return null;
 }
 
-/** Dubai wall-clock HH:MM(SS) parts for an instant. */
+/** Dubai wall-clock HH:MM(SS) parts for an instant.
+ * @param {Date} date
+ * @returns {{hour:number, minute:number, second:number}}
+ */
 export function dubaiTimeParts(date) {
   const parts = new Intl.DateTimeFormat('en-GB', {
     timeZone: DUBAI_TZ,
@@ -49,31 +89,32 @@ export function dubaiTimeParts(date) {
   return { hour: get('hour'), minute: get('minute'), second: get('second') };
 }
 
-/** R08: marketing calls only 09:00-18:00 Asia/Dubai (inclusive start, exclusive end). */
+/** R08: marketing calls only 09:00-18:00 Asia/Dubai (inclusive start, exclusive end).
+ * @param {Date} date
+ * @returns {boolean}
+ */
 export function isWithinCallingHours(date) {
   const { hour, minute, second } = dubaiTimeParts(date);
   const secs = hour * 3600 + minute * 60 + second;
   return secs >= 9 * 3600 && secs < 18 * 3600;
 }
 
+/**
+ * @param {string} id
+ * @param {string} rule
+ * @param {boolean} passed
+ * @param {string} reason
+ * @returns {GateCheck}
+ */
 function check(id, rule, passed, reason) {
   return { id, rule, passed, reason };
 }
 
 /**
- * Evaluate the pre-dial gate. Pure and deterministic.
- * @param {object} input
- * @param {string} input.destinationNumber
- * @param {string[]} input.suppressionNumbers DNCR + opt-out union (raw numbers ok)
- * @param {string[]} input.registeredCliNumbers licence-registered CLI inventory
- * @param {string} input.cliNumber CLI the call would present
- * @param {Date|string} input.scheduledAt
- * @param {boolean} input.consumerRefused consumer already refused this offer (R09)
- * @param {boolean} input.globalOptOut consumer requested global opt-out (R09)
- * @param {{callbacksToday:number, callbacksThisWeek:number}} input.attempts R10 counters
- * @param {object} input.opener {companyName, purpose, recordingNotice, continuePrompt, aiDisclosure|null}
- * @param {string|null} input.consentRef consent ledger reference (R07-present; basis mapping is LEGAL-REVIEW)
- * @returns {{allowed:boolean, checks:object[]}}
+ * Evaluate the pre-dial gate. Pure and deterministic. All fields optional;
+ * missing/invalid input fails its check (fail-closed).
+ * @param {PreDialInput} [input]
+ * @returns {{allowed:boolean, checks:GateCheck[]}}
  */
 export function evaluatePreDialGate(input = {}) {
   const checks = [];
