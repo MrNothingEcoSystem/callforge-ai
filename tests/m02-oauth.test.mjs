@@ -249,6 +249,89 @@ describe('M02 OAuth/PKCE and tenant isolation', () => {
     expect(res.status).toBe(401);
   });
 
+  // ---- HTTP-level tests for handleOAuthAuthorize (F-65-5 fix) ----
+
+  it('rejects unauthenticated POST /oauth/authorize with 401 (HTTP)', async () => {
+    const verifier = generateCodeVerifier();
+    const res = await request(port, 'POST', '/oauth/authorize', {
+      body: {
+        code_challenge: pkceS256(verifier),
+        code_challenge_method: 'S256',
+      },
+    });
+    expect(res.status).toBe(401);
+    expect(res.body.error).toMatch(/Authorization/);
+  });
+
+  it('rejects cross-tenant POST /oauth/authorize with 403 (HTTP)', async () => {
+    const verifier = generateCodeVerifier();
+    const res = await request(port, 'POST', '/oauth/authorize', {
+      token: tokenA,
+      body: {
+        tenant_id: tenantB,
+        code_challenge: pkceS256(verifier),
+        code_challenge_method: 'S256',
+      },
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/Tenant mismatch/);
+  });
+
+  it('rejects role escalation at POST /oauth/authorize with 403 (HTTP, F-65-3)', async () => {
+    // tokenA is an operator token; body.role=tenant_admin must NOT grant admin.
+    const verifier = generateCodeVerifier();
+    const res = await request(port, 'POST', '/oauth/authorize', {
+      token: tokenA,
+      body: {
+        role: 'tenant_admin',
+        scope: ['admin', 'audit'],
+        code_challenge: pkceS256(verifier),
+        code_challenge_method: 'S256',
+      },
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/Role mismatch/);
+  });
+
+  it('pins role to the token context and narrows scope on success (HTTP)', async () => {
+    const verifier = generateCodeVerifier();
+    const res = await request(port, 'POST', '/oauth/authorize', {
+      token: tokenA,
+      body: {
+        role: 'operator',
+        scope: ['read'],
+        code_challenge: pkceS256(verifier),
+        code_challenge_method: 'S256',
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(res.body.code).toBeTruthy();
+    const exchanged = server.oauth.exchange({
+      code: res.body.code,
+      code_verifier: verifier,
+    });
+    expect(exchanged.error).toBeUndefined();
+    const ctx = validateAccessToken(exchanged.access_token).context;
+    expect(ctx.role).toBe('operator');
+    expect(ctx.tenantId).toBe(tenantA);
+    expect(ctx.scopes).toEqual(['read']);
+  });
+
+  it('rejects scope widening beyond the token scopes with 403 (HTTP)', async () => {
+    // tokenA scopes are [simulate, read]; requesting admin must be refused.
+    const verifier = generateCodeVerifier();
+    const res = await request(port, 'POST', '/oauth/authorize', {
+      token: tokenA,
+      body: {
+        scope: ['admin'],
+        code_challenge: pkceS256(verifier),
+        code_challenge_method: 'S256',
+      },
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/scope/i);
+  });
+
   it('fails closed when no token secret is configured (F1)', async () => {
     const savedSecret = process.env.CALLFORGE_TOKEN_SECRET;
     const savedDev = process.env.CALLFORGE_ALLOW_DEV_SECRET;
