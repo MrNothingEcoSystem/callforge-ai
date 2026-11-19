@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-19T20:50Z (cycle 84)
 
 ## Highest priority (supervisor-verified 2026-11-09T04:30Z)
 
@@ -19,3 +19,9 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 84 update (2026-11-19)
+
+- F-67-1/F-67-2 fixed at 98c31c4 on cleanup-issues-2-4-5-6 (PR #67): verifyChain('<nonexistent>') now returns valid:false + 'Anchor event not found' instead of a vacuous valid:true (regression test added); unused e1 removed (lint 0 warnings). 113/113 tests, lint/format/typecheck PASS. Next: independent re-review of PR #67, then owner merge.
+- Still pending re-review: PR #70 at 124b087 (F-70-1/F-70-2 fix), PR #71 at 11efab3 (F-71-2 root cause).
+- No unblocked engineering follow-ups remain from review findings; everything else is owner-gated (merges #65/#66/#67/#70/#71/#76-#83, F-65-4 bootstrap, EXT-001..EXT-009).

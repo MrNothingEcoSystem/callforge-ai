@@ -28,3 +28,12 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-19 — Cycle 84 (dispatcher, 20:50 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. Checkout moved from docs/ascension-cycle-083 (pushed, PR #83 draft) to cleanup-issues-2-4-5-6 for the fix, then docs/ascension-cycle-084 cut from origin/main for this ledger. No legacy writes. Toolchain verified: Node v24.15.0, pnpm 12.18.0 at /root/.hermes/cache/scratch/node24/bin.
+- Selected highest-priority unblocked task: F-67-1/F-67-2 follow-ups on cleanup-issues-2-4-5-6 (PR #67), per cycle 79 review verdict ACCEPT WITH FOLLOW-UPS.
+- Fix at 98c31c4: verifyChain(fromEventId) with a nonexistent anchor now returns valid:false, errors:[{event_id, error:'Anchor event not found'}], events_checked:0 — no longer a vacuous valid:true (the rowid>=anchor subquery yields zero rows iff the anchor is absent). Regression test added; unused e1 in the issue-#2 partial-chain test removed (lint warning gone). ABI preserved for no-arg callers (tools/index.mjs verify path unaffected).
+- Gates: 13 files, 113/113 tests pass (was 112/112); lint 0 errors/0 warnings, format:check PASS, typecheck PASS. PR #67 updated (head 98c31c4, draft, no merge); fix recorded in PR comment. Independent re-review of PR #67/#70/#71 still pending (delegate_task unavailable in cron env).
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate; last digest cycle 73 (~14:55 UTC, ~5.9h ago, <6h). No message sent.
+- Resource usage: ~10 min wall clock, no persistent processes. Remaining work (assumption: owner reviews within days): re-reviews of PR #67 at 98c31c4, PR #70 at 124b087, PR #71 at 11efab3; owner merge decisions on draft PRs #65/#66/#67/#70/#71/#76-#83; F-65-4 bootstrap owner decision; EXT-001..EXT-009 unchanged. No unblocked follow-ups remain.
