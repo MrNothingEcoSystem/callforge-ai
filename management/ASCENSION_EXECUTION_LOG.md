@@ -28,3 +28,13 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-19 — Cycle 69 (dispatcher, 12:37 UTC)
+
+- Sync: `git fetch`; origin/main = `28c9040`. Local checkout was on `m04-compliance-gate` (adb84d1, pushed, cycle 68) — no unpushed work. New branch `tech006-vitest-flake` cut from origin/main. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.15.0 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task (cycle 68 next-actions): TECH-006 intermittent vitest "Unhandled Error". Reproduced on clean main: SIGABRT, native trace `node::RemoveEnvironmentCleanupHook` assertion from better-sqlite3 `Statement::~Statement`, worker killed while running tests/m03-orchestration.test.mjs (single-file runs passed 6/6 — crash is at worker teardown, not a test failure).
+- Fix: vitest.config.mjs `pool: 'threads'` (one-line config change, no prod code). Rationale in config comment. Measured: forks 3/20 full-suite failures; threads 0/20 pre-fix via CLI flag; configured threads 0/20, 108/108 every run.
+- Independent review: delegate_task unavailable in cron env; verified by direct inspection + 40 measured runs. No verdict claimed.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate; no digest sent (last digest: none recorded in log; no message).
+- Resource usage: ~8 min wall clock, no persistent processes. Remaining work: owner merges backlog (PR #65 SEC-001, PR #67 vs #51, M04 gate PR, this TECH-006 PR), IdP choice, EXT-002 counsel review for M04 closure, M04 increment 2 (owner data-flow approval), issue #8 after PR #65 lands. Assumption: threads-pool env sharing is acceptable (suite passed 40/40 runs; isolate-by-default per file).
