@@ -35,3 +35,17 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 73 independent review — PR #65 SEC-001 (2026-11-19, head ef9f1ac)
+
+Verdict: **CHANGES REQUESTED** — partial fix, not a SEC-001 closure. Tests 73/73 (CI + local worktree); live HTTP probe:
+
+| Finding                                                                                                                  | Result                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| F-65-1 Unauthenticated authorize                                                                                         | Fixed — 401                                                                                             |
+| F-65-2 Cross-tenant authorize (body.tenant_id != token tenant)                                                           | Fixed — 403                                                                                             |
+| F-65-3 **Role escalation** (`body.role` trusted over token role, server.mjs:227 `role: body.role \|\| authContext.role`) | **Open — operator token + body.role="tenant_admin" → 200, code issued with admin scopes (live-probed)** |
+| F-65-4 Bootstrap circularity (authorize requires token; exchange is the only issuer)                                     | Open — no HTTP bootstrap; tests bypass HTTP handler (call oauth.authorize directly)                     |
+| F-65-5 No HTTP-level test for handleOAuthAuthorize                                                                       | Open                                                                                                    |
+
+SEC-001 status: **partially mitigated (tenant binding), role self-assertion still open**. Required before merge: pin role to authContext.role, intersect scope with token scopes, document bootstrap path, add HTTP-level tests.
