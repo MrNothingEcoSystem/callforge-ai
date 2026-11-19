@@ -2,12 +2,12 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
-    // TECH-006: use threads, not the default forks pool. Under Node 24 the
-    // forks child-process env teardown races better-sqlite3's native
-    // Statement destructor (RemoveEnvironmentCleanupHook assertion,
-    // SIGABRT in an arbitrary test file). Threads reduces the failure
-    // rate ~6x (independent re-measure: forks 4/10 vs threads 9/10)
-    // but does not eliminate it (TECH-006 remains open).
+    // TECH-006 (root cause fixed): better-sqlite3 v11's Statement
+    // destructor ran after Node 24 env teardown (RemoveEnvironmentCleanupHook
+    // assertion, SIGABRT in an arbitrary test file; v11 threads 14/16,
+    // forks 4/10). Upgrading better-sqlite3 to v12.11.1 fixed it:
+    // 20/20 threads runs and 10/10 forks runs pass (108/108 tests each).
+    // Threads pool retained (harmless; was the v11 mitigation).
     pool: 'threads',
     environment: 'node',
     include: ['tests/**/*.test.mjs'],
