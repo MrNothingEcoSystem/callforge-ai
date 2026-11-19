@@ -16,14 +16,14 @@
 
 ## Technical blockers
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                             | Schedule into M02/M03 branches                  |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
-| TECH-006 | Intermittent vitest 'Unhandled Error': SIGABRT from better-sqlite3 Statement destructor vs Node 24 env teardown in forks workers | Diagnosed + fix in draft PR (branch tech006-vitest-flake): `pool:'threads'` in vitest.config.mjs; forks failed 3/20 runs, threads 0/20 on main and 0/20 with fix (108/108) | Owner merge of draft PR |
+| ID       | Blocker                                                                                                                          | Status                                                                                                                                                                     | Next action                                     |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| TECH-001 | M02 PR #7 independent security verdict pending                                                                                   | In progress (auditor dispatched)                                                                                                                                           | Record verdict; fix blocking findings on branch |
+| TECH-002 | Issues #2, #4, #5, #6 open follow-ups                                                                                            | Open                                                                                                                                                                       | Schedule into M02/M03 branches                  |
+| TECH-003 | No durable workflow layer yet                                                                                                    | M03 design dispatched                                                                                                                                                      | Implement increment 1                           |
+| TECH-004 | Postgres vs SQLite decision                                                                                                      | M03 evaluation                                                                                                                                                             | Design deliverable                              |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles                                                                                | Pending                                                                                                                                                                    | Run + verify recovery                           |
+| TECH-006 | Intermittent vitest 'Unhandled Error': SIGABRT from better-sqlite3 Statement destructor vs Node 24 env teardown in forks workers | Diagnosed + fix in draft PR (branch tech006-vitest-flake): `pool:'threads'` in vitest.config.mjs; forks failed 3/20 runs, threads 0/20 on main and 0/20 with fix (108/108) | Owner merge of draft PR                         |
 
 Engineering continues on independent work whenever a gate is blocked.
 
