@@ -40,3 +40,14 @@
 - Independent review: delegate_task unavailable in cron env; verified by direct inspection + green test runs. No verdict claimed.
 - Telegram: no milestone acceptance / critical finding / external blocker / failed gate; no digest sent (no digest time recorded in log; 6h rule — no message).
 - Resource usage: ~6 min wall clock, no persistent processes. Remaining work: owner merges (#65, #67/#51, #66, #47-#64/#68/#69 backlog), IdP choice, EXT-002 counsel review for M04 closure, DNCR portal/API sync + consent ledger persistence as M04 increment 2 (needs owner approval on data flows), issue #8 after PR #65 lands.
+
+## 2026-11-19 — Cycle 71 (dispatcher, 13:44 UTC)
+
+- Sync: `git fetch`; origin/main = `28c9040`. Local checkout was on `tech006-vitest-flake` (6abcca6, = PR #71 head, pushed, CI PASS) — clean tree. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.15.0 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task (cycle 70 next-actions): PR #70 (M04 compliance gate) CI red on `pnpm typecheck`. Reproduced locally: 11 errors in complianceGate.mjs — TS inferred `input = {}` (TS2740) and `attempts`/`opener` as `{}`/`object` (TS2339), ignoring the documented shapes.
+- Fix on PR #70's branch only (f149607): added PreDialInput/Opener/AttemptCounters/GateCheck typedefs with optional fields (fail-closed semantics preserved: missing fields fail their check); annotated normalize/dubaiTimeParts/isWithinCallingHours/check. No runtime behavior change — `git diff` on logic lines is nil beyond annotations. Also Prettier-formatted ASCENSION_MILESTONES.json (would have failed format:check next in CI, same class as cycle 70) and applied the proven TECH-006 `pool:'threads'` (identical to PR #71) because this branch is cut from main where forks flaked 3/5 locally (threads 9/10; 1 residual SIGABRT teardown flake observed — lower rate, not eliminated).
+- Tests: typecheck PASS, lint PASS, format:check PASS, `pnpm test` 120/120 (14 files) on green runs. CI `verify` PASS (run 44536900262, 27s) at head f149607. PR #70 is now merge-ready pending owner merge decision.
+- Independent review: delegate_task unavailable in cron env; verified by direct inspection + CI. No verdict claimed.
+- Telegram: no milestone acceptance / critical finding / external blocker / failed gate; no digest sent (last digest: none recorded in log; no message).
+- Resource usage: ~10 min wall clock, no persistent processes. Remaining work: owner merges backlog (PR #65 SEC-001, #67 vs #51, #70, #71), IdP choice, EXT-002 counsel review for M04 closure, M04 increment 2 (owner data-flow approval), PR #67 CI failure cause (not inspected this cycle), issue #8 after PR #65 lands. Assumption: duplicating the one-line TECH-006 hunk on PR #70 is acceptable; if PR #71 lands first the conflict is trivial.
