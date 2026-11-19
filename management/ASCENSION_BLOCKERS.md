@@ -13,6 +13,7 @@
 | EXT-007 | Billing provider approval                            | M10 real charging          |
 | EXT-008 | OpenAI publisher verification + domain ownership     | M15 submission             |
 | EXT-009 | Final publication approval                           | M16                        |
+| EXT-010 | Owner review of PR #66 for Chapter 06 expansion (security operations engineering) | Chapter 06 integration, owner approval
 
 ## Technical blockers
 
