@@ -4,6 +4,7 @@
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { createHash } from 'node:crypto';
 import {
   initDatabase,
   getDatabase,
@@ -137,8 +138,7 @@ describe('Store', () => {
 
     const keyId = generateId();
     const rawToken = 'cf_dev_test123';
-    const crypto = require('crypto');
-    const keyHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    const keyHash = createHash('sha256').update(rawToken).digest('hex');
 
     db.prepare(
       'INSERT INTO api_keys (id, tenant_id, name, key_hash, scopes) VALUES (?, ?, ?, ?, ?)',

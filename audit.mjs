@@ -101,7 +101,33 @@ export function createAuditLogger() {
 
       const events = db.prepare(query).all(...params);
 
+      // F-67-1: an explicit anchor that does not exist is not a vacuous
+      // pass — the caller asked to verify from a specific event, and
+      // silently returning valid:true with 0 events checked would mask
+      // a wrong id (or a deleted/archived anchor) as a healthy chain.
+      if (fromEventId && events.length === 0) {
+        return {
+          valid: false,
+          errors: [{ event_id: fromEventId, error: 'Anchor event not found' }],
+          events_checked: 0,
+          chain_head: '0'.repeat(64),
+        };
+      }
+
+      // Issue #2: seed previousHash from the actual predecessor when
+      // starting mid-chain, so partial verification does not emit a
+      // spurious "Hash chain broken" error for the first event checked.
       let previousHash = '0'.repeat(64);
+      if (fromEventId && events.length > 0) {
+        const predecessor = db
+          .prepare(
+            'SELECT event_hash FROM audit_events WHERE rowid < (SELECT rowid FROM audit_events WHERE id = ?) ORDER BY rowid DESC LIMIT 1',
+          )
+          .get(fromEventId);
+        if (predecessor) {
+          previousHash = predecessor.event_hash;
+        }
+      }
       let valid = true;
       const errors = [];
 
@@ -193,7 +219,7 @@ export function createAuditLogger() {
           `
         SELECT * FROM audit_events
         WHERE ${where}
-        ORDER BY created_at DESC
+        ORDER BY rowid DESC
         LIMIT ? OFFSET ?
       `,
         )
