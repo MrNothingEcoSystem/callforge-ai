@@ -19,3 +19,7 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 89 update (2026-11-19)
+
+- F-66-1 fixed on PR #66 at ea1307c (truncated OWASP filenames restored, matrix 38x4, 108/108 tests). F-66-2 canonical duplicate decision owner-gated. Next: owner merge decisions on draft PRs #61/#64/#65/#66/#67/#70/#71/#76-#88; EXT-001..EXT-010 unchanged.

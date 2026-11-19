@@ -28,3 +28,13 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-19 — Cycle 89 (dispatcher, 23:27 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`; previous checkout on docs/ascension-cycle-088 (PR #88 draft, clean). New ledger branch docs/ascension-cycle-089 cut from origin/main. No writes to legacy Davidcarmelalex/CALLFORGE. Toolchain verified: Node v24.15.0, pnpm 12.18.0 at /root/.hermes/cache/scratch/node24/bin.
+- Selected highest-priority unblocked task: F-66-1 follow-up from cycle 88 independent review of PR #66 (chapter-06-expansion). Fixed on one write lease on branch chapter-06-expansion at `ea1307c` (pushed, PR #66 comment 7025147921).
+- Fix: claim-matrix rows 6-11 truncated `OWASP_Securing_Agentic_Applications_Guide_1.` restored to full cached filename `OWASP_Securing_Agentic_Applications_Guide_1.0_2025-07-28.txt` with pinpoints Bergman Lifecycle / 1.2-1.6; merged KC6.7/Section 2.3 row (missing newline) split; blank line removed. Matrix now parses 38 data rows x 4 cols; every Source File verified present in research/source_cache/. Grounding note: 'Bergman' and 'Operational Hardening' do not occur verbatim in cached OWASP text (pre-existing pinpoint wording) — flagged, not rewritten.
+- Tests: `pnpm test` on chapter-06-expansion = 13 files, 108/108 passed (752ms, Node v24.15.0). Research-only change; no src/ diff.
+- F-66-2 (CHAPTER06_CLEAN.md 6,966w vs CHAPTER06_SECURITY_OPERATIONS_ENGINEERING.md 6,627w near-duplicate, canonical choice) remains owner-gated; no file deleted unilaterally.
+- Telegram: none — last digest within 6h window per cycle 88 log; no milestone acceptance, critical finding, external blocker, failed gate, or approval request this cycle.
+- Resource usage: ~10 min wall clock, no disposable worktree needed (direct branch checkout), no persistent processes. Remaining work (assumption: owner reviews within days): rebase PR #66 onto current main (TECH-006/#71) before merge; owner merge decisions on draft PRs #61/#64/#65/#66/#67/#70/#71/#76-#88; F-66-2 canonical decision; EXT-001..EXT-010 unchanged.
