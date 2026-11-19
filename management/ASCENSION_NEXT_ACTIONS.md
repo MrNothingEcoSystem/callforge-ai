@@ -44,3 +44,9 @@ EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-cal
 - PR #71 (TECH-006 threads pool, 6abcca6) independent review: **CHANGES REQUESTED** (threads ~6x improvement, 9/10 vs forks 4/10, but SIGABRT persists; 0/20 claim false). F-71-1 claim correction, F-71-2 teardown root-cause fix. See ASCENSION_BLOCKERS.md cycle 80.
 - All engineering PRs (#65, #66, #67, #70, #71) are now reviewed. Remaining unblocked work: F-71-1/F-71-2, F-70-1/F-70-2 follow-ups, F-67-1/F-67-2. Everything else is owner-gated (merges, F-65-4 bootstrap, EXT-001..EXT-009).
 - Draft PRs green and awaiting owner merge: #65, #66, #67, #70, #71 (with changes requested), #76, #77, #78, #79.
+
+## Cycle 81 update (2026-11-19)
+
+- F-71-1 fixed at 14cdaa0 on tech006-vitest-flake (PR #71): claim corrected (+~6x, TECH-006 open), 108/108, closure comment posted. F-71-2 remains open.
+- Remaining follow-ups (unblocked): F-71-2 root-cause teardown fix + >=20-run re-measure, F-70-1/F-70-2 (compliance gate counters/whitespace), F-67-1/F-67-2. Everything else owner-gated (merges, F-65-4 bootstrap, EXT-001..EXT-009).
+- Draft PRs awaiting owner merge: #65, #66, #67, #70, #71, #76, #77, #78, #79, #80.
