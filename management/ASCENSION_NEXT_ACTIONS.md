@@ -38,3 +38,9 @@ EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-cal
 - PR #70 (M04 compliance gate, 97d6e7b) independent review: ACCEPT WITH FOLLOW-UPS (120/120, CI green). F-70-1 negative counters, F-70-2 whitespace strings, F-70-3 optional gate_input bypass, F-70-4 R04 scope gap. See ASCENSION_BLOCKERS.md cycle 78.
 - Unreviewed engineering PRs remaining: #67 (cleanup #2/#4/#5/#6), #71 (TECH-006 threads pool) — next dispatcher cycles should review one each.
 - Draft PRs green and awaiting owner merge: #65, #66, #67, #70, #71, #76, #77. F-65-4 bootstrap decision still owner-gated. EXT-001..EXT-009 unchanged.
+
+## Cycle 80 update (2026-11-19)
+
+- PR #71 (TECH-006 threads pool, 6abcca6) independent review: **CHANGES REQUESTED** (threads ~6x improvement, 9/10 vs forks 4/10, but SIGABRT persists; 0/20 claim false). F-71-1 claim correction, F-71-2 teardown root-cause fix. See ASCENSION_BLOCKERS.md cycle 80.
+- All engineering PRs (#65, #66, #67, #70, #71) are now reviewed. Remaining unblocked work: F-71-1/F-71-2, F-70-1/F-70-2 follow-ups, F-67-1/F-67-2. Everything else is owner-gated (merges, F-65-4 bootstrap, EXT-001..EXT-009).
+- Draft PRs green and awaiting owner merge: #65, #66, #67, #70, #71 (with changes requested), #76, #77, #78, #79.

@@ -86,3 +86,13 @@ Adversarial re-audit (read-only worktree of origin/cleanup-issues-2-4-5-6 at 1fe
 - Verdict: **ACCEPT WITH FOLLOW-UPS**. Posted as comment on PR #67 (no merge). TECH-002 resolvable on owner merge.
 - F-67-1 (low, pre-existing): verifyChain(unknown id) returns valid:true with events_checked:0 — vacuous pass; recommend explicit not-found error in follow-up.
 - F-67-2 (nit): unused `e1` in new audit.test.mjs partial-chain test (eslint warning, 0 errors).
+
+## Cycle 80 — PR #71 independent review verdict (2026-11-19, head 6abcca6)
+
+Adversarial re-audit (read-only worktree of origin/tech006-vitest-flake at 6abcca6; Node v24.15.0, pnpm 12.18.0):
+
+- `pnpm lint`, `pnpm format:check`, `pnpm typecheck` pass. CI verify SUCCESS at 6abcca6 (run 44531437980). Successful runs: 108/108 tests, 13 files.
+- Verdict: **CHANGES REQUESTED**. Threads pool improves but does not eliminate TECH-006, and the in-repo "0/20 / fix" claim is not reproducible.
+- Replication at 6abcca6: configured threads `pnpm test` SIGABRT 2/8 runs (exit 134), identical native assertion (`RemoveEnvironmentCleanupHook`, better-sqlite3 `Statement::~Statement`, env teardown). Head-to-head 10 runs each: forks 4 pass / 6 fail; threads 9 pass / 1 fail. Threads cuts the rate ~6x, does not remove it.
+- F-71-1 (medium): correct vitest.config.mjs comment + TECH-006 row; TECH-006 stays open.
+- F-71-2 (follow-up): root cause is Statement destruction after Node env teardown; finalize/close statements and DBs in test teardown, re-measure >=20 runs before claiming closure. Verdict posted as PR #71 comment (no merge).
