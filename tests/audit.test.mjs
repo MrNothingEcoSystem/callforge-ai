@@ -200,7 +200,7 @@ describe('Audit Logger', () => {
   });
 
   it('should verify partial chain from a mid-chain event (issue #2)', async () => {
-    const e1 = await auditLogger.log({
+    await auditLogger.log({
       event_type: 'partial_1',
       actor_type: 'system',
       action: 'test',
@@ -221,6 +221,16 @@ describe('Audit Logger', () => {
     expect(verification.errors).toEqual([]);
     expect(verification.events_checked).toBe(2);
     expect(verification.chain_head).toBe(e3.event_hash);
+  });
+
+  it('should not vacuously pass verifyChain for a nonexistent anchor (F-67-1)', async () => {
+    await auditLogger.log({ event_type: 'anchor_probe', actor_type: 'system', action: 'test' });
+    const verification = await auditLogger.verifyChain('nonexistent-event-id');
+    expect(verification.valid).toBe(false);
+    expect(verification.events_checked).toBe(0);
+    expect(verification.errors).toEqual([
+      { event_id: 'nonexistent-event-id', error: 'Anchor event not found' },
+    ]);
   });
 
   it('should detect tampering in a partial chain segment (issue #2)', async () => {
