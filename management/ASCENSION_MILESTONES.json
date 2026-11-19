@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-09T07:25:00Z",
+  "updated_at": "2026-11-19T12:10:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -48,8 +48,12 @@
     {
       "id": "M04",
       "name": "UAE compliance and human approval",
-      "status": "pending",
-      "blockers": ["M02", "M03", "EXT-002 legal review"]
+      "status": "in_progress",
+      "blockers": [
+        "EXT-002 legal review",
+        "DNCR portal/API sync + consent ledger persistence (increment 2, owner approval on data flows)"
+      ],
+      "increment_1": "Deterministic pre-dial compliance gate (complianceGate.mjs) on branch m04-compliance-gate: R03/R06/R08/R09/R10/R11-R13 implementable-now checks over verifiable inputs, wired additively into validate_compliance; 12 new tests, suite 120/120. M04 closure still gated by EXT-002 (qualified UAE counsel)."
     },
     {
       "id": "M05",
@@ -139,7 +143,7 @@
     "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 1,
-    "last_cycle": "2026-11-09T04:12Z"
+    "cycles_proven": 68,
+    "last_cycle": "2026-11-19T12:10:00Z"
   }
 }
