@@ -1,20 +1,24 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-19T14:20Z (cycle 72)
 
-## Highest priority (supervisor-verified 2026-11-09T04:30Z)
+## Cycle 72 (2026-11-19, dispatcher)
 
-M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 fixed in 65ff410 (73/73, CI PASS). Remaining before M02 can be accepted as production identity:
+- PR #67 (cleanup issues #2/#4/#5/#6) CI was red on `pnpm format:check` only (ASCENSION_BLOCKERS.md, tests/audit.test.mjs). Fixed formatting-only via Prettier on branch `cleanup-issues-2-4-5-6` at 1fea545; typecheck/lint/format PASS, tests 112/112 (1 TECH-006 flake on first run — branch predates the threads-pool fix).
+- PR #65, #70, #71 all CI green + mergeable CLEAN. No merges (owner-gated).
 
-1. SEC-001: replace unauthenticated /oauth/authorize self-assertion with a real IdP / authenticated user step. Until then M02 is a simulation baseline and must not be network-exposed.
-2. Non-blocking: scope re-derivation from role at token validation; conversation fixture scoping decision (currently documented global).
-3. Owner merge decision on PR #7 (draft, unmerged).
+## Highest priority (owner-gated, unchanged)
 
-## Next engineering
+1. Merge decision on PR #65 (SEC-001) — unblocks production-identity path; independent review first.
+2. Merge decision on PR #67 vs #51 (cleanup) — pick one, drop the other. PR #67 now CI-green at 1fea545.
+3. IdP choice for full SEC-001 closure (SEC001_IDP_DOSSIER.md) — owner decision.
+4. EXT-002: qualified UAE counsel review — gates M04 closure regardless of increment 1.
 
-- M03-1 done on PR #9 (dec034e): migrations, outbox, state machine, webhook inbox, backup/restore. Next: independent review of PR #9, then M03-2 (dispatcher loop, quota counters).
-- Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
-- M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
+## Next engineering (unblocked)
+
+- M04 increment 2: DNCR sync + consent ledger persistence — needs owner approval on data flows before building.
+- TECH-006: PR #71 (threads pool) pending owner merge; residual flake remains.
+- Issue #8 MCP surface: begins after PR #65 lands (token-context enforcement overlaps).
 
 ## Gates needing owner
 
