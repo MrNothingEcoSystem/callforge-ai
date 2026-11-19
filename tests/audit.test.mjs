@@ -200,9 +200,21 @@ describe('Audit Logger', () => {
   });
 
   it('should verify partial chain from a mid-chain event (issue #2)', async () => {
-    const e1 = await auditLogger.log({ event_type: 'partial_1', actor_type: 'system', action: 'test' });
-    const e2 = await auditLogger.log({ event_type: 'partial_2', actor_type: 'system', action: 'test' });
-    const e3 = await auditLogger.log({ event_type: 'partial_3', actor_type: 'system', action: 'test' });
+    const e1 = await auditLogger.log({
+      event_type: 'partial_1',
+      actor_type: 'system',
+      action: 'test',
+    });
+    const e2 = await auditLogger.log({
+      event_type: 'partial_2',
+      actor_type: 'system',
+      action: 'test',
+    });
+    const e3 = await auditLogger.log({
+      event_type: 'partial_3',
+      actor_type: 'system',
+      action: 'test',
+    });
 
     const verification = await auditLogger.verifyChain(e2.id);
     expect(verification.valid).toBe(true);
@@ -226,9 +238,24 @@ describe('Audit Logger', () => {
 
   it('should order same-timestamp events deterministically by rowid (issue #4)', async () => {
     const ts = '2026-01-01T00:00:00.000Z';
-    const a = await auditLogger.log({ event_type: 'ts_a', actor_type: 'system', action: 'test', created_at: ts });
-    const b = await auditLogger.log({ event_type: 'ts_b', actor_type: 'system', action: 'test', created_at: ts });
-    const c = await auditLogger.log({ event_type: 'ts_c', actor_type: 'system', action: 'test', created_at: ts });
+    const a = await auditLogger.log({
+      event_type: 'ts_a',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
+    const b = await auditLogger.log({
+      event_type: 'ts_b',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
+    const c = await auditLogger.log({
+      event_type: 'ts_c',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
 
     const events = await auditLogger.getEvents({ limit: 10 });
     const ids = events.map(e => e.id);

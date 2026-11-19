@@ -16,13 +16,13 @@
 
 ## Technical blockers
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Resolved on draft PR #67 (129da52, cycle 65): verifyChain predecessor seeding, getEvents rowid ordering, node:crypto test imports, start/listen/close smoke test; 112/112 tests. Awaiting owner review/merge. | None — owner review of PR #67 |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
+| ID       | Blocker                                           | Status                                                                                                                                                                                                        | Next action                                     |
+| -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched)                                                                                                                                                                              | Record verdict; fix blocking findings on branch |
+| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Resolved on draft PR #67 (129da52, cycle 65): verifyChain predecessor seeding, getEvents rowid ordering, node:crypto test imports, start/listen/close smoke test; 112/112 tests. Awaiting owner review/merge. | None — owner review of PR #67                   |
+| TECH-003 | No durable workflow layer yet                     | M03 design dispatched                                                                                                                                                                                         | Implement increment 1                           |
+| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                                                                                                                                                                                                | Design deliverable                              |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                                                                                                                                                                                                       | Run + verify recovery                           |
 
 Engineering continues on independent work whenever a gate is blocked.
 
