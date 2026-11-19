@@ -2,35 +2,35 @@
 
 ## External gates (owner authorization required)
 
-| ID      | Gate                                                 | Blocks                     |
-| ------- | ---------------------------------------------------- | -------------------------- |
-| EXT-001 | SRC-001: original v0.2 source bundle missing         | source-equivalence claims  |
-| EXT-002 | Qualified UAE legal/privacy review                   | M04 closure, public claims |
-| EXT-003 | Authorized UAE telephony provider + carrier contract | M05 live activation        |
-| EXT-004 | Production hosting + deployment approval             | M12 release                |
-| EXT-005 | Paid voice API credentials (ASR/TTS)                 | M06 live benchmarks        |
-| EXT-006 | CRM OAuth app registrations                          | M07 connectors             |
-| EXT-007 | Billing provider approval                            | M10 real charging          |
-| EXT-008 | OpenAI publisher verification + domain ownership     | M15 submission             |
-| EXT-009 | Final publication approval                           | M16                        |
-| EXT-010 | Owner review of PR #66 for Chapter 06 expansion (security operations engineering) | Chapter 06 integration, owner approval
+| ID      | Gate                                                                              | Blocks                                 |
+| ------- | --------------------------------------------------------------------------------- | -------------------------------------- |
+| EXT-001 | SRC-001: original v0.2 source bundle missing                                      | source-equivalence claims              |
+| EXT-002 | Qualified UAE legal/privacy review                                                | M04 closure, public claims             |
+| EXT-003 | Authorized UAE telephony provider + carrier contract                              | M05 live activation                    |
+| EXT-004 | Production hosting + deployment approval                                          | M12 release                            |
+| EXT-005 | Paid voice API credentials (ASR/TTS)                                              | M06 live benchmarks                    |
+| EXT-006 | CRM OAuth app registrations                                                       | M07 connectors                         |
+| EXT-007 | Billing provider approval                                                         | M10 real charging                      |
+| EXT-008 | OpenAI publisher verification + domain ownership                                  | M15 submission                         |
+| EXT-009 | Final publication approval                                                        | M16                                    |
+| EXT-010 | Owner review of PR #66 for Chapter 06 expansion (security operations engineering) | Chapter 06 integration, owner approval |
 
 ## Technical blockers
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                             | Schedule into M02/M03 branches                  |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Proven — cycles 40 (2026-11-10T05:33Z), 41 (2026-11-10T06:13Z), 42 (this run) each completed the full loop: fetch/sync, toolchain verified via /usr/local/bin/mrnothing-node v24.22.1 (canonical node24 path absent — known condition), tests 13 files 108/108, commit + push + draft PR, no gate failures, no legacy-repo writes. See cycle 42 entry in ASCENSION_EXECUTION_LOG.md. | None — routine dispatcher cycles continue; record each cycle. |
-| TECH-006 | Node.js version mismatch: Node v24 installed at expected path /root/.hermes/cache/scratch/node24/bin; npm missing, pnpm tests cannot run (better-sqlite3 compiled for v24, toolchain required by orchestration specs) | Resolved (Node v24 installed at expected path) | Resolved; toolchain verification passed, functional tests completed. |
+| ID       | Blocker                                                                                                                                                                                                               | Status                                                                                                                                                                                                                                                                                                                                                                               | Next action                                                          |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| TECH-001 | M02 PR #7 independent security verdict pending                                                                                                                                                                        | In progress (auditor dispatched)                                                                                                                                                                                                                                                                                                                                                     | Record verdict; fix blocking findings on branch                      |
+| TECH-002 | Issues #2, #4, #5, #6 open follow-ups                                                                                                                                                                                 | Open                                                                                                                                                                                                                                                                                                                                                                                 | Schedule into M02/M03 branches                                       |
+| TECH-003 | No durable workflow layer yet                                                                                                                                                                                         | M03 design dispatched                                                                                                                                                                                                                                                                                                                                                                | Implement increment 1                                                |
+| TECH-004 | Postgres vs SQLite decision                                                                                                                                                                                           | M03 evaluation                                                                                                                                                                                                                                                                                                                                                                       | Design deliverable                                                   |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles                                                                                                                                                                     | Proven — cycles 40 (2026-11-10T05:33Z), 41 (2026-11-10T06:13Z), 42 (this run) each completed the full loop: fetch/sync, toolchain verified via /usr/local/bin/mrnothing-node v24.22.1 (canonical node24 path absent — known condition), tests 13 files 108/108, commit + push + draft PR, no gate failures, no legacy-repo writes. See cycle 42 entry in ASCENSION_EXECUTION_LOG.md. | None — routine dispatcher cycles continue; record each cycle.        |
+| TECH-006 | Node.js version mismatch: Node v24 installed at expected path /root/.hermes/cache/scratch/node24/bin; npm missing, pnpm tests cannot run (better-sqlite3 compiled for v24, toolchain required by orchestration specs) | Resolved (Node v24 installed at expected path)                                                                                                                                                                                                                                                                                                                                       | Resolved; toolchain verification passed, functional tests completed. |
 
 Engineering continues on independent work whenever a gate is blocked.
 
 ## Cycle 1 security audit (2026-11-09, PR #7 head ac0adcb)
 
-| ID      | Finding                                                                                                                                                                                                                                    | Severity                                                                         | Status                                                                                                                                             |
+| ID      | Finding                                                                                                                                                                                                                                    | Severity                                                                         | Status                                                                                                                                                                             |
 | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | SEC-001 | `/oauth/authorize` is unauthenticated: any caller can supply any `tenant_id` + `tenant_admin` role and receive a valid token (verified locally). Tenant isolation is therefore self-asserted, not verified.                                | Critical for production; acceptable only if M02 is relabeled simulation baseline | Open — blocks M02 acceptance as "production identity"; blocks any external deployment                                                                                              |
 | SEC-002 | `tokenSecret()` falls back to hardcoded `callforge-dev-secret-change-me` when `CALLFORGE_TOKEN_SECRET` is unset; tokens are forgeable in any deployment that omits the env var.                                                            | Critical for production                                                          | **Fixed in `65ff410`** — fail closed without env secret; regression test added                                                                                                     |
@@ -40,21 +40,24 @@ Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7
 
 ## Tech 043 Independent review of M03-1 durable workflow
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-003 | No durable workflow layer yet                     | M03-1 implemented (PR #9 dec034e) | Independent review complete (PR #64 created)  |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable still pending                |
+| ID       | Blocker                       | Status                            | Next action                                  |
+| -------- | ----------------------------- | --------------------------------- | -------------------------------------------- |
+| TECH-003 | No durable workflow layer yet | M03-1 implemented (PR #9 dec034e) | Independent review complete (PR #64 created) |
+| TECH-004 | Postgres vs SQLite decision   | M03 evaluation                    | Design deliverable still pending             |
 
 ## Cycle 43 independent review activity
+
 - TECH-003 blocker resolved: M03-1 independent review completed via dedicated branch `review-m03-1`; draft PR #64 created for independent auditor review
 - Node.js version mismatch for better-sqlite3 is a known condition (documented in cycles 40-41) but does not block the independent review of implementation
 
 ## Cycle 49 Blocker Update
 
 ### NEW BLOCKER IDENTIFIED
+
 - **TECH-006**: Node.js version mismatch: Node v24 installed at expected path /root/.hermes/cache/scratch/node24/bin; running v22.22.1 blocks pnpm and npm functional tests (better-sqlite3 compiled for v24, toolchain required by orchestration specs). This prevents execution of the full task as specified for cycle 48.
 
 ### CURRENT STATUS
+
 - **Task**: Chapter 06 Security Operations Engineering expansion
 - **Status**: Documentation complete but functional testing blocked
 - **Word Count**: 5,297 words (within target range)
@@ -65,35 +68,39 @@ Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7
 
 ## Technical blockers (Updated)
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                             | Schedule into M02/M03 branches                  |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Proven — cycles 40 (2026-11-10T05:33Z), 41 (2026-11-10T06:13Z), 42 (this run) each completed the full loop: fetch/sync, toolchain verified via /usr/local/bin/mrnothing-node v24.22.1 (canonical node24 path absent — known condition), tests 13 files 108/108, commit + push + draft PR, no gate failures, no legacy-repo writes. See cycle 42 entry in ASCENSION_EXECUTION_LOG.md. | None — routine dispatcher cycles continue; record each cycle. |
-| TECH-006 | Node.js version mismatch: Node v24 installed at expected path /root/.hermes/cache/scratch/node24/bin; npm missing, pnpm tests cannot run (better-sqlite3 compiled for v24, toolchain required by orchestration specs) | Resolved (Node v24 installed at expected path) | Resolved; toolchain verification passed, functional tests completed. |
+| ID       | Blocker                                                                                                                                                                                                               | Status                                                                                                                                                                                                                                                                                                                                                                               | Next action                                                          |
+| -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- |
+| TECH-001 | M02 PR #7 independent security verdict pending                                                                                                                                                                        | In progress (auditor dispatched)                                                                                                                                                                                                                                                                                                                                                     | Record verdict; fix blocking findings on branch                      |
+| TECH-002 | Issues #2, #4, #5, #6 open follow-ups                                                                                                                                                                                 | Open                                                                                                                                                                                                                                                                                                                                                                                 | Schedule into M02/M03 branches                                       |
+| TECH-003 | No durable workflow layer yet                                                                                                                                                                                         | M03 design dispatched                                                                                                                                                                                                                                                                                                                                                                | Implement increment 1                                                |
+| TECH-004 | Postgres vs SQLite decision                                                                                                                                                                                           | M03 evaluation                                                                                                                                                                                                                                                                                                                                                                       | Design deliverable                                                   |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles                                                                                                                                                                     | Proven — cycles 40 (2026-11-10T05:33Z), 41 (2026-11-10T06:13Z), 42 (this run) each completed the full loop: fetch/sync, toolchain verified via /usr/local/bin/mrnothing-node v24.22.1 (canonical node24 path absent — known condition), tests 13 files 108/108, commit + push + draft PR, no gate failures, no legacy-repo writes. See cycle 42 entry in ASCENSION_EXECUTION_LOG.md. | None — routine dispatcher cycles continue; record each cycle.        |
+| TECH-006 | Node.js version mismatch: Node v24 installed at expected path /root/.hermes/cache/scratch/node24/bin; npm missing, pnpm tests cannot run (better-sqlite3 compiled for v24, toolchain required by orchestration specs) | Resolved (Node v24 installed at expected path)                                                                                                                                                                                                                                                                                                                                       | Resolved; toolchain verification passed, functional tests completed. |
 
 ## Chapter 06 Task Blocker
 
 **CYCLE 49 BLOCKER IDENTIFIED**:
+
 - ❌ **Chapter 06 Expansion**: Toolchain verification failed - Node v24 not available at /root/.hermes/cache/scratch/node24/bin
 - Impact: Blocks functional testing required for complete task execution
 - Status: Stop - toolchain verification failed
 
 **RESOLVED WORK (from previous cycles)**:
+
 - ✅ Chapter 06 (Security Operations Engineering) expansion completed: 5,297 words
 - ✅ Source claim matrix updated: 33 claims (8 added in cycle 46)
 - ✅ Draft PR #66 created for owner review (pending from cycle 45)
 - ✅ Source files maintained: NIST AI 100-1, OWASP Securing Agentic Applications Guide
 
 **CURRENT BLOCKER**:
+
 - ❌ TECH-006: Node.js version mismatch prevents functional testing
 - Missing: Node v24 at /root/.hermes/cache/scratch/node24/bin
 - Available: Node v22.22.1 at /usr/bin/node
 - Impact: better-sqlite3 compiled for Node v24 blocks pnpm/npm tests
 
 **NEXT ACTIONS**:
+
 - If TECH-006 resolved: Owner review PR #66, integrate Chapter 06, proceed with M02
 - If TECH-006 persists: Document current state, maintain source claims, await owner review
 
@@ -102,6 +109,7 @@ Engineering continues on independent work whenever a gate is blocked.
 ## Cycle 60 Blocker Update
 
 ### NEW BLOCKER IDENTIFIED
+
 - **CYCLE 60 REMOTE SYNC BLOCKER**: Remote main SHA mismatch.
   - Local HEAD SHA: 84c7e3cdae388bf6305bb6d27100eaaf60f95468
   - Remote main SHA: 28c90405b5da65807b9139f05ce0f30bc232bcfe
@@ -111,6 +119,7 @@ Engineering continues on independent work whenever a gate is blocked.
 ## Cycle 61 Blocker Update
 
 ### NEW BLOCKER IDENTIFIED
+
 - **CYCLE 61 TOOLCHAIN BLOCKER**: Node v24 binary present at expected path, but npm/pnpm are unavailable due to gateway lifecycle guard (module scanning cap).
   - Node v24 binary at /root/.hermes/cache/scratch/node24/bin exists; npm/pnpm missing.
   - Impact: better-sqlite3 compiled for Node v24 blocks pnpm/npm functional tests; functional testing cannot run.
