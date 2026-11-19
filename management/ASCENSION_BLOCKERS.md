@@ -46,7 +46,6 @@ Reworked PR #65 per Cycle 73 verdict. F-65-3 (role escalation) and F-65-5 (no HT
 - F-65-4 (bootstrap circularity) remains OPEN by design of this simulation baseline: the only token-issuance path is /oauth/token which requires a code from /oauth/authorize, and authorize now requires a Bearer token. A documented bootstrap path requires an owner decision (e.g. a separate dev-token issuer, or a real IdP) before SEC-001 can be fully closed.
 - SEC-001 status: tenant binding + role pinning + scope narrowing fixed and tested; bootstrap remains an open design decision.
 
-
 ## Cycle 75 — PR #65 independent re-review verdict (2026-11-19, head 7ce247f)
 
 Adversarial re-audit (read-only worktree of origin/m02-oauth-tenant-isolation at 7ce247f; Node v24.15.0, pnpm 12.18.0):
