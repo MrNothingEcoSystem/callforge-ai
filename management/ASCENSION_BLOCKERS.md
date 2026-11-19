@@ -35,3 +35,44 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 74 — PR #65 rework (2026-11-19, head 7ce247f (prettier fix 7ce247f); 7d8671f first cut)
+
+Reworked PR #65 per Cycle 73 verdict. F-65-3 (role escalation) and F-65-5 (no HTTP-level tests) fixed on branch m02-oauth-tenant-isolation:
+
+- `handleOAuthAuthorize` (server.mjs): role pinned to `authContext.role`; `body.role` differing from token role → 403; token with no role → 403; requested scope intersected with token scopes, empty intersection → 403.
+- 5 new HTTP-level tests in tests/m02-oauth.test.mjs (real HTTP server): unauthenticated 401, cross-tenant 403, role-escalation 403, pinned-role happy path (authorize→exchange→validate role/scope), scope-widening 403.
+- Local: 78/78 tests pass (was 73/73). Live probe: operator token + body.role=tenant_admin → 403 (was 200 in cycle 73); operator + role=operator → 200 with code.
+- F-65-4 (bootstrap circularity) remains OPEN by design of this simulation baseline: the only token-issuance path is /oauth/token which requires a code from /oauth/authorize, and authorize now requires a Bearer token. A documented bootstrap path requires an owner decision (e.g. a separate dev-token issuer, or a real IdP) before SEC-001 can be fully closed.
+- SEC-001 status: tenant binding + role pinning + scope narrowing fixed and tested; bootstrap remains an open design decision.
+
+## Cycle 75 — PR #65 independent re-review verdict (2026-11-19, head 7ce247f)
+
+Adversarial re-audit (read-only worktree of origin/m02-oauth-tenant-isolation at 7ce247f; Node v24.15.0, pnpm 12.18.0):
+
+- `pnpm test` = 78/78, 10 files, pass. CI verify SUCCESS at 7ce247f.
+- Independent live HTTP probes (fresh server, operator token for tenant-A):
+  - role=tenant_admin + scope [admin, audit] → 403 "Role mismatch: role is derived from the access token" (cycle-73 role-escalation finding CLOSED)
+  - role=operator + scope [read] → 200 with code (pinned-role happy path)
+  - tenant_id=tenant-B → 403 "Tenant mismatch: token tenant does not match request tenant"
+  - unauthenticated → 401 "Missing or invalid Authorization header"
+- Verdict: **ACCEPT WITH FOLLOW-UPS**. F-65-3 and F-65-5 fixed and verified. F-65-4 (bootstrap circularity) remains OPEN by design: the only issuance path is /oauth/authorize, which now requires a Bearer token; a documented bootstrap path needs an owner decision (dev-token issuer or real IdP) before SEC-001 can be fully closed. Verdict posted as comment on PR #65 (no merge).
+
+## Cycle 76 — PR #66 CI failure fixed (2026-11-19, head 6f89447)
+
+- PR #66 (chapter-06-expansion) verify was FAILURE at lint: 20 eslint `indent` errors (8 spaces where 6 expected) in server.mjs lines 266-297.
+- Root cause: the chapter branch carried a stale, pre-rework variant of the SEC-001 authorize fix (`role: body.role || authContext.role`), superseded by PR #65 head 7ce247f. The chapter expansion is research/docs only, so server.mjs is reverted to origin/main — PR #66 no longer carries server code, removing a future merge conflict with PR #65.
+- Nine files failing prettier --check were formatted with prettier --write (content-only reformatting).
+- F-65-4 (bootstrap circularity) remains OPEN, unchanged. TECH-006 forks-pool SIGABRT flake reproduced locally on default pool; 108/108 passes with threads pool (PR #71 fix, green, awaiting owner merge). Not duplicated in this branch.
+
+## Cycle 78 — PR #70 independent review verdict (2026-11-19, head 97d6e7b)
+
+Adversarial re-audit (read-only worktree of origin/m04-compliance-gate at 97d6e7b; Node v24.15.0, pnpm 12.18.0):
+
+- `pnpm test` = 120/120, 14 files, pass. CI verify SUCCESS at 97d6e7b.
+- Fail-closed core verified by independent probes: empty input denied (7 checks); suppressed destination blocked across +971/00971/trunk-0 formats; unregistered CLI blocked; calling-hours boundaries correct; refusal/opt-out blocks; retry ceilings enforced; opener + AI disclosure enforced; consentRef presence required.
+- Verdict: **ACCEPT WITH FOLLOW-UPS** (simulation baseline; no dialing, M04 not closable, EXT-002 unchanged). Posted as comment on PR #70 (no merge).
+- F-70-1: Negative attempt counters bypass R10 (callbacksToday=-99 passes; require >=0).
+- F-70-2: Whitespace-only strings pass opener fields and consentRef (no trim).
+- F-70-3: Gate bypass — gate_input optional in validateCompliance (tools/index.mjs); legacy self-attested evidence can still yield all_passed=true. Require gate_input for marketing intents before live use.
+- F-70-4: R04 (natural-person ban) marked IMPLEMENTABLE NOW in UAE_COMPLIANCE_REGISTER.md but not covered by this gate; either cover or explicitly scope increment 1.
