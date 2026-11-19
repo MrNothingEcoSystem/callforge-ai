@@ -49,3 +49,15 @@
 - Telegram: no milestone acceptance / critical security finding / external blocker / failed gate; no digest sent (last digest: none recorded in log; no message).
 - Resource usage: ~6 min wall clock, no persistent processes. Remaining work: owner merges backlog (PR #65 SEC-001, #67 vs #51, #70, #71), IdP choice (SEC-001/EXT-004-adjacent), EXT-002 counsel review for M04 closure, M04 increment 2 (owner data-flow approval), issue #8 after PR #65 lands, PR #70 typecheck fix. Assumption: Prettier table reflow in ASCENSION_BLOCKERS.md is content-neutral (verified by diff).
 - Post-push verification (13:15 UTC): PR #71 CI `verify` PASS (run 44531283812, 21s) at head `7addc70`. PR #71 is now merge-ready pending owner merge decision.
+
+## 2026-11-19 — Cycle 82 (dispatcher, 19:42 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. Checkout preserved on `docs/ascension-cycle-081` (PR #81 draft). No legacy writes.
+- Toolchain verified: Node v24.15.0, pnpm 12.18.0 at /root/.hermes/cache/scratch/node24/bin.
+- Selected highest-priority unblocked task: F-71-2 root-cause teardown fix on tech006-vitest-flake (PR #71).
+- Reproduced baseline on v11.10.0: threads SIGABRT 2/16 runs (exit 134, `RemoveEnvironmentCleanupHook` assertion from better-sqlite3 `Statement::~Statement`). No JS-level `Statement.close()` exists in v11; the destructor itself is the hazard.
+- Root cause: better-sqlite3 v11 native cleanup-hook handling vs Node 24 env teardown. Fix: upgraded better-sqlite3 11.10.0 -> 12.11.1 (`package.json` + lockfile, prettier-formatted) on tech006-vitest-flake, head `11efab381b8b97ae37b8554b06d7a578e42c0fda`.
+- Re-measure (>=20 runs, F-71-2 criterion): 20/20 threads runs pass, 108/108 tests each; forks pool also 10/10 (108/108) on v12 — the pool switch was mitigation, not the fix. Threads pool retained. Gates: lint PASS, format:check PASS, typecheck PASS, tests 108/108.
+- PR #71 updated (head 11efab3, draft, no merge). F-71-1/F-71-2 both addressed; PR #71 ready for independent re-review. Ledger/log recorded here on docs/ascension-cycle-082 (draft PR).
+- Telegram: no milestone acceptance / critical finding; last digest-type message cycle 73 (~14:55 UTC, ~4.8h ago, <6h). No message sent.
+- Resource usage: ~18 min wall clock. Remaining work (assumption: owner reviews within days): independent re-review of PR #71 at 11efab3; F-70-1/F-70-2 small follow-up PR; owner merge decisions on PRs #65/#66/#67/#70/#71/#76/#77/#78/#79/#80/#81; F-65-4 bootstrap owner decision; EXT-001..EXT-009 unchanged.

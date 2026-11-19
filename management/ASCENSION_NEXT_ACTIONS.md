@@ -19,3 +19,9 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 82 update (2026-11-19)
+
+- F-71-2 root cause fixed at 11efab3 on tech006-vitest-flake (PR #71): better-sqlite3 11.10.0 -> 12.11.1; 20/20 threads + 10/10 forks runs pass (108/108 each). F-71-1 + F-71-2 addressed; next: independent re-review of PR #71, then owner merge.
+- Remaining follow-ups (unblocked): F-70-1/F-70-2 (compliance gate counters/whitespace), F-67-1/F-67-2. Everything else owner-gated (merges, F-65-4 bootstrap, EXT-001..EXT-009).
+- Draft PRs awaiting owner merge: #65, #66, #67, #70, #71, #76, #77, #78, #79, #80, #81.
