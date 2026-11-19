@@ -36,7 +36,7 @@ Engineering continues on independent work whenever a gate is blocked.
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
 
-## Cycle 74 — PR #65 rework (2026-11-19, head 7d8671f)
+## Cycle 74 — PR #65 rework (2026-11-19, head 7ce247f (prettier fix 7ce247f); 7d8671f first cut)
 
 Reworked PR #65 per Cycle 73 verdict. F-65-3 (role escalation) and F-65-5 (no HTTP-level tests) fixed on branch m02-oauth-tenant-isolation:
 
