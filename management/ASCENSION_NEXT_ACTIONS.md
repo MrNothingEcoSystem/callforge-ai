@@ -1,6 +1,15 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-19T11:05Z (cycle 66)
+
+## Cycle 66 (2026-11-19, dispatcher)
+
+- M02/M03-1/M03-2 are MERGED to main (PRs #7, #9, #20; main 28c9040). Ledger milestone statuses below still predate those merges; reconciling them is its own bounded task (see Cycle 66 log).
+- SEC-001 fix: draft PR #65 (m02-oauth-tenant-isolation) — CI verify was FAILING on prettier indentation in server.mjs; fixed in ef9f1ac (73/73 tests, lint clean), CI now PASS (run 44511203763). PR remains DRAFT awaiting owner review/merge. Awaiting independent review verdict — delegate_task unavailable in cron env; request via owner.
+- Issues #2/#4/#5/#6: draft PR #67 (cleanup-issues-2-4-5-6, 112/112) awaiting owner review/merge. Issue #8 (MCP surface) still open; PR #51 also covers #2/#4/#5/#6 (duplicate) — owner to pick one.
+- Open draft PRs #47-#64 are accumulated cycle docs awaiting owner merge decision; #66 (Chapter 06) awaiting EXT-010.
+
+## Highest priority
 
 ## Highest priority (supervisor-verified 2026-11-09T04:30Z)
 
