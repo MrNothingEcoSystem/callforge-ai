@@ -35,3 +35,14 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 74 — PR #65 rework (2026-11-19, head 7d8671f)
+
+Reworked PR #65 per Cycle 73 verdict. F-65-3 (role escalation) and F-65-5 (no HTTP-level tests) fixed on branch m02-oauth-tenant-isolation:
+
+- `handleOAuthAuthorize` (server.mjs): role pinned to `authContext.role`; `body.role` differing from token role → 403; token with no role → 403; requested scope intersected with token scopes, empty intersection → 403.
+- 5 new HTTP-level tests in tests/m02-oauth.test.mjs (real HTTP server): unauthenticated 401, cross-tenant 403, role-escalation 403, pinned-role happy path (authorize→exchange→validate role/scope), scope-widening 403.
+- Local: 78/78 tests pass (was 73/73). Live probe: operator token + body.role=tenant_admin → 403 (was 200 in cycle 73); operator + role=operator → 200 with code.
+- F-65-4 (bootstrap circularity) remains OPEN by design of this simulation baseline: the only token-issuance path is /oauth/token which requires a code from /oauth/authorize, and authorize now requires a Bearer token. A documented bootstrap path requires an owner decision (e.g. a separate dev-token issuer, or a real IdP) before SEC-001 can be fully closed.
+- SEC-001 status: tenant binding + role pinning + scope narrowing fixed and tested; bootstrap remains an open design decision.
+

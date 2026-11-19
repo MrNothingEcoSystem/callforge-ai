@@ -28,3 +28,15 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-19 — Cycle 74 (dispatcher, 15:24 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. Previous checkout on `docs/ascension-cycle-073` (PR #73 draft, 2 commits ahead of main, clean) — preserved, no legacy writes.
+- Toolchain verified: Node v24.15.0, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task: rework PR #65 per Cycle 73 CHANGES REQUESTED verdict (F-65-3 role escalation, F-65-5 HTTP tests).
+- Change (m02-oauth-tenant-isolation, head 7d8671f): pinned authorize role to token context (mismatch → 403), fail-closed on roleless tokens, scope intersected with token scopes (empty → 403). 5 new HTTP-level tests; 78/78 pass locally (10 files, ~722ms).
+- Live probe: operator + body.role=tenant_admin → 403 "Role mismatch" (fixed vs cycle-73 200); operator + role=operator → 200 with code.
+- F-65-4 bootstrap circularity remains open — needs owner IdP/bootstrap decision.
+- PR #65 updated (head 7d8671f), no merge (owner-gated). Ledger/log on docs/ascension-cycle-074 (this PR, draft).
+- Telegram: no milestone acceptance / critical new finding (fix verified); last digest-type message was cycle-73 security alert ~14:55 UTC (<6h). No message sent.
+- Resource usage: ~12 min wall clock. Remaining work estimate (assumption: owner reviews within days): independent re-review of 7d8671f ~1 session; owner merge decision on PR #65; then M02 production-identity closure still gated on bootstrap/IdP decision.
