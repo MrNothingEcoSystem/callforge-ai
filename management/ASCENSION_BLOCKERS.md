@@ -76,3 +76,13 @@ Adversarial re-audit (read-only worktree of origin/m04-compliance-gate at 97d6e7
 - F-70-2: Whitespace-only strings pass opener fields and consentRef (no trim).
 - F-70-3: Gate bypass — gate_input optional in validateCompliance (tools/index.mjs); legacy self-attested evidence can still yield all_passed=true. Require gate_input for marketing intents before live use.
 - F-70-4: R04 (natural-person ban) marked IMPLEMENTABLE NOW in UAE_COMPLIANCE_REGISTER.md but not covered by this gate; either cover or explicitly scope increment 1.
+
+## Cycle 79 — PR #67 independent review verdict (2026-11-19, head 1fea545)
+
+Adversarial re-audit (read-only worktree of origin/cleanup-issues-2-4-5-6 at 1fea545; Node v24.15.0, pnpm 12.18.0):
+
+- `vitest run --pool=threads` = 112/112, 13 files, pass. CI verify SUCCESS at 1fea545. Default forks pool hit known TECH-006 SIGABRT (PR #71).
+- Issues #2 (predecessor-seeded partial verifyChain), #4 (rowid DESC getEvents), #5 (node:crypto in tests, no require('crypto') remains), #6 (listen/close smoke in esm-runtime.test.mjs) all verified by probes: mid-chain partial valid, tamper detected, deterministic same-timestamp ordering.
+- Verdict: **ACCEPT WITH FOLLOW-UPS**. Posted as comment on PR #67 (no merge). TECH-002 resolvable on owner merge.
+- F-67-1 (low, pre-existing): verifyChain(unknown id) returns valid:true with events_checked:0 — vacuous pass; recommend explicit not-found error in follow-up.
+- F-67-2 (nit): unused `e1` in new audit.test.mjs partial-chain test (eslint warning, 0 errors).

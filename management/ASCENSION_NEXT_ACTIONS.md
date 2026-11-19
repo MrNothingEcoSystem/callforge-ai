@@ -27,6 +27,12 @@ EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-cal
 - Highest-priority unblocked work exhausted until owner decisions: next actions are owner merges + F-65-4 bootstrap decision (dev-token issuer vs real IdP). Engineering continues on independent work only when a new unblocked task emerges.
 - TECH-006: 108/108 verified with threads pool; default forks pool SIGABRT flake until PR #71 merges.
 
+## Cycle 79 update (2026-11-19)
+
+- PR #67 (cleanup #2/#4/#5/#6, 1fea545) independent review: ACCEPT WITH FOLLOW-UPS (112/112 threads pool, CI green). F-67-1 low (verifyChain unknown id vacuously valid, pre-existing), F-67-2 nit (unused e1 warning). TECH-002 resolvable on owner merge.
+- Last unreviewed engineering PR: #71 (TECH-006 threads pool) — next dispatcher cycle should review it.
+- Draft PRs green and awaiting owner merge: #65, #66, #67, #70, #71, #76, #77, #78. F-65-4 bootstrap decision still owner-gated. EXT-001..EXT-009 unchanged.
+
 ## Cycle 78 update (2026-11-19)
 
 - PR #70 (M04 compliance gate, 97d6e7b) independent review: ACCEPT WITH FOLLOW-UPS (120/120, CI green). F-70-1 negative counters, F-70-2 whitespace strings, F-70-3 optional gate_input bypass, F-70-4 R04 scope gap. See ASCENSION_BLOCKERS.md cycle 78.
