@@ -198,4 +198,42 @@ describe('Audit Logger', () => {
     const headAfter = auditLogger.getChainHead();
     expect(headAfter).toBe(event.event_hash);
   });
+
+  it('should verify partial chain from a mid-chain event (issue #2)', async () => {
+    const e1 = await auditLogger.log({ event_type: 'partial_1', actor_type: 'system', action: 'test' });
+    const e2 = await auditLogger.log({ event_type: 'partial_2', actor_type: 'system', action: 'test' });
+    const e3 = await auditLogger.log({ event_type: 'partial_3', actor_type: 'system', action: 'test' });
+
+    const verification = await auditLogger.verifyChain(e2.id);
+    expect(verification.valid).toBe(true);
+    expect(verification.errors).toEqual([]);
+    expect(verification.events_checked).toBe(2);
+    expect(verification.chain_head).toBe(e3.event_hash);
+  });
+
+  it('should detect tampering in a partial chain segment (issue #2)', async () => {
+    await auditLogger.log({ event_type: 'seg_1', actor_type: 'system', action: 'test' });
+    const s2 = await auditLogger.log({ event_type: 'seg_2', actor_type: 'system', action: 'test' });
+    await auditLogger.log({ event_type: 'seg_3', actor_type: 'system', action: 'test' });
+
+    const db = getDatabase();
+    db.prepare('UPDATE audit_events SET payload = ? WHERE id = ?').run('{"tampered":true}', s2.id);
+
+    const verification = await auditLogger.verifyChain(s2.id);
+    expect(verification.valid).toBe(false);
+    expect(verification.errors.length).toBeGreaterThan(0);
+  });
+
+  it('should order same-timestamp events deterministically by rowid (issue #4)', async () => {
+    const ts = '2026-01-01T00:00:00.000Z';
+    const a = await auditLogger.log({ event_type: 'ts_a', actor_type: 'system', action: 'test', created_at: ts });
+    const b = await auditLogger.log({ event_type: 'ts_b', actor_type: 'system', action: 'test', created_at: ts });
+    const c = await auditLogger.log({ event_type: 'ts_c', actor_type: 'system', action: 'test', created_at: ts });
+
+    const events = await auditLogger.getEvents({ limit: 10 });
+    const ids = events.map(e => e.id);
+    // rowid DESC = reverse insertion order for equal created_at
+    expect(ids.indexOf(c.id)).toBeLessThan(ids.indexOf(b.id));
+    expect(ids.indexOf(b.id)).toBeLessThan(ids.indexOf(a.id));
+  });
 });
