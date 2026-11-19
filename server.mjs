@@ -286,15 +286,14 @@ class CallforgeHttpServer {
     }
     if (body.role && body.role !== authContext.role) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({ error: 'Role mismatch: role is derived from the access token' }),
-      );
+      res.end(JSON.stringify({ error: 'Role mismatch: role is derived from the access token' }));
       return;
     }
     // Scope is intersected with the token scopes: the authorize step can only
     // ever narrow, never widen, what the presenting token already holds.
     const tokenScopes = Array.isArray(authContext.scopes) ? authContext.scopes : [];
-    const requestedScopes = Array.isArray(body.scope) && body.scope.length > 0 ? body.scope : tokenScopes;
+    const requestedScopes =
+      Array.isArray(body.scope) && body.scope.length > 0 ? body.scope : tokenScopes;
     const grantedScopes = requestedScopes.filter(s => tokenScopes.includes(s));
     if (grantedScopes.length === 0) {
       res.writeHead(403, { 'Content-Type': 'application/json' });
