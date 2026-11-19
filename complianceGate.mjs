@@ -124,7 +124,7 @@ export function evaluatePreDialGate(input = {}) {
     check(
       'consent_ref',
       'R07',
-      typeof input.consentRef === 'string' && input.consentRef.length > 0,
+      typeof input.consentRef === 'string' && input.consentRef.trim().length > 0,
       'consent ledger reference required (lawful-basis mapping: LEGAL-REVIEW/EXT-002)',
     ),
   );
@@ -188,6 +188,8 @@ export function evaluatePreDialGate(input = {}) {
       'R10',
       Number.isInteger(attempts.callbacksToday) &&
         Number.isInteger(attempts.callbacksThisWeek) &&
+        attempts.callbacksToday >= 0 &&
+        attempts.callbacksThisWeek >= 0 &&
         attempts.callbacksToday < 1 &&
         attempts.callbacksThisWeek < 2,
       'retry ceiling reached (1/day, 2/week) or attempt counters missing',
@@ -202,7 +204,7 @@ export function evaluatePreDialGate(input = {}) {
     opener.purpose,
     opener.recordingNotice,
     opener.continuePrompt,
-  ].every(v => typeof v === 'string' && v.length > 0);
+  ].every(v => typeof v === 'string' && v.trim().length > 0);
   const aiDisclosureOk = opener.automated !== true || opener.aiDisclosure === true;
   const openerOk = openerFieldsOk && aiDisclosureOk;
   checks.push(

@@ -111,4 +111,24 @@ describe('evaluatePreDialGate', () => {
   it('requires a consent ledger reference', () => {
     expect(evaluatePreDialGate({ ...validInput(), consentRef: null }).allowed).toBe(false);
   });
+  it('rejects negative attempt counters (F-70-1)', () => {
+    expect(
+      evaluatePreDialGate({
+        ...validInput(),
+        attempts: { callbacksToday: -99, callbacksThisWeek: 0 },
+      }).allowed,
+    ).toBe(false);
+    expect(
+      evaluatePreDialGate({
+        ...validInput(),
+        attempts: { callbacksToday: 0, callbacksThisWeek: -1 },
+      }).allowed,
+    ).toBe(false);
+  });
+  it('rejects whitespace-only opener fields and consentRef (F-70-2)', () => {
+    const wsOpener = validInput();
+    wsOpener.opener = { ...wsOpener.opener, companyName: '   ' };
+    expect(evaluatePreDialGate(wsOpener).allowed).toBe(false);
+    expect(evaluatePreDialGate({ ...validInput(), consentRef: '   ' }).allowed).toBe(false);
+  });
 });
