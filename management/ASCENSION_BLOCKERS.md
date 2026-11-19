@@ -58,3 +58,10 @@ Adversarial re-audit (read-only worktree of origin/m02-oauth-tenant-isolation at
   - tenant_id=tenant-B → 403 "Tenant mismatch: token tenant does not match request tenant"
   - unauthenticated → 401 "Missing or invalid Authorization header"
 - Verdict: **ACCEPT WITH FOLLOW-UPS**. F-65-3 and F-65-5 fixed and verified. F-65-4 (bootstrap circularity) remains OPEN by design: the only issuance path is /oauth/authorize, which now requires a Bearer token; a documented bootstrap path needs an owner decision (dev-token issuer or real IdP) before SEC-001 can be fully closed. Verdict posted as comment on PR #65 (no merge).
+
+## Cycle 76 — PR #66 CI failure fixed (2026-11-19, head 6f89447)
+
+- PR #66 (chapter-06-expansion) verify was FAILURE at lint: 20 eslint `indent` errors (8 spaces where 6 expected) in server.mjs lines 266-297.
+- Root cause: the chapter branch carried a stale, pre-rework variant of the SEC-001 authorize fix (`role: body.role || authContext.role`), superseded by PR #65 head 7ce247f. The chapter expansion is research/docs only, so server.mjs is reverted to origin/main — PR #66 no longer carries server code, removing a future merge conflict with PR #65.
+- Nine files failing prettier --check were formatted with prettier --write (content-only reformatting).
+- F-65-4 (bootstrap circularity) remains OPEN, unchanged. TECH-006 forks-pool SIGABRT flake reproduced locally on default pool; 108/108 passes with threads pool (PR #71 fix, green, awaiting owner merge). Not duplicated in this branch.
