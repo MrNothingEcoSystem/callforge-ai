@@ -19,3 +19,7 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 90 update (2026-11-19)
+
+- No unblocked engineering: all 30 open draft PRs owner-gated. Next: owner merge decisions on #61/#64/#65/#66/#67/#70/#71; F-66-2 canonical choice; EXT-001..EXT-010 unchanged.
