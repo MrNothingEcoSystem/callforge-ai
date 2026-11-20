@@ -23,6 +23,7 @@
 | TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
 | TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
 | TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
+| TECH-006 | Node 24 toolchain missing (scratch pruned); corepack pnpm broken; Node 26 incompatible with better-sqlite3 11.10.0 native module | Resolved cycle 101: Node v24.11.0 reinstalled from nodejs.org to documented path, pnpm 12.18.0 verified, 108/108 on clean run at origin/main 28c9040. Residual: vitest forks SIGABRT flake on main (2/3 runs fail); fix on PR #71 awaiting owner merge | Reinstall Node 24 tarball if scratch pruned again; owner merge of PR #71 clears flake |
 
 Engineering continues on independent work whenever a gate is blocked.
 
