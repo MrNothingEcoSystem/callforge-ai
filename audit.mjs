@@ -101,7 +101,20 @@ export function createAuditLogger() {
 
       const events = db.prepare(query).all(...params);
 
+      // Seed from the actual predecessor event so mid-chain verification
+      // checks the link to the first event instead of assuming genesis.
+      // Starting at genesis (or for a full scan) the seed is '0'.repeat(64).
       let previousHash = '0'.repeat(64);
+      if (fromEventId && events.length > 0) {
+        const predecessor = db
+          .prepare(
+            'SELECT event_hash FROM audit_events WHERE rowid < (SELECT rowid FROM audit_events WHERE id = ?) ORDER BY rowid DESC LIMIT 1',
+          )
+          .get(fromEventId);
+        if (predecessor) {
+          previousHash = predecessor.event_hash;
+        }
+      }
       let valid = true;
       const errors = [];
 
@@ -131,13 +144,8 @@ export function createAuditLogger() {
           });
         }
 
-        // Skip genesis previous_hash check (first event with previous_hash = '0'.repeat(64))
-        if (event.id === events[0]?.id && event.previous_hash === '0'.repeat(64)) {
-          previousHash = event.event_hash;
-          continue;
-        }
-
-        // Verify previous hash link
+        // Verify previous hash link (seeded from the actual predecessor
+        // above, so genesis chains check against '0'.repeat(64)).
         if (event.previous_hash !== previousHash) {
           valid = false;
           errors.push({
@@ -193,7 +201,7 @@ export function createAuditLogger() {
           `
         SELECT * FROM audit_events
         WHERE ${where}
-        ORDER BY created_at DESC
+        ORDER BY rowid DESC
         LIMIT ? OFFSET ?
       `,
         )
