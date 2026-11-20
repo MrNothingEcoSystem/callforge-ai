@@ -28,3 +28,12 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-20 — Cycle 96 (dispatcher, 03:11 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe` (unchanged since cycle 94/95). Previous checkout on docs/ascension-cycle-095 (PR #95 draft, clean, head e29a280, identical to origin). This cycle's ledger branch docs/ascension-cycle-096 cut from origin/main. No writes to legacy Davidcarmelalex/CALLFORGE. Toolchain verified: Node v24.15.0, corepack pnpm 12.18.0 at /root/.hermes/cache/scratch/node24/bin.
+- Gate re-survey: all 8 product PRs `verify` SUCCESS at their current heads — #26 (5785f0f), #61 (20f055a), #64 (c3916f6), #65 (7ce247f), #66 (ea1307c), #67 (98c31c4), #70 (124b087), #71 (11efab3) — unchanged and green. No product CI failure to fix.
+- No unblocked engineering task remains (confirmed again this cycle): all product PRs await owner merge decisions; F-66-2 canonical-file choice and F-65-4 bootstrap/IdP decision are owner-gated; EXT-001..EXT-010 unchanged. Ledger-only cycle, no src/ diff.
+- Tests: `pnpm test` on origin/main baseline = 13 files, 108/108 passed (761ms).
+- Telegram: no digest — last recorded digest was cycle 90 (2026-11-19 ~23:59 UTC), ~3.2h ago, within the 6h window; no milestone acceptance, critical finding, external blocker, failed gate, or approval request this cycle.
+- Resource usage: ~6 min wall clock, no worktree, no persistent processes. Remaining work (assumption: owner reviews within days): owner merge order for PRs #26/#61/#64/#65/#66/#67/#70/#71 determines next engineering; EXT-001..EXT-010 unchanged. Next cycle: re-survey gates; if still all owner-gated, ledger-only.
