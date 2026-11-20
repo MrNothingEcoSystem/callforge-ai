@@ -28,3 +28,12 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-20 — Cycle 91 (dispatcher, 00:30 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe` (unchanged since cycle 90); previous checkout on docs/ascension-cycle-090 (PR #90 draft, clean). New ledger branch docs/ascension-cycle-091 cut from origin/main. No writes to legacy Davidcarmelalex/CALLFORGE. Toolchain verified: Node v24.15.0, corepack at /root/.hermes/cache/scratch/node24/bin.
+- Selected task: fix failing CI on PR #61 (TECH-004 design). Survey found PR #61 and PR #64 both failing only at `format:check` (prettier on management docs; all other gates pass). One write lease per cycle: fixed PR #61.
+- Fix: prettier --write on management/ASCENSION_EXECUTION_LOG.md + management/ASCENSION_MILESTONES.json on branch tech-004-postgres-vs-sqlite-design; committed `20f055ad95ed9dd835dcdc9307d773ccbc1c1311` (2 files, 7 insertions, 3 deletions — formatting only, no content change). Local: format:check clean, `pnpm test` 108/108 passed. Pushed; CI verify SUCCESS on PR #61 at 20f055a (verified via gh pr view).
+- PR #64 (M03-1 review record) has the identical format-only CI failure — queued as next cycle's bounded task.
+- Telegram: no digest (last recorded digest cycle 90, 2026-11-19 ~23:59 UTC, <6h ago); no milestone acceptance, critical finding, external blocker, failed gate, or approval request this cycle.
+- Resource usage: ~10 min wall clock, no worktree, no persistent processes. Remaining work (assumption: owner reviews within days): owner merge decisions on draft PRs #61/#64/#65/#66/#67/#70/#71 (PR #61 now CI-green); PR #64 format fix next cycle; F-66-2 canonical decision; EXT-001..EXT-010 unchanged.
