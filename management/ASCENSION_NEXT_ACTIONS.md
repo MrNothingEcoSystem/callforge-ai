@@ -19,3 +19,9 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 92 update (2026-11-20)
+
+- PR #64 (M03-1 review record): format:check CI failure fixed at c3916f6 (prettier on 4 management files, formatting only); local format:check clean, 108/108 tests. CI verify SUCCESS confirmed this cycle (gh pr view 64). PR #64 is merge-ready pending owner decision.
+- PR #61 (TECH-004 design): CI-green at 20f055a (cycle 91), still awaiting owner merge decision.
+- Owner merge decisions on #61/#64/#65/#66/#67/#70/#71 still pending; F-66-2 canonical choice open. EXT-001..EXT-010 unchanged. No merge/deploy/live-call/paid action taken.
