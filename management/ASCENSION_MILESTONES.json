@@ -139,7 +139,8 @@
     "status": "active",
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
-    "cycles_proven": 1,
-    "last_cycle": "2026-11-09T04:12Z"
+    "cycles_proven": 3,
+    "last_cycle": "2026-11-10T06:49Z",
+    "tech_005": "proven \u2014 cycles 40-42 consecutive successful runs, 2026-11-10"
   }
 }
