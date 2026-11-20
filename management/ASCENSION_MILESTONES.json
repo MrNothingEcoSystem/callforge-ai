@@ -61,7 +61,9 @@
       "id": "M05",
       "name": "Provider-neutral telephony architecture",
       "status": "pending",
-      "blockers": ["EXT-003 authorized UAE telephony provider + carrier contract (M03 baseline complete)"]
+      "blockers": [
+        "EXT-003 authorized UAE telephony provider + carrier contract (M03 baseline complete)"
+      ]
     },
     {
       "id": "M06",
@@ -85,7 +87,9 @@
       "id": "M09",
       "name": "Production remote MCP server",
       "status": "pending",
-      "blockers": ["M02 production identity not achieved (SEC-001 open); baseline MCP surface draft PR #26 (m09-remote-mcp @ 5785f0ff) awaits owner merge"]
+      "blockers": [
+        "M02 production identity not achieved (SEC-001 open); baseline MCP surface draft PR #26 (m09-remote-mcp @ 5785f0ff) awaits owner merge"
+      ]
     },
     {
       "id": "M10",
