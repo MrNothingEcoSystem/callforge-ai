@@ -481,3 +481,12 @@
 - No unblocked engineering task: all product work awaits owner merge; F-66-2/F-65-4 + EXT-001..EXT-009 owner-gated. Ledger-only cycle, no src/ diff, no tests run (docs-only change; code unchanged since cycle 102's test run which reproduced the known TECH-006 vitest flake, fix on PR #71).
 - Telegram: no digest (<6h since cycle-147 digest at ~05:42 UTC, ~1.6h ago); no milestone acceptance / critical finding / failed gate / approval request this cycle.
 - Resource usage: ~4 min wall clock, no worktree, no persistent processes. Remaining work (assumptions: owner merge order for PRs #26/#51/#61/#64/#65/#66/#67/#70/#71/#101-#148 determines next engineering; Node 24 in scratch may be pruned again — reinstall via nodejs.org v24.11.0 tarball; vitest flake on main persists until PR #71 merges): local test execution unblocked until scratch prune.
+
+## 2026-11-21 — Cycle 151 (dispatcher, 07:46 UTC)
+
+- Sync: git fetch; origin/main = 28c90405b5da65807b9139f05ce0f30bc232bcfe (unchanged since cycles 94-150). Local main diverged (pre-existing local-only commits 9ecd4a8/b720bbe/7b5c460, cycles 74-75) — left untouched. Ledger branch docs/ascension-cycle-151 cut from PR #149 tip (1847d8d) to preserve cumulative ledger history. No writes to legacy Davidcarmelalex/CALLFORGE.
+- Toolchain verified: Node v24.11.0 at /root/.hermes/cache/scratch/node24/bin.
+- Gate re-survey: PR #149 (cycle-150 ledger) OPEN + MERGEABLE at head 1847d8d. Product PR #71 (vitest flake fix) OPEN + MERGEABLE at head 11efab3 (unchanged per prior cycles; not re-spot-checked this cycle to stay in time budget). Open issues #1, #2, #4, #5, #6, #8 unchanged, each tracked by an existing product PR awaiting owner merge.
+- No unblocked engineering task: all product work awaits owner merge; F-66-2/F-65-4 + EXT-001..EXT-009 owner-gated. Ledger-only cycle, no src/ diff, no tests run (docs-only change; code unchanged since cycle 102's test run which reproduced the known TECH-006 vitest flake, fix on PR #71).
+- Telegram: no digest (<6h since cycle-147 digest at ~05:42 UTC, ~2.1h ago); no milestone acceptance / critical finding / failed gate / approval request this cycle.
+- Resource usage: ~4 min wall clock, no worktree, no persistent processes. Remaining work (assumptions: owner merge order for product PRs #26/#51/#61/#64/#65/#66/#67/#70/#71 and ledger PRs #101-#149 determines next engineering; Node 24 in scratch may be pruned again — reinstall via nodejs.org v24.11.0 tarball; vitest flake on main persists until PR #71 merges): local test execution unblocked until scratch prune.
