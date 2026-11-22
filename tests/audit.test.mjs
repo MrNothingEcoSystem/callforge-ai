@@ -198,4 +198,33 @@ describe('Audit Logger', () => {
     const headAfter = auditLogger.getChainHead();
     expect(headAfter).toBe(event.event_hash);
   });
+
+  it('should verify a mid-chain segment seeded from its predecessor (issue #2)', async () => {
+    const e1 = await auditLogger.log({ event_type: 'seg_1', actor_type: 'system', action: 'test' });
+    const e2 = await auditLogger.log({ event_type: 'seg_2', actor_type: 'system', action: 'test' });
+    const e3 = await auditLogger.log({ event_type: 'seg_3', actor_type: 'system', action: 'test' });
+
+    const partial = await auditLogger.verifyChain(e2.id);
+    expect(partial.valid).toBe(true);
+    expect(partial.errors).toHaveLength(0);
+    expect(partial.events_checked).toBe(2);
+    expect(partial.chain_head).toBe(e3.event_hash);
+
+    // Tampering inside the segment must be detected on partial verification
+    const db = getDatabase();
+    db.prepare('UPDATE audit_events SET payload = ? WHERE id = ?').run('{"tampered":true}', e3.id);
+    const tampered = await auditLogger.verifyChain(e2.id);
+    expect(tampered.valid).toBe(false);
+    expect(tampered.errors.length).toBeGreaterThan(0);
+  });
+
+  it('should order events by insertion (rowid) even with identical timestamps (issue #4)', async () => {
+    const ts = '2026-01-01T00:00:00.000Z';
+    await auditLogger.log({ event_type: 'same_ts_1', actor_type: 'system', action: 'test', created_at: ts });
+    await auditLogger.log({ event_type: 'same_ts_2', actor_type: 'system', action: 'test', created_at: ts });
+    await auditLogger.log({ event_type: 'same_ts_3', actor_type: 'system', action: 'test', created_at: ts });
+
+    const events = await auditLogger.getEvents({ limit: 3, offset: 0 });
+    expect(events.map(e => e.event_type)).toEqual(['same_ts_3', 'same_ts_2', 'same_ts_1']);
+  });
 });
