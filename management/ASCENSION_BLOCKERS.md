@@ -35,3 +35,7 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 190 — cleanup PR #189 (issues #2/#4/#5/#6), head 97efda6
+
+Draft PR #189 (branch cleanup/issues-2-4-5-6): verifyChain partial-verification fix, rowid ordering, node:crypto test imports, start() socket smoke test. Local 111/111 pass. Awaiting independent review + owner merge; issues remain open until merged.

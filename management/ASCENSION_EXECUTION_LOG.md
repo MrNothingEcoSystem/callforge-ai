@@ -28,3 +28,14 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-22 — Cycle 190 (dispatcher, 04:01 UTC)
+
+- Sync: origin/main = 28c9040; local main had 3 unpushed ledger commits (cycles 74/75, preserved, not pushed to main). Work done on branch cleanup/issues-2-4-5-6 from origin/main.
+- Toolchain verified: Node v24.11.0, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task: cleanup bundle for open issues #2, #4, #5, #6 (M01 audit follow-ups); all milestones M02+ remain owner-gated (EXT-001..009, F-65-4 bootstrap).
+- Changes (head 97efda6): #2 verifyChain mid-chain seeding from predecessor hash + sentinel-keyed genesis skip; #4 getEvents ORDER BY rowid DESC; #5 require('crypto') -> node:crypto createHash imports in store/auth tests; #6 real start() listen//health/shutdown socket smoke test. 3 new tests.
+- Tests: pnpm test = 13 files, 111/111 passed locally.
+- Draft PR #189 opened (no merge — owner-gated). Issues #2/#4/#5/#6 left open pending review/merge.
+- Telegram: no milestone acceptance/critical finding; check digest interval in log before sending — no digest sent this cycle.
+- Resource usage: ~15 min wall clock. Remaining work: independent review of PR #189 (~1 session); owner merge decisions on all draft PRs; F-65-4 bootstrap IdP decision blocks M02 production identity. Assumption: drafts remain unmerged until owner approval.
