@@ -220,9 +220,24 @@ describe('Audit Logger', () => {
 
   it('should order events by insertion (rowid) even with identical timestamps (issue #4)', async () => {
     const ts = '2026-01-01T00:00:00.000Z';
-    await auditLogger.log({ event_type: 'same_ts_1', actor_type: 'system', action: 'test', created_at: ts });
-    await auditLogger.log({ event_type: 'same_ts_2', actor_type: 'system', action: 'test', created_at: ts });
-    await auditLogger.log({ event_type: 'same_ts_3', actor_type: 'system', action: 'test', created_at: ts });
+    await auditLogger.log({
+      event_type: 'same_ts_1',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
+    await auditLogger.log({
+      event_type: 'same_ts_2',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
+    await auditLogger.log({
+      event_type: 'same_ts_3',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
 
     const events = await auditLogger.getEvents({ limit: 3, offset: 0 });
     expect(events.map(e => e.event_type)).toEqual(['same_ts_3', 'same_ts_2', 'same_ts_1']);
