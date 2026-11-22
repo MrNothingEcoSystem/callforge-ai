@@ -28,3 +28,36 @@
 - M03-1 implemented on draft PR #9 (head `dec034e`, 66/66 tests, CI PASS): versioned migrations, outbox, state machine, webhook inbox, quota/retention hooks, backup/restore. PostgreSQL deferred with documented rationale.
 - Cycle 1's docs branch `docs/ascension-cycle-001` had no PR; its verified content committed to main instead; orphan branch removed.
 - Remaining work estimate: M03-2 (dispatcher loop + counters) ~1 focused session; SEC-001 IdP decision is owner-gated (EXT-004-adjacent), unestimable until decided; M04 register is research-only, parallelizable.
+
+## 2026-11-19 — Cycle 74 (dispatcher, 15:24 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. Previous checkout on `docs/ascension-cycle-073` (PR #73 draft, 2 commits ahead of main, clean) — preserved, no legacy writes.
+- Toolchain verified: Node v24.15.0, corepack pnpm 12.18.0.
+- Selected highest-priority unblocked task: rework PR #65 per Cycle 73 CHANGES REQUESTED verdict (F-65-3 role escalation, F-65-5 HTTP tests).
+- Change (m02-oauth-tenant-isolation, head 7ce247f (prettier fix 7ce247f); 7d8671f first cut): pinned authorize role to token context (mismatch → 403), fail-closed on roleless tokens, scope intersected with token scopes (empty → 403). 5 new HTTP-level tests; 78/78 pass locally (10 files, ~722ms).
+- Live probe: operator + body.role=tenant_admin → 403 "Role mismatch" (fixed vs cycle-73 200); operator + role=operator → 200 with code.
+- F-65-4 bootstrap circularity remains open — needs owner IdP/bootstrap decision.
+- PR #65 updated (head 7ce247f (prettier fix 7ce247f); 7d8671f first cut), no merge (owner-gated). Ledger/log on docs/ascension-cycle-074 (this PR, draft).
+- Telegram: no milestone acceptance / critical new finding (fix verified); last digest-type message was cycle-73 security alert ~14:55 UTC (<6h). No message sent.
+- Resource usage: ~12 min wall clock. Remaining work estimate (assumption: owner reviews within days): independent re-review of 7d8671f ~1 session; owner merge decision on PR #65; then M02 production-identity closure still gated on bootstrap/IdP decision.
+
+## 2026-11-19 — Cycle 75 (dispatcher)
+
+- Sync: local main = origin/main = 28c9040 (Merge PR #20 m03-2-orchestration). Ledger state taken from docs/ascension-cycle-074 (PR #74, open draft).
+- Toolchain verified: Node v24.15.0, pnpm 12.18.0 at /root/.hermes/cache/scratch/node24/bin.
+- Highest-priority unblocked task: independent re-review of PR #65 rework (cycle 74 rework of cycle-73 CHANGES REQUESTED). `delegate_task` unavailable in cron env; audit performed directly in read-only worktree (removed afterwards).
+- Tests: pnpm install + pnpm test = 10 files, 78/78 passed at head 7ce247f; CI verify SUCCESS.
+- Independent live probes: role escalation → 403, pinned-role → 200, cross-tenant → 403, unauthenticated → 401 (all match spec).
+- Verdict: ACCEPT WITH FOLLOW-UPS for F-65-3/F-65-5; F-65-4 bootstrap remains owner decision. Posted PR #65 comment, no merge.
+- Telegram: no milestone acceptance / critical finding / external blocker beyond the already-reported F-65-4 owner decision; last digest (cycle 74) was <6h ago today — no digest sent this cycle.
+- Resource usage: ~20 min wall clock, 1 read-only worktree (removed), no persistent processes. Remaining work: F-65-4 bootstrap needs owner decision (dev-token issuer vs real IdP); PRs #65/#67/#70/#71/#74 all await owner merge direction; EXT-001..EXT-009 unchanged. Assumption: all drafts remain unmerged until owner approval.
+
+## 2026-11-22 — Cycle 189 (dispatcher, 03:29 UTC)
+
+- Sync: `git fetch`; origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. Local main was 3 commits ahead (ledger cycles 74-75, unpushed) — preserved by branching `docs/ascension-cycle-189` from local main head `7b5c460`; no direct push to main, no legacy writes. Prior checkout `docs/ascension-cycle-188` (PR #187 draft) preserved.
+- Toolchain verified: Node v24.11.0, corepack pnpm 12.18.0 at /root/.hermes/cache/scratch/node24/bin.
+- Highest-priority unblocked task: gate re-survey. PR #65 (SEC-001 token auth on /oauth/authorize, head 7ce247f) still OPEN draft, verdict ACCEPT WITH FOLLOW-UPS (cycle 75); F-65-4 bootstrap/IdP decision remains owner-gated, blocking M02 production identity. All other open PRs are ledger-only cycle PRs (#122-#187). EXT-001..EXT-009 unchanged.
+- Tests on main head 7b5c460: `corepack pnpm test` = 13 files, 108/108 passed.
+- No engineering change this cycle (no unblocked code task ahead of owner gates). Ledger-only commit on docs/ascension-cycle-189, draft PR to be opened.
+- Telegram: no milestone acceptance / critical finding / new external blocker; last cycle PR opened ~03:00 UTC (<6h) — no digest sent.
+- Resource usage: ~5 min wall clock. Remaining work estimate: owner decisions on PR #65 merge + F-65-4 bootstrap and EXT gates; then M02 production-identity closure. Assumption: all drafts remain unmerged until owner approval.
