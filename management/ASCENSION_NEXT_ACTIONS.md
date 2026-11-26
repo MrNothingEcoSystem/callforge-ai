@@ -26,7 +26,7 @@ verdict ACCEPT WITH FOLLOW-UPS with the Medium 413-socket defect fixed before pu
 Merge order for the owner is now #189 → #191 → #192. Next engineering after that, in order:
 (1) F2 CORS preflight honouring the Origin allow-list — **done**, cycle 196 (`4ee48f7`),
 (2) RFC9728/8414 discovery + RFC8707 audience binding — **done**, cycle 197 (`4fa9dd5`),
-(3) per-tenant rate limiting, (4) tool annotations + securitySchemes and
+(3) per-tenant rate limiting — **done**, cycle 198 (`b349b06`), (4) tool annotations + securitySchemes and
 removal of `access_token`/`tenant_id` from the remote registry, (5) elicitation for C2 tools,
 (6) IdP swap once SEC-001 is decided.
 
@@ -38,6 +38,18 @@ path-aware well-known variants answer, `resource_indicators_supported` is advert
 rejected there unless `MCP_REQUIRE_RESOURCE_AUDIENCE=0`. Still open in this area: the `iss`
 claim is the literal `callforge` while RFC8414 metadata publishes a URL issuer — closing
 that needs the SEC-001 IdP decision, not more local code.
+
+## Cycle 198 — M09 step 3 rate limiting (PR #192)
+
+`mcp-rate-limit.mjs` + wiring: per-tenant caller bucket (`MCP_RATE_LIMIT_PER_MINUTE`)
+and per-tenant/per-tool bucket (`MCP_RATE_LIMIT_TOOL_PER_MINUTE`) for
+`simulate_call`/`list_history`/`generate_report`; 429 + `Retry-After` +
+problem+json; discovery/preflight/health unthrottled; both disabled by default.
+In-process and restart-volatile — edge/KV buckets remain the production path, and a
+spammed expensive tool also spends caller budget (order is caller → tool). Note the
+rejected-tool request still consumes a caller token. Next M09 step: (4) tool
+annotations + securitySchemes and removal of `access_token`/`tenant_id` from the
+remote registry.
 
 ## Cycle 194 — issue #8 review + remediation (PR #191)
 
