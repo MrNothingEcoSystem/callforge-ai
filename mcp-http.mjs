@@ -42,8 +42,11 @@ function readBody(req, maxBytes) {
     req.on('data', chunk => {
       size += chunk.length;
       if (size > maxBytes) {
+        // Keep the socket: drain the remainder so the 413 actually reaches the
+        // client instead of dying with an RST on req.destroy().
+        req.removeAllListeners('data');
+        req.resume();
         reject(Object.assign(new Error('Payload too large'), { status: 413 }));
-        req.destroy();
         return;
       }
       chunks.push(chunk);

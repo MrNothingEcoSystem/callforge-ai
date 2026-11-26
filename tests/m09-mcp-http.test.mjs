@@ -67,6 +67,7 @@ describe('M09 remote MCP transport', () => {
       env: {
         MCP_ALLOWED_ORIGINS: ORIGIN,
         MCP_PUBLIC_URL: 'https://mcp.example/mcp',
+        MCP_MAX_BODY_BYTES: '2048',
         PORT: '0',
       },
     });
@@ -114,6 +115,16 @@ describe('M09 remote MCP transport', () => {
       body: '{}',
     });
     expect(badVersion.status).toBe(400);
+  });
+
+  it('answers 413 (not a dead socket) for an oversized body', async () => {
+    const res = await fetch(`${base}/mcp`, {
+      method: 'POST',
+      headers: { origin: ORIGIN, authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...INITIALIZE, pad: 'x'.repeat(4096) }),
+    });
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: 'Payload too large' });
   });
 
   it('completes initialize and tools/call over HTTP with the token tenant', async () => {
