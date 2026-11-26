@@ -25,7 +25,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24.22.2
-          cache: pnpm
+          # setup-node's pnpm-cache probe (pnpm store path) fails intermittently
+          # with ERR_PNPM_CLI_PREFIX_IO_ERROR/EACCES on the fresh workspace
+          # (reproducible on ubuntu-24.04 and -26.04, 2026-11-26). Install is
+          # fast enough without the store cache.
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm lint
