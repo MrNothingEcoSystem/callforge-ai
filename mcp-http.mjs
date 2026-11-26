@@ -17,8 +17,9 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
-import { registerTools } from './tools/index.mjs';
-import { AUDIENCE, ISSUER, validateAccessToken } from './oauth.mjs';
+import { registerTools, TOOL_SCOPES } from './tools/index.mjs';
+import { authFailure } from './tools/toolAuth.mjs';
+import { AUDIENCE, ISSUER, hasScopes, validateAccessToken } from './oauth.mjs';
 import { createRateLimits, expensiveToolOf } from './mcp-rate-limit.mjs';
 import { gate, declinedResult, stateMatches } from './mcp-elicitation.mjs';
 
@@ -78,6 +79,22 @@ function readBody(req, maxBytes) {
 }
 
 /**
+ * Review F12: the gate used to answer `input_required` before the tool authorizer
+ * ran, so a token without the tool's scope received a confirmation form (and an
+ * `elicitation_*` audit row) and only 403'd on the resume — correct outcome, one
+ * wasted round trip. Check the scope before answering the gate instead.
+ * Anonymous calls (no bearer) keep the annotation-only path; there is nothing
+ * verified to check, and the tool layer still fails closed if it is configured to.
+ */
+function preGateAuth(name, context) {
+  const required = TOOL_SCOPES[name] || [];
+  if (!context || !required.length || hasScopes(context, required)) {
+    return null;
+  }
+  return { ok: false, status: 403, error: `Insufficient scope: requires ${required.join(',')}` };
+}
+
+/**
  * @param {object} opts
  * @param {ReturnType<typeof import('./auth.mjs').createAuthMiddleware>} [opts.authMiddleware] dev-token validator
  * @param {{ log: (event: object) => Promise<unknown> }} [opts.auditLogger] hash-chain audit logger
@@ -85,6 +102,7 @@ function readBody(req, maxBytes) {
  * @param {string} [opts.publicUrl] canonical resource URI for WWW-Authenticate
  * @param {ReturnType<typeof import('./mcp-rate-limit.mjs').createRateLimits>} [opts.limits]
  */
+
 export function createMcpHttpHandler({
   authMiddleware,
   auditLogger,
@@ -119,7 +137,16 @@ export function createMcpHttpHandler({
     if (authMiddleware?.validateDevToken) {
       const dev = await authMiddleware.validateDevToken(token);
       if (dev.valid) {
-        return { ok: true, token, context: { tenantId: dev.tenant.id } };
+        return {
+          ok: true,
+          token,
+          context: {
+            tenantId: dev.tenant.id,
+            subject: dev.keyId,
+            role: null,
+            scopes: dev.scopes || [],
+          },
+        };
       }
       return { ok: false, error: dev.error || 'Invalid token' };
     }
@@ -148,6 +175,7 @@ export function createMcpHttpHandler({
     }
 
     let accessToken = null;
+    let authContext = null;
     let callerKey = req.headers.authorization ? null : req.socket?.remoteAddress || 'unknown';
     if (requireAuth || req.headers.authorization) {
       const auth = await authenticate(req);
@@ -165,6 +193,7 @@ export function createMcpHttpHandler({
         return;
       }
       accessToken = auth.token;
+      authContext = auth.context || null;
       callerKey = auth.context?.tenantId || callerKey || 'unknown';
     }
 
@@ -272,7 +301,10 @@ export function createMcpHttpHandler({
           const toolName = item?.method === 'tools/call' ? item.params?.name : null;
           const toolArgs = item?.params?.arguments || {};
           let outcome;
-          if (decision.action === 'require') {
+          const denied = decision.action !== 'none' ? preGateAuth(toolName, authContext) : null;
+          if (denied) {
+            outcome = { result: authFailure(denied) };
+          } else if (decision.action === 'require') {
             await logElicitation(toolName, 'elicitation_requested');
             outcome = {
               result: {
@@ -363,6 +395,15 @@ export function createMcpHttpHandler({
           .catch(() => {});
       const rpcResult = result =>
         sendJson(res, 200, { jsonrpc: '2.0', id: parsed.id ?? null, result });
+
+      // F12: scope before confirmation, so an unauthorized caller never gets a form.
+      if (decision.action !== 'none') {
+        const denied = preGateAuth(toolName, authContext);
+        if (denied) {
+          rpcResult(authFailure(denied));
+          return;
+        }
+      }
 
       if (decision.action === 'require') {
         await logElicitation('elicitation_requested');

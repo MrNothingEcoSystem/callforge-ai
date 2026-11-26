@@ -365,6 +365,99 @@ describe('batch requests through the gate (review F11)', () => {
   });
 });
 
+describe('pre-gate scope check (review F12)', () => {
+  let http;
+  let base;
+  let auditLogger;
+  let tenantId;
+  let adminToken;
+  let readToken;
+
+  beforeAll(async () => {
+    mkdirSync(DIR, { recursive: true });
+    await initDatabase();
+    tenantId = crypto.randomUUID();
+    getDatabase()
+      .prepare('INSERT INTO tenants (id, name, settings, compliance_status) VALUES (?, ?, ?, ?)')
+      .run(tenantId, 'f12-tenant', '{}', 'pending');
+    const started = await startServer();
+    http = started.http;
+    base = started.base;
+    auditLogger = started.auditLogger;
+    adminToken = issueToken(tenantId, ['read', 'admin']);
+    readToken = issueToken(tenantId, ['read']);
+  });
+
+  afterAll(async () => {
+    await new Promise(resolve => http.close(resolve));
+  });
+
+  const elicitationRows = () =>
+    auditLogger.getEvents({ tenant_id: tenantId, event_type: 'elicitation_requested' });
+
+  it('rejects a C2 call before answering input_required when the scope is missing', async () => {
+    const before = (await elicitationRows()).length;
+    const { status, body } = await rpc(
+      base,
+      readToken,
+      call('configure_business', { license_number: 'F12-1' }),
+    );
+    expect(status).toBe(200);
+    expect(body.result.resultType).toBeUndefined();
+    expect(body.result.isError).toBe(true);
+    expect(JSON.parse(body.result.content[0].text)).toMatchObject({
+      status: 403,
+      error: expect.stringContaining('Insufficient scope'),
+    });
+    expect(config(tenantId)?.license_number ?? null).toBeNull();
+    // no confirmation was issued, so no wasted round trip and no gate audit row
+    expect((await elicitationRows()).length).toBe(before);
+  });
+
+  it('still gates the same call for a token that holds the scope', async () => {
+    const { body } = await rpc(
+      base,
+      adminToken,
+      call('configure_business', { license_number: 'F12-2' }),
+    );
+    expect(body.result.isError).toBeUndefined();
+    expect(body.result.resultType).toBe('input_required');
+  });
+
+  it('rejects only the unauthorized item of a batch and executes the rest', async () => {
+    const { status, body } = await rpc(base, readToken, [
+      call('configure_business', { license_number: 'F12-3' }),
+      { ...call('check_readiness', {}), id: 2 },
+    ]);
+    expect(status).toBe(200);
+    expect(body[0].result.resultType).toBeUndefined();
+    expect(body[0].result.isError).toBe(true);
+    expect(body[1].result.structuredContent.checks.tenant_exists).toBe(true);
+  });
+
+  it('leaves anonymous mode on the annotation-only path', async () => {
+    const anon = await startServer({ MCP_HTTP_ALLOW_ANONYMOUS: '1' });
+    const anonTenant = crypto.randomUUID();
+    getDatabase()
+      .prepare('INSERT INTO tenants (id, name, settings, compliance_status) VALUES (?, ?, ?, ?)')
+      .run(anonTenant, 'f12-anon', '{}', 'pending');
+    try {
+      // no Authorization header at all: `Bearer ` with an empty token is a 401
+      const res = await fetch(`${anon.base}/mcp`, {
+        method: 'POST',
+        headers: { origin: ORIGIN, 'content-type': 'application/json' },
+        body: JSON.stringify(
+          call('configure_business', { tenant_id: anonTenant, license_number: 'F12-4' }),
+        ),
+      });
+      const body = await res.json();
+      expect(body.result.resultType).toBe('input_required');
+    } finally {
+      await new Promise(resolve => anon.http.close(resolve));
+    }
+  });
+});
+
 describe('gate disabled', () => {
   let http;
   let base;

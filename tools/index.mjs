@@ -251,7 +251,8 @@ export const TOOL_SCHEMAS = {
 // Every tool accepts an optional bearer token; tenant context is derived from it (issue #8).
 const withToken = shape => ({ ...shape, access_token: z.string().optional() });
 
-const TOOL_SCOPES = {
+/** Least-privilege scope per tool; also consulted by the M09 pre-gate check. */
+export const TOOL_SCOPES = {
   onboard_tenant: ['admin'],
   configure_business: ['admin'],
   simulate_call: ['simulate'],
