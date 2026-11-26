@@ -124,6 +124,12 @@ describe('M09 discovery + audience binding', () => {
     expect(md.code_challenge_methods_supported).toEqual(['S256']);
   });
 
+  it('falls back to the local origin when MCP_PUBLIC_URL is malformed', () => {
+    const md = authorizationServerMetadata({ MCP_PUBLIC_URL: 'not a url', PORT: '4444' });
+    expect(md.issuer).toBe('http://localhost:4444');
+    expect(md.token_endpoint).toBe('http://localhost:4444/oauth/token');
+  });
+
   it('normalizeResource rejects relative and non-http resources and strips fragments', () => {
     expect(normalizeResource('/mcp').error).toMatch(/absolute/);
     expect(normalizeResource('ftp://x.example/mcp').error).toMatch(/http/);

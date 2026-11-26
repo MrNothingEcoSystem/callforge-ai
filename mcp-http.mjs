@@ -203,7 +203,11 @@ export function createMcpHttpHandler({
  */
 export function publicBaseUrl(env = process.env) {
   if (env.MCP_PUBLIC_URL) {
-    return new URL(env.MCP_PUBLIC_URL).origin;
+    try {
+      return new URL(env.MCP_PUBLIC_URL).origin;
+    } catch {
+      // A malformed override must not take discovery down with it.
+    }
   }
   return `http://localhost:${env.PORT || 3000}`;
 }
