@@ -16,14 +16,14 @@
 
 ## Technical blockers
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Fixes done on PR #189, review ACCEPT WITH FOLLOW-UPS | Owner merge decision; close on merge |
-| TECH-006 | Audit archival breaks full-chain verify (issue #190) | Open, latent (audit_events retention-exempt) | Choose seed strategy under archival policy |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
+| ID       | Blocker                                              | Status                                               | Next action                                     |
+| -------- | ---------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| TECH-001 | M02 PR #7 independent security verdict pending       | In progress (auditor dispatched)                     | Record verdict; fix blocking findings on branch |
+| TECH-002 | Issues #2, #4, #5, #6 open follow-ups                | Fixes done on PR #189, review ACCEPT WITH FOLLOW-UPS | Owner merge decision; close on merge            |
+| TECH-006 | Audit archival breaks full-chain verify (issue #190) | Open, latent (audit_events retention-exempt)         | Choose seed strategy under archival policy      |
+| TECH-003 | No durable workflow layer yet                        | M03 design dispatched                                | Implement increment 1                           |
+| TECH-004 | Postgres vs SQLite decision                          | M03 evaluation                                       | Design deliverable                              |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles    | Pending                                              | Run + verify recovery                           |
 
 Engineering continues on independent work whenever a gate is blocked.
 
