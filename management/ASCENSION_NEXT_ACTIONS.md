@@ -16,6 +16,10 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 - Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
 - M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
 
+## Cycle 193 — issue #8 MCP tool authorization
+
+Branch `mcp-tool-tenant-auth` (stacked on PR #189): token-derived tenant context + real scope enforcement at the tool layer, scope re-derivation on validation, 8 negative tests. Awaiting independent review, then owner merge after #189. Legacy no-token calls still work but are flagged unauthenticated — retiring them for non-local use is an owner decision.
+
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.

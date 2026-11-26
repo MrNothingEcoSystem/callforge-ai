@@ -63,3 +63,13 @@
 - Tests: 4 added; 116/116 pass, eslint 0, prettier clean, tsc clean. CI verify PASS (run 45824320496) at head `cdd0d62ea7e4608907c3760f08f0f104bf2b4de4`; remote branch SHA verified equal. PR #189 body updated, stays draft.
 - No merge, no deploy, no live calls, no spend. Signed checkpoints per archive batch (issue option 2) remain owner archival-policy.
 - Resource usage: ~20 min wall clock including pnpm install (2m12s, better-sqlite3 source build), 1 worktree, no persistent processes. Remaining: independent review of the R1 commit; owner merge decisions on PR #189 and the #7/#9/#20 chain; SEC-001 IdP decision still blocks M02 production identity (F-65-4, PR #65).
+
+## 2026-11-26 — Cycle 193 (dispatcher, 13:31 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`, clean tree. Work continues on a branch stacked on the open PR #189 lease (`cleanup/issues-2-4-5-6`, ACCEPT WITH FOLLOW-UPS) because the ledger files are shared; merge order is #189 first, then this PR.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, `pnpm install --frozen-lockfile` 1.5s.
+- Selected highest-priority unblocked task: issue #8 (MCP tool surface has self-asserted tenant_id and a `requireScopes()` stub) — the last open M02 security follow-up, prerequisite for M09, and not owner-gated.
+- Change: `tools/toolAuth.mjs` authorizer (token from tool arg or `CALLFORGE_ACCESS_TOKEN`, signature/issuer/audience/expiry validation via `oauth.validateAccessToken`, tenant-mismatch 403, scope 403, fail-closed 401 when `CALLFORGE_REQUIRE_TOOL_AUTH=1`); guard wired into all 11 tools with per-tool scopes; `validateAccessToken` now re-derives scopes from the role, closing the SEC-003 remainder. Returned results stay additive: 8 negative tests at the tool layer.
+- Tests: 116/116 pass when the run is clean; eslint 0, prettier clean, tsc clean. Known pre-existing flake reproduced: a vitest worker SIGABRTs in `better-sqlite3` `Statement::~Statement` on ~2 of 3 full runs (112/116, 4 tests unrun); `tests/tools.test.mjs` in isolation is always green. CI is the gate.
+- No merge, no deploy, no live calls, no spend.
+- Resource usage: ~25 min wall clock, no worktree, no persistent processes. Remaining: independent review of this PR; owner merge decisions on #189 then this; M09 still needs a remote transport decision; SEC-001 IdP decision still blocks M02 production identity.
