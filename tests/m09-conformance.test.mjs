@@ -28,7 +28,9 @@ setTestDatabasePath(join(DIR, 'callforge.db'));
 
 const ORIGIN = 'https://chat.example';
 const BASE_URL = 'https://mcp.example/mcp';
-const PROTO = { 'mcp-protocol-version': '2025-11-25' };
+// The newest advertised version is served via header normalisation (SDK 1.32.2
+// does not know it); every test below therefore exercises that path.
+const PROTO = { 'mcp-protocol-version': '2026-07-28' };
 
 function issueToken(tenantId, role = 'tenant_admin', scope = ['read'], resource = BASE_URL) {
   const oauth = createOAuthServer();
@@ -126,6 +128,14 @@ describe('M09 conformance', () => {
       // The transport gate and the SDK must agree (regression: gate claimed 2026-07-28,
       // which the SDK rejects, while withholding versions it accepts).
       expect(body.supported.sort()).toEqual([...SUPPORTED_PROTOCOL_VERSIONS].sort());
+    });
+
+    it('serves the SDK-unknown 2026-07-28 version by normalising it downstream', async () => {
+      const res = await post(adminToken, rpc('tools/list', {}), {
+        'mcp-protocol-version': '2026-07-28',
+      });
+      expect(res.status).toBe(200);
+      expect((await res.json()).result.tools.length).toBeGreaterThan(0);
     });
 
     it('answers an unknown method with JSON-RPC -32601', async () => {

@@ -22,13 +22,21 @@ import { authFailure } from './tools/toolAuth.mjs';
 import { AUDIENCE, ISSUER, SUPPORTED_SCOPES, hasScopes, validateAccessToken } from './oauth.mjs';
 import { createRateLimits, expensiveToolOf } from './mcp-rate-limit.mjs';
 import { gate, declinedResult, stateMatches } from './mcp-elicitation.mjs';
-import { SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontextprotocol/sdk/types.js';
+import {
+  LATEST_PROTOCOL_VERSION,
+  SUPPORTED_PROTOCOL_VERSIONS as SDK_PROTOCOL_VERSIONS,
+} from '@modelcontextprotocol/sdk/types.js';
 
 export { createRateLimits };
-// The header gate must advertise exactly what the SDK will negotiate; a literal
-// list here drifted (it named 2026-07-28, which SDK 1.32.2 rejects with -32000,
-// and withheld versions the SDK accepts).
-export { SUPPORTED_PROTOCOL_VERSIONS };
+/**
+ * The gate serves the SDK's list plus the versions we implement ourselves and the
+ * SDK does not know yet (2026-07-28 elicitation: `input_required` /
+ * `inputResponses` are enforced by mcp-elicitation.mjs before dispatch). A fixed
+ * literal list drifted — it withheld versions the SDK accepts while naming one it
+ * rejects with -32000 — so the SDK half is imported, not retyped. A header the
+ * SDK cannot validate is normalised to its latest before `handleRequest`.
+ */
+export const SUPPORTED_PROTOCOL_VERSIONS = [...SDK_PROTOCOL_VERSIONS, '2026-07-28'];
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
 
 function sendJson(res, status, payload, headers = {}) {
@@ -477,6 +485,19 @@ export function createMcpHttpHandler({
         remote: { authenticated: requireAuth },
       });
       await server.connect(transport);
+      if (version && !SDK_PROTOCOL_VERSIONS.includes(version)) {
+        req.headers['mcp-protocol-version'] = LATEST_PROTOCOL_VERSION;
+        // The SDK's node transport goes through @hono/node-server, which builds its
+        // Headers from rawHeaders — the parsed headers object alone is invisible to it.
+        const at = req.rawHeaders.findIndex(
+          (h, i) => i % 2 === 0 && h.toLowerCase() === 'mcp-protocol-version',
+        );
+        if (at === -1) {
+          req.rawHeaders.push('mcp-protocol-version', LATEST_PROTOCOL_VERSION);
+        } else {
+          req.rawHeaders[at + 1] = LATEST_PROTOCOL_VERSION;
+        }
+      }
       await transport.handleRequest(req, res, parsed);
     } catch (error) {
       console.error('[mcp-http] request failed:', error);
