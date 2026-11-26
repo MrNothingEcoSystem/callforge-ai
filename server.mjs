@@ -12,6 +12,7 @@ import { parse } from 'url';
 import { initDatabase, getDatabase, closeStore } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
 import { createOAuthServer } from './oauth.mjs';
+import { idpConfig, jwksState, primeJwksQuietly } from './idp.mjs';
 import { createAuthMiddleware } from './auth.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
@@ -135,6 +136,26 @@ class CallforgeHttpServer {
       }
     });
 
+    // SEC-001 / M09 step 6: with an external IdP the signing keys are fetched ahead
+    // of the first request (verification stays synchronous), then refreshed in the
+    // background. A misconfigured IdP fails the boot instead of silently accepting
+    // self-asserted tokens.
+    const idp = idpConfig();
+    this.idpIssuer = idp?.issuer ?? null;
+    if (idp) {
+      // start() stays synchronous; the first fetch is in flight before the port
+      // opens and any request arriving sooner fails closed as "refreshing".
+      primeJwksQuietly(idp).then(primed =>
+        console.log(
+          primed.ok
+            ? `External IdP ${idp.issuer}: JWKS loaded (${primed.keys} keys)`
+            : `External IdP ${idp.issuer}: JWKS unavailable — ${primed.error} (tokens fail closed)`,
+        ),
+      );
+      this.idpRefresh = setInterval(() => primeJwksQuietly(idp), 5 * 60 * 1000);
+      this.idpRefresh.unref?.();
+    }
+
     this.server.listen(PORT, () => {
       console.log(
         `CALLFORGE HTTP server listening on port ${PORT} (simulation: ${SIMULATION_MODE})`,
@@ -152,6 +173,8 @@ class CallforgeHttpServer {
           service: 'callforge',
           version: '0.2.0',
           simulation_mode: SIMULATION_MODE,
+          idp: this.idpIssuer,
+          idp_keys: this.idpIssuer ? jwksState().keys : undefined,
           timestamp: new Date().toISOString(),
         }),
       );

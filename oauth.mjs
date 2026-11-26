@@ -14,6 +14,7 @@
  */
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { idpConfig, verifyExternalToken } from './idp.mjs';
 
 export const ISSUER = 'callforge';
 export const AUDIENCE = 'callforge-api';
@@ -118,7 +119,7 @@ function verifySignature(token) {
   }
 }
 
-export function validateAccessToken(
+function isValidLocalToken(
   token,
   nowSeconds = Math.floor(Date.now() / 1000),
   { resource = null, allowLegacyAudience = false } = {},
@@ -170,6 +171,55 @@ export function validateAccessToken(
       expiresAt: claims.exp,
     },
   };
+}
+
+/**
+ * Verify a Bearer access token. Delegates to an external IdP when one is configured
+ * (SEC-001), otherwise verifies the local HS256 token. Kept synchronous: the JWKS is
+ * cached out of band by `primeJwks`.
+ */
+export function validateAccessToken(
+  token,
+  nowSeconds = Math.floor(Date.now() / 1000),
+  { resource = null, allowLegacyAudience = false } = {},
+) {
+  if (!token || typeof token !== 'string') {
+    return { valid: false, error: 'Missing access token' };
+  }
+  const idp = idpConfig();
+  if (!idp) {
+    return isValidLocalToken(token, nowSeconds, { resource, allowLegacyAudience });
+  }
+  const external = verifyExternalToken(token, idp, { now: nowSeconds, resource });
+  if (external.valid) {
+    const roleScopes = ROLES[external.context.role];
+    const claimed = external.context.claimedScopes.map(baseScope);
+    return {
+      valid: true,
+      context: {
+        tenantId: external.context.tenantId,
+        subject: external.context.subject,
+        role: external.context.role || null,
+        scopes: roleScopes ? claimed.filter(s => roleScopes.includes(s)) : [],
+        expiresAt: external.context.expiresAt,
+        issuer: external.context.iss,
+      },
+    };
+  }
+  // Tokens minted by this module remain HS256 with iss=callforge, so a cutover
+  // deployment keeps honouring unexpired dev tokens instead of logging everyone out.
+  let local;
+  try {
+    local = isValidLocalToken(token, nowSeconds, { resource, allowLegacyAudience });
+  } catch {
+    // An external-IdP deployment need not hold CALLFORGE_TOKEN_SECRET at all.
+    return external;
+  }
+  if (local.valid) {
+    return local;
+  }
+  // Prefer the external error unless the token was plainly not an external one.
+  return external.error === 'Invalid issuer' ? local : external;
 }
 
 export function hasScopes(context, required) {

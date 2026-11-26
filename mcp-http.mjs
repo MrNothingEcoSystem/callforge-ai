@@ -546,13 +546,16 @@ export function protectedResourceMetadata(env = process.env) {
  */
 export function authorizationServerMetadata(env = process.env) {
   const base = publicBaseUrl(env);
+  // With an external IdP the published issuer/JWKS must be the IdP's, not this
+  // server's — otherwise a client validates tokens against the wrong `iss`.
+  const external = env.CALLFORGE_IDP_MODE === 'external';
   return {
-    issuer: env.MCP_AUTHORIZATION_SERVER || base,
-    audience: AUDIENCE,
+    issuer: external ? env.CALLFORGE_OIDC_ISSUER || base : env.MCP_AUTHORIZATION_SERVER || base,
+    audience: external ? env.CALLFORGE_OIDC_AUDIENCE || AUDIENCE : AUDIENCE,
     issuer_name: ISSUER,
     authorization_endpoint: `${base}/oauth/authorize`,
     token_endpoint: `${base}/oauth/token`,
-    jwks_uri: env.MCP_JWKS_URI || undefined,
+    jwks_uri: external ? env.CALLFORGE_OIDC_JWKS_URI || undefined : env.MCP_JWKS_URI || undefined,
     scopes_supported: [...SUPPORTED_SCOPES],
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code'],
