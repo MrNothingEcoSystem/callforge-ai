@@ -28,7 +28,8 @@ Merge order for the owner is now #189 → #191 → #192. Next engineering after 
 (2) RFC9728/8414 discovery + RFC8707 audience binding — **done**, cycle 197 (`4fa9dd5`),
 (3) per-tenant rate limiting — **done**, cycle 198 (`b349b06`), (4) tool annotations + securitySchemes and
 removal of `access_token`/`tenant_id` from the remote registry — **done**, cycle 199 (`2d79fc2`),
-(5) structured outputs and elicitation for C2 tools, (6) IdP swap once SEC-001 is decided.
+(5) structured outputs and elicitation for C2 tools — **done**, cycle 200 (`cd4603f`),
+(6) IdP swap once SEC-001 is decided.
 
 Cycle 197 detail: discovery documents now carry absolute URIs (RFC8414 §2), the `/mcp`
 path-aware well-known variants answer, `resource_indicators_supported` is advertised, and
@@ -61,6 +62,20 @@ auth is on (passthrough keeps the 403 mismatch net and the onboarding credential
 (5) structured outputs + elicitation for C2 tools — that turns the C1/C2 confirmation levels
 from annotations into an actual gate. Note for the owner: a remote client can no longer
 mint its own dev token, so provisioning has to come from the IdP or an operator-issued token.
+
+## Cycle 200 — M09 step 5 C2 confirmation gate + structured outputs (PR #192)
+
+`mcp-elicitation.mjs` is now the server-side C2 gate. Only `configure_business`, and only when it
+touches a licensed/externally-binding flag (`license_number`, `license_expiry`,
+`dncr_check_enabled`, `recording_consent_required`), is gated; the call answers
+`resultType:"input_required"` with a typed `confirm` request and a `requestState` fingerprinted over
+the risky arguments, and the client resumes with `inputResponses`. Decline/cancel/`confirm:false`
+write nothing and audit `elicitation_declined`; a stale state is re-issued rather than applied.
+Every exposed tool now publishes an `outputSchema` and returns `structuredContent`
+(`MCP_ELICITATION_GATE=0` restores annotations-only). 9 new tests, full suite 156/156 executed pairs.
+Next M09 step: (6) IdP swap once SEC-001 is decided, then conformance suite §7 and the OpenAI
+app-review pass. Owner-visible: a remote client that ignores `input_required` can no longer change
+licensed settings in one shot.
 
 ## Cycle 194 — issue #8 review + remediation (PR #191)
 

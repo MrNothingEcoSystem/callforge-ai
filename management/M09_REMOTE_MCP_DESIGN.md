@@ -81,9 +81,11 @@ advertised (`additionalProperties: {}` is the visible consequence). An unadverti
 bearer in `toolAuth`, which is what keeps the onboarding credential hand-off
 usable. Annotations
 follow the table: read-only for the six read families, `idempotentHint:false`
-plus `readOnlyHint:false` for `onboard_tenant`. Still open in this section:
-`outputSchema`/structuredContent, tool-level 401 `_meta["mcp/www_authenticate"]`,
-and confirmation levels C1/C2 (§ below) which are annotations today, not a gate.
+plus `readOnlyHint:false` for `onboard_tenant`. Cycle 200 (`cd4603f`) closes `outputSchema`/structuredContent for every exposed tool and turns
+C2 from an annotation into a gate: `mcp-elicitation.mjs` answers `input_required` with a typed
+confirmation for `configure_business` on licensed/externally-binding flags, resumes on
+`inputResponses`, and mutates nothing on decline/cancel. Still open here: tool-level 401
+`_meta["mcp/www_authenticate"]`, and C1 confirmation coverage (only C2 is gated today).
 Elicitation (2025-06-18; 2026-07-28 input_required+inputResponses): C2 tools return input_required with typed schema + requestState, resume on re-call; headless/no-elicitation clients get decline/cancel → no side effect. Annotations are hints only — server-side scope+tenant+confirmation enforcement is authoritative.
 
 ## 5. MUST NOT expose
@@ -111,5 +113,5 @@ G. Interop: MCP Inspector + ChatGPT custom connector + Codex, both protocol vers
 1. Upgrade SDK, add Streamable HTTP transport alongside stdio (keep stdio for local dev).
 2. Swap M02 HS256 self-IdP → real IdP (or keep oauth.mjs behind flag for tests); add discovery docs, RFC8707 aud, DCR/CIMD.
 3. Remove tenant_id params; enforce token-derived context; delete create_dev_token from remote registry.
-4. Add annotations/securitySchemes/structured outputs; implement elicitation for C2. — annotations/securitySchemes + credential-param removal **done**, cycle 199 (`2d79fc2`); structured outputs and elicitation outstanding.
+4. Add annotations/securitySchemes/structured outputs; implement elicitation for C2. — annotations/securitySchemes + credential-param removal **done**, cycle 199 (`2d79fc2`); structured outputs + C2 elicitation **done**, cycle 200 (`cd4603f`, `MCP_ELICITATION_GATE=0` opts out).
 5. Edge rate limiting + Origin + header validation; conformance suite (§7) in CI; OpenAI app-review pass.
