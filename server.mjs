@@ -12,9 +12,11 @@ import { parse } from 'url';
 import { initDatabase, getDatabase, closeStore } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
 import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
+import { createAuthMiddleware } from './auth.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
+import { createMcpHttpHandler, protectedResourceMetadata } from './mcp-http.mjs';
 
 const PORT = process.env.PORT || 3000;
 const SIMULATION_MODE = process.env.SIMULATION_MODE !== 'false'; // Default true for v0.2
@@ -43,6 +45,8 @@ class CallforgeHttpServer {
     this.oauth = createOAuthServer();
     this.recoveryDone = false;
     this.dispatcher = null;
+    this.mcpEnabled = process.env.MCP_HTTP_ENABLED === '1';
+    this.handleMcp = null;
   }
 
   async initialize() {
@@ -54,6 +58,13 @@ class CallforgeHttpServer {
     this.dispatcher.start();
     this.auditLogger = createAuditLogger();
     await this.auditLogger.initialize();
+    if (this.mcpEnabled) {
+      this.handleMcp = createMcpHttpHandler({
+        authMiddleware: createAuthMiddleware(),
+        auditLogger: this.auditLogger,
+        env: process.env,
+      });
+    }
 
     await this.auditLogger.log({
       event_type: 'http_server_initialized',
@@ -125,6 +136,17 @@ class CallforgeHttpServer {
           timestamp: new Date().toISOString(),
         }),
       );
+      return;
+    }
+
+    // M09: remote MCP transport (opt-in via MCP_HTTP_ENABLED=1)
+    if (this.mcpEnabled && path === '/mcp') {
+      await this.handleMcp(req, res);
+      return;
+    }
+    if (this.mcpEnabled && path.startsWith('/.well-known/oauth-protected-resource')) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(protectedResourceMetadata(process.env)));
       return;
     }
 

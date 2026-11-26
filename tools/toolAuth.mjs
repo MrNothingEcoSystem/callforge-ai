@@ -28,9 +28,10 @@ export const AUTH_MODES = {
  * latter are resolved through the injected `devTokens` validator so that a
  * token minted by this server's own tool surface actually works here.
  */
-export function createToolAuthorizer({ env = process.env, devTokens = null } = {}) {
+export function createToolAuthorizer({ env = process.env, devTokens = null, token = null } = {}) {
+  const token_ = token; // transport-injected credential (remote /mcp bearer)
   return async function authorizeTool(args, requiredScopes = []) {
-    const token = args?.access_token || env.CALLFORGE_ACCESS_TOKEN;
+    const token = args?.access_token || token_ || env.CALLFORGE_ACCESS_TOKEN;
 
     if (!token) {
       if (env.CALLFORGE_REQUIRE_TOOL_AUTH === '1') {

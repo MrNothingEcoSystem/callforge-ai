@@ -51,7 +51,9 @@ export const onboardTenantSchema = z.object({
  * Updates business configuration for a tenant
  */
 export const configureBusinessSchema = z.object({
-  tenant_id: z.string().uuid(),
+  // Optional so a remote caller can omit it: the authorizer fills it from the
+  // verified token and rejects any value that disagrees with the token tenant.
+  tenant_id: z.string().uuid().optional(),
   sector: z
     .enum([
       'professional_services',
@@ -89,7 +91,9 @@ export const configureBusinessSchema = z.object({
  * Creates an idempotent simulated call intent
  */
 export const simulateCallSchema = z.object({
-  tenant_id: z.string().uuid(),
+  // Optional so a remote caller can omit it: the authorizer fills it from the
+  // verified token and rejects any value that disagrees with the token tenant.
+  tenant_id: z.string().uuid().optional(),
   idempotency_key: z.string().min(1).max(128),
   direction: z.enum(['inbound', 'outbound']),
   from_number: z.string().max(32).optional(),
@@ -124,7 +128,9 @@ export const simulateConversationSchema = z.object({
  * Validates tenant compliance and configuration readiness
  */
 export const checkReadinessSchema = z.object({
-  tenant_id: z.string().uuid(),
+  // Optional so a remote caller can omit it: the authorizer fills it from the
+  // verified token and rejects any value that disagrees with the token tenant.
+  tenant_id: z.string().uuid().optional(),
 });
 
 /**
@@ -132,7 +138,9 @@ export const checkReadinessSchema = z.object({
  * Retrieves call intent status and event history
  */
 export const getCallStatusSchema = z.object({
-  tenant_id: z.string().uuid(),
+  // Optional so a remote caller can omit it: the authorizer fills it from the
+  // verified token and rejects any value that disagrees with the token tenant.
+  tenant_id: z.string().uuid().optional(),
   call_intent_id: z.string().uuid(),
 });
 
@@ -141,7 +149,9 @@ export const getCallStatusSchema = z.object({
  * Returns paginated call history for a tenant
  */
 export const listCallHistorySchema = z.object({
-  tenant_id: z.string().uuid(),
+  // Optional so a remote caller can omit it: the authorizer fills it from the
+  // verified token and rejects any value that disagrees with the token tenant.
+  tenant_id: z.string().uuid().optional(),
   status: z
     .enum(['pending', 'approved', 'rejected', 'dispatched', 'completed', 'failed', 'cancelled'])
     .optional(),
@@ -157,7 +167,9 @@ export const listCallHistorySchema = z.object({
  * Generates analytics report for a tenant
  */
 export const generateReportSchema = z.object({
-  tenant_id: z.string().uuid(),
+  // Optional so a remote caller can omit it: the authorizer fills it from the
+  // verified token and rejects any value that disagrees with the token tenant.
+  tenant_id: z.string().uuid().optional(),
   report_type: z.enum([
     'call_volume',
     'outcome_summary',
@@ -190,7 +202,9 @@ export const accessAuditLogSchema = z.object({
  * Creates a development bearer token for a tenant
  */
 export const createDevTokenSchema = z.object({
-  tenant_id: z.string().uuid(),
+  // Optional so a remote caller can omit it: the authorizer fills it from the
+  // verified token and rejects any value that disagrees with the token tenant.
+  tenant_id: z.string().uuid().optional(),
   name: z.string().min(1).max(128),
   scopes: z.array(z.enum(['simulate', 'read', 'write', 'admin'])).default(['simulate', 'read']),
   expires_in_days: z.number().int().min(1).max(365).default(30),
@@ -201,7 +215,9 @@ export const createDevTokenSchema = z.object({
  * Validates specific compliance evidence for a call intent
  */
 export const validateComplianceSchema = z.object({
-  tenant_id: z.string().uuid(),
+  // Optional so a remote caller can omit it: the authorizer fills it from the
+  // verified token and rejects any value that disagrees with the token tenant.
+  tenant_id: z.string().uuid().optional(),
   call_intent_id: z.string().uuid(),
   evidence: z.object({
     business_license_verified: z.boolean(),
@@ -245,8 +261,8 @@ const TOOL_SCOPES = {
 };
 
 export async function registerTools(server, deps) {
-  const { auditLogger, authMiddleware } = deps;
-  const authorizeTool = createToolAuthorizer({ devTokens: authMiddleware });
+  const { auditLogger, authMiddleware, accessToken = null } = deps;
+  const authorizeTool = createToolAuthorizer({ devTokens: authMiddleware, token: accessToken });
   const db = (await import('../store.mjs')).getDatabase();
 
   // Tool 1: Onboard Tenant
