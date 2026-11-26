@@ -8,6 +8,7 @@
 
 import { z } from 'zod';
 import { hashEventAsync } from '../store.mjs';
+import { createToolAuthorizer, authFailure } from './toolAuth.mjs';
 
 /**
  * Tool 1: Onboard Tenant
@@ -226,16 +227,39 @@ export const TOOL_SCHEMAS = {
   validate_compliance: validateComplianceSchema,
 };
 
+// Every tool accepts an optional bearer token; tenant context is derived from it (issue #8).
+const withToken = shape => ({ ...shape, access_token: z.string().optional() });
+
+const TOOL_SCOPES = {
+  onboard_tenant: ['admin'],
+  configure_business: ['admin'],
+  simulate_call: ['simulate'],
+  simulate_conversation: ['simulate'],
+  check_readiness: ['read'],
+  get_call_status: ['read'],
+  list_call_history: ['read'],
+  generate_report: ['read'],
+  access_audit_log: ['audit'],
+  create_dev_token: ['admin'],
+  validate_compliance: ['read'],
+};
+
 export async function registerTools(server, deps) {
   const { auditLogger, authMiddleware } = deps;
+  const authorizeTool = createToolAuthorizer();
   const db = (await import('../store.mjs')).getDatabase();
 
   // Tool 1: Onboard Tenant
   server.tool(
     'onboard_tenant',
     'Create a new tenant with business configuration',
-    onboardTenantSchema.shape,
+    withToken(onboardTenantSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.onboard_tenant);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const tenantId = crypto.randomUUID();
 
       db.prepare(
@@ -299,8 +323,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'configure_business',
     'Update business configuration for a tenant',
-    configureBusinessSchema.shape,
+    withToken(configureBusinessSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.configure_business);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { tenant_id, ...updates } = args;
 
       const existing = db
@@ -373,8 +402,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'simulate_call',
     'Create an idempotent simulated call intent (v0.2 simulation mode)',
-    simulateCallSchema.shape,
+    withToken(simulateCallSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.simulate_call);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const parsed = simulateCallSchema.safeParse(args);
       if (!parsed.success) {
         return {
@@ -500,8 +534,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'simulate_conversation',
     'Get deterministic conversation fixture for testing',
-    simulateConversationSchema.shape,
+    withToken(simulateConversationSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.simulate_conversation);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { language, scenario } = args;
       const fixture = db
         .prepare('SELECT * FROM conversation_fixtures WHERE language = ? AND scenario = ?')
@@ -547,8 +586,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'check_readiness',
     'Validate tenant compliance and configuration readiness',
-    checkReadinessSchema.shape,
+    withToken(checkReadinessSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.check_readiness);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { tenant_id } = args;
 
       const tenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(tenant_id);
@@ -599,8 +643,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'get_call_status',
     'Get call intent status and event history',
-    getCallStatusSchema.shape,
+    withToken(getCallStatusSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.get_call_status);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { tenant_id, call_intent_id } = args;
 
       const intent = db
@@ -660,8 +709,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'list_call_history',
     'List paginated call history for a tenant',
-    listCallHistorySchema.shape,
+    withToken(listCallHistorySchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.list_call_history);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const parsed = listCallHistorySchema.safeParse(args);
       if (!parsed.success) {
         return {
@@ -746,8 +800,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'generate_report',
     'Generate analytics report for a tenant',
-    generateReportSchema.shape,
+    withToken(generateReportSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.generate_report);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { tenant_id, report_type, from_date, to_date } = args;
 
       // Simplified report generation for v0.2
@@ -836,8 +895,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'access_audit_log',
     'Retrieve hash-linked audit events',
-    accessAuditLogSchema.shape,
+    withToken(accessAuditLogSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.access_audit_log);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { tenant_id, event_type, actor_type, from_date, to_date, limit, offset, verify_chain } =
         args;
 
@@ -879,8 +943,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'create_dev_token',
     'Create a development bearer token for a tenant (v0.2 only)',
-    createDevTokenSchema.shape,
+    withToken(createDevTokenSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.create_dev_token);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { tenant_id, name, scopes, expires_in_days } = args;
 
       const tenant = db.prepare('SELECT * FROM tenants WHERE id = ?').get(tenant_id);
@@ -923,8 +992,13 @@ export async function registerTools(server, deps) {
   server.tool(
     'validate_compliance',
     'Validate compliance evidence for a call intent',
-    validateComplianceSchema.shape,
+    withToken(validateComplianceSchema.shape),
     async args => {
+      const auth = authorizeTool(args, TOOL_SCOPES.validate_compliance);
+      if (!auth.ok) {
+        return authFailure(auth);
+      }
+      args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { tenant_id, call_intent_id, evidence } = args;
 
       const intent = db

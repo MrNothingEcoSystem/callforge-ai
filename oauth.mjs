@@ -100,7 +100,11 @@ export function validateAccessToken(token, nowSeconds = Math.floor(Date.now() / 
   if (!claims.tenant_id) {
     return { valid: false, error: 'Token has no tenant binding' };
   }
-  const scopes = Array.isArray(claims.scope) ? claims.scope : [];
+  // Re-derive scopes from the role (SEC-003 remainder): a token can never carry
+  // a scope its role does not hold, even if the claim says otherwise.
+  const claimed = Array.isArray(claims.scope) ? claims.scope : [];
+  const roleScopes = ROLES[claims.role];
+  const scopes = roleScopes ? claimed.filter(s => roleScopes.includes(s)) : claimed;
   return {
     valid: true,
     context: {
