@@ -161,6 +161,20 @@ describe('MCP tool-layer authorization', () => {
     expect(parse(res).status).toBe(401);
   });
 
+  it('does not leak access_token into config column updates', async () => {
+    const admin = issueToken({ tenantId: tenantA, role: 'tenant_admin', scope: ['admin'] });
+    const res = await server.call('configure_business', {
+      tenant_id: tenantA,
+      access_token: admin,
+      business_name: 'Renamed by token',
+    });
+    expect(res.isError).toBeFalsy();
+    const row = getDatabase()
+      .prepare('SELECT business_name FROM business_configs WHERE tenant_id = ?')
+      .get(tenantA);
+    expect(row.business_name).toBe('Renamed by token');
+  });
+
   it('derives the tenant from the token when tenant_id is absent', async () => {
     const token = issueToken({ tenantId: tenantA, role: 'operator', scope: ['read'] });
     const res = await server.call('generate_report', {

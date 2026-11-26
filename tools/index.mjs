@@ -331,6 +331,7 @@ export async function registerTools(server, deps) {
       }
       args = { ...args, tenant_id: auth.tenantId ?? args.tenant_id };
       const { tenant_id, ...updates } = args;
+      delete updates.access_token;
 
       const existing = db
         .prepare('SELECT * FROM business_configs WHERE tenant_id = ?')
@@ -348,7 +349,7 @@ export async function registerTools(server, deps) {
         }
 
         if (setClause.length > 0) {
-          setClause.push('updated_at = datetime("now")');
+          setClause.push("updated_at = datetime('now')");
           params.push(tenant_id);
           db.prepare(`UPDATE business_configs SET ${setClause.join(', ')} WHERE tenant_id = ?`).run(
             ...params,
