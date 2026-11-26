@@ -64,6 +64,7 @@ function parse(res) {
 
 describe('MCP tool-layer authorization', () => {
   let server;
+  let auth;
   let tenantA;
   let tenantB;
 
@@ -90,7 +91,8 @@ describe('MCP tool-layer authorization', () => {
     const auditLogger = createAuditLogger();
     await auditLogger.initialize();
     server = mockServer();
-    await registerTools(server, { auditLogger, authMiddleware: createAuthMiddleware() });
+    auth = createAuthMiddleware({ auditLogger });
+    await registerTools(server, { auditLogger, authMiddleware: auth });
   });
 
   afterAll(async () => {
@@ -185,5 +187,64 @@ describe('MCP tool-layer authorization', () => {
       to_date: '2026-12-31',
     });
     expect(res.isError).toBeFalsy();
+  });
+
+  // Independent-review findings (cycle 194): dev tokens minted by this server's own
+  // tool surface were rejected here, and an unknown role bypassed scope re-derivation.
+  it('accepts a development token minted by create_dev_token', async () => {
+    const minted = await auth.createDevToken(tenantA, 'probe', ['read'], 5);
+    const res = await server.call('generate_report', {
+      tenant_id: tenantA,
+      access_token: minted.token,
+      report_type: 'call_volume',
+      from_date: '2026-01-01',
+      to_date: '2026-12-31',
+    });
+    expect(res.isError).toBeFalsy();
+  });
+
+  it('rejects a development token bound to another tenant', async () => {
+    const minted = await auth.createDevToken(tenantB, 'probe-b', ['read'], 5);
+    const res = await server.call('generate_report', {
+      tenant_id: tenantA,
+      access_token: minted.token,
+      report_type: 'call_volume',
+      from_date: '2026-01-01',
+      to_date: '2026-12-31',
+    });
+    expect(res.isError).toBe(true);
+    expect(parse(res).status).toBe(403);
+  });
+
+  it('rejects a development token lacking the required scope', async () => {
+    const minted = await auth.createDevToken(tenantA, 'probe-r', ['read'], 5);
+    const res = await server.call('access_audit_log', {
+      tenant_id: tenantA,
+      access_token: minted.token,
+    });
+    expect(res.isError).toBe(true);
+    expect(parse(res).status).toBe(403);
+  });
+
+  it('keeps an onboarded tenant reachable by handing back a scoped credential', async () => {
+    const admin = issueToken({ tenantId: tenantA, role: 'tenant_admin', scope: ['admin'] });
+    const res = await server.call('onboard_tenant', { access_token: admin, name: 'Handoff Co' });
+    expect(res.isError).toBeFalsy();
+    const body = parse(res);
+    expect(body.tenant_id).not.toBe(tenantA);
+    expect(body.credential.access_token).toBeTruthy();
+
+    const followUp = await server.call('check_readiness', {
+      access_token: body.credential.access_token,
+      tenant_id: body.tenant_id,
+    });
+    expect(followUp.isError).toBeFalsy();
+  });
+
+  it('fails closed on an unknown role claim', async () => {
+    const token = forgeToken({ tenant_id: tenantA, role: 'superadmin', scope: ['audit'] });
+    const res = await server.call('access_audit_log', { tenant_id: tenantA, access_token: token });
+    expect(res.isError).toBe(true);
+    expect(parse(res).status).toBe(403);
   });
 });

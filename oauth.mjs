@@ -103,8 +103,9 @@ export function validateAccessToken(token, nowSeconds = Math.floor(Date.now() / 
   // Re-derive scopes from the role (SEC-003 remainder): a token can never carry
   // a scope its role does not hold, even if the claim says otherwise.
   const claimed = Array.isArray(claims.scope) ? claims.scope : [];
+  // Unknown/absent role fails closed: no role, no scopes.
   const roleScopes = ROLES[claims.role];
-  const scopes = roleScopes ? claimed.filter(s => roleScopes.includes(s)) : claimed;
+  const scopes = roleScopes ? claimed.filter(s => roleScopes.includes(s)) : [];
   return {
     valid: true,
     context: {

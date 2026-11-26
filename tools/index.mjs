@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import { hashEventAsync } from '../store.mjs';
-import { createToolAuthorizer, authFailure } from './toolAuth.mjs';
+import { AUTH_MODES, createToolAuthorizer, authFailure } from './toolAuth.mjs';
 
 /**
  * Tool 1: Onboard Tenant
@@ -246,7 +246,7 @@ const TOOL_SCOPES = {
 
 export async function registerTools(server, deps) {
   const { auditLogger, authMiddleware } = deps;
-  const authorizeTool = createToolAuthorizer();
+  const authorizeTool = createToolAuthorizer({ devTokens: authMiddleware });
   const db = (await import('../store.mjs')).getDatabase();
 
   // Tool 1: Onboard Tenant
@@ -255,7 +255,7 @@ export async function registerTools(server, deps) {
     'Create a new tenant with business configuration',
     withToken(onboardTenantSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.onboard_tenant);
+      const auth = await authorizeTool(args, TOOL_SCOPES.onboard_tenant);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -308,11 +308,30 @@ export async function registerTools(server, deps) {
         payload: { name: args.name, domain: args.domain, sector: args.sector },
       });
 
+      // The new tenant has a fresh id, which a token bound to the caller's own
+      // tenant cannot address. Hand back a credential scoped to it so the caller
+      // is not stranded between onboarding and the first real call.
+      let credential = null;
+      if (auth.mode === AUTH_MODES.token && authMiddleware?.createDevToken) {
+        const minted = await authMiddleware.createDevToken(
+          tenantId,
+          'onboarded-tenant',
+          ['simulate', 'read'],
+          30,
+        );
+        credential = {
+          access_token: minted.token,
+          expires_at: minted.expiresAt,
+          scopes: minted.scopes,
+          note: 'dev token bound to the new tenant; pass as access_token on later calls',
+        };
+      }
+
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify({ tenant_id: tenantId, status: 'onboarded' }, null, 2),
+            text: JSON.stringify({ tenant_id: tenantId, status: 'onboarded', credential }, null, 2),
           },
         ],
       };
@@ -325,7 +344,7 @@ export async function registerTools(server, deps) {
     'Update business configuration for a tenant',
     withToken(configureBusinessSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.configure_business);
+      const auth = await authorizeTool(args, TOOL_SCOPES.configure_business);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -405,7 +424,7 @@ export async function registerTools(server, deps) {
     'Create an idempotent simulated call intent (v0.2 simulation mode)',
     withToken(simulateCallSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.simulate_call);
+      const auth = await authorizeTool(args, TOOL_SCOPES.simulate_call);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -537,7 +556,7 @@ export async function registerTools(server, deps) {
     'Get deterministic conversation fixture for testing',
     withToken(simulateConversationSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.simulate_conversation);
+      const auth = await authorizeTool(args, TOOL_SCOPES.simulate_conversation);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -589,7 +608,7 @@ export async function registerTools(server, deps) {
     'Validate tenant compliance and configuration readiness',
     withToken(checkReadinessSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.check_readiness);
+      const auth = await authorizeTool(args, TOOL_SCOPES.check_readiness);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -646,7 +665,7 @@ export async function registerTools(server, deps) {
     'Get call intent status and event history',
     withToken(getCallStatusSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.get_call_status);
+      const auth = await authorizeTool(args, TOOL_SCOPES.get_call_status);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -712,7 +731,7 @@ export async function registerTools(server, deps) {
     'List paginated call history for a tenant',
     withToken(listCallHistorySchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.list_call_history);
+      const auth = await authorizeTool(args, TOOL_SCOPES.list_call_history);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -803,7 +822,7 @@ export async function registerTools(server, deps) {
     'Generate analytics report for a tenant',
     withToken(generateReportSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.generate_report);
+      const auth = await authorizeTool(args, TOOL_SCOPES.generate_report);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -898,7 +917,7 @@ export async function registerTools(server, deps) {
     'Retrieve hash-linked audit events',
     withToken(accessAuditLogSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.access_audit_log);
+      const auth = await authorizeTool(args, TOOL_SCOPES.access_audit_log);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -946,7 +965,7 @@ export async function registerTools(server, deps) {
     'Create a development bearer token for a tenant (v0.2 only)',
     withToken(createDevTokenSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.create_dev_token);
+      const auth = await authorizeTool(args, TOOL_SCOPES.create_dev_token);
       if (!auth.ok) {
         return authFailure(auth);
       }
@@ -995,7 +1014,7 @@ export async function registerTools(server, deps) {
     'Validate compliance evidence for a call intent',
     withToken(validateComplianceSchema.shape),
     async args => {
-      const auth = authorizeTool(args, TOOL_SCOPES.validate_compliance);
+      const auth = await authorizeTool(args, TOOL_SCOPES.validate_compliance);
       if (!auth.ok) {
         return authFailure(auth);
       }

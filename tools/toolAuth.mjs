@@ -16,10 +16,20 @@
 
 import { validateAccessToken, hasScopes } from '../oauth.mjs';
 
-export const AUTH_MODES = { token: 'token', unauthenticated: 'unauthenticated' };
+export const AUTH_MODES = {
+  token: 'token',
+  devToken: 'dev-token',
+  unauthenticated: 'unauthenticated',
+};
 
-export function createToolAuthorizer({ env = process.env } = {}) {
-  return function authorizeTool(args, requiredScopes = []) {
+/**
+ * Two credential kinds are accepted: signed JWT access tokens (OAuth flow) and
+ * opaque development tokens from `create_dev_token` (api_keys storage). The
+ * latter are resolved through the injected `devTokens` validator so that a
+ * token minted by this server's own tool surface actually works here.
+ */
+export function createToolAuthorizer({ env = process.env, devTokens = null } = {}) {
+  return async function authorizeTool(args, requiredScopes = []) {
     const token = args?.access_token || env.CALLFORGE_ACCESS_TOKEN;
 
     if (!token) {
@@ -33,12 +43,28 @@ export function createToolAuthorizer({ env = process.env } = {}) {
       };
     }
 
+    let context = null;
+    let mode = AUTH_MODES.token;
     const result = validateAccessToken(token);
-    if (!result.valid) {
+    if (result.valid) {
+      context = result.context;
+    } else if (devTokens?.validateDevToken) {
+      const dev = await devTokens.validateDevToken(token);
+      if (!dev.valid) {
+        return { ok: false, status: 401, error: dev.error };
+      }
+      context = {
+        tenantId: dev.tenant.id,
+        subject: dev.keyId,
+        role: null,
+        scopes: dev.scopes || [],
+        expiresAt: null,
+      };
+      mode = AUTH_MODES.devToken;
+    } else {
       return { ok: false, status: 401, error: result.error };
     }
 
-    const { context } = result;
     if (args?.tenant_id && context.tenantId !== args.tenant_id) {
       return {
         ok: false,
@@ -54,7 +80,7 @@ export function createToolAuthorizer({ env = process.env } = {}) {
       };
     }
 
-    return { ok: true, mode: AUTH_MODES.token, tenantId: context.tenantId, context };
+    return { ok: true, mode, tenantId: context.tenantId, context };
   };
 }
 
