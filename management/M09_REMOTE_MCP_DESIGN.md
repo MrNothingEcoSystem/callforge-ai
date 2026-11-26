@@ -79,6 +79,8 @@ create_dev_token, any secret/API-key creation or disclosure, tenant admin (other
 
 Edge: per-tenant + per-tool + per-IP token bucket; handshake/discovery endpoints separate generous bucket (avoid 429-on-connect loops). 429 + Retry-After + problem+json; document limits in server instructions (512-char lead). Expensive tools (generate_report, list_history, simulate_call) low quotas; idempotency keys dedupe retries. Origin validation, max body, timeouts, SSE keep-alive comments.
 
+Implementation (cycle 198, `mcp-rate-limit.mjs`): in-process token buckets, restart-volatile, keyed by authenticated tenant (`<tenant>` and `<tenant>:<tool>`), falling back to the socket address only when the endpoint runs anonymous. Two layers — a coarse `MCP_RATE_LIMIT_PER_MINUTE` bucket on every POST, and a tight `MCP_RATE_LIMIT_TOOL_PER_MINUTE` bucket for `simulate_call` / `list_history` / `generate_report`. Both `0`/unset = disabled. 429 carries `Retry-After`, `X-RateLimit-Limit/Remaining` and an `application/problem+json` body; an unread request body is drained so the 429 is delivered. Discovery, preflight and `/health` never touch the buckets, so a throttled client can always re-read metadata. Edge/KV buckets remain the production path — this is single-process protection only.
+
 ## 7. Conformance test plan
 
 A. Protocol: initialize/discover negotiation, 400 HeaderMismatch/UnsupportedVersion, 404 -32601, POST-only (2026 GET/DELETE 405), Accept both types, SSE vs JSON replies, stream-close cancellation, legacy 2025 session flow if supported.

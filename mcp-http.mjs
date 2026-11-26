@@ -19,6 +19,9 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { registerTools } from './tools/index.mjs';
 import { AUDIENCE, ISSUER, validateAccessToken } from './oauth.mjs';
+import { createRateLimits, expensiveToolOf } from './mcp-rate-limit.mjs';
+
+export { createRateLimits };
 
 export const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-11-25', '2026-07-28'];
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
@@ -33,6 +36,23 @@ export function parseOrigins(value) {
     .split(',')
     .map(s => s.trim())
     .filter(Boolean);
+}
+
+function sendTooManyRequests(res, retryAfter, limit) {
+  res.writeHead(429, {
+    'Content-Type': 'application/problem+json',
+    'Retry-After': String(retryAfter),
+    'X-RateLimit-Limit': String(limit),
+    'X-RateLimit-Remaining': '0',
+  });
+  res.end(
+    JSON.stringify({
+      type: 'about:blank',
+      title: 'Too Many Requests',
+      status: 429,
+      detail: `Rate limit exceeded; retry in ${retryAfter}s`,
+    }),
+  );
 }
 
 function readBody(req, maxBytes) {
@@ -62,12 +82,14 @@ function readBody(req, maxBytes) {
  * @param {{ log: (event: object) => Promise<unknown> }} [opts.auditLogger] hash-chain audit logger
  * @param {Record<string, string | undefined>} [opts.env] environment source
  * @param {string} [opts.publicUrl] canonical resource URI for WWW-Authenticate
+ * @param {ReturnType<typeof import('./mcp-rate-limit.mjs').createRateLimits>} [opts.limits]
  */
 export function createMcpHttpHandler({
   authMiddleware,
   auditLogger,
   env = process.env,
   publicUrl = null,
+  limits = createRateLimits(env),
 } = {}) {
   const resourceUrl = publicUrl || env.MCP_PUBLIC_URL || `http://localhost:${env.PORT || 3000}/mcp`;
   const resourceMetadata = `${resourceUrl.replace(/\/mcp$/, '')}/.well-known/oauth-protected-resource/mcp`;
@@ -125,6 +147,7 @@ export function createMcpHttpHandler({
     }
 
     let accessToken = null;
+    let callerKey = req.headers.authorization ? null : req.socket?.remoteAddress || 'unknown';
     if (requireAuth || req.headers.authorization) {
       const auth = await authenticate(req);
       if (!auth.ok) {
@@ -141,6 +164,16 @@ export function createMcpHttpHandler({
         return;
       }
       accessToken = auth.token;
+      callerKey = auth.context?.tenantId || callerKey || 'unknown';
+    }
+
+    // Coarse per-caller bucket on every POST, before any body is read. Discovery
+    // and preflight are served elsewhere, so a 429-on-connect loop cannot happen.
+    const callerHit = limits.caller.take(callerKey);
+    if (!callerHit.allowed) {
+      req.resume(); // drain an unread body so the 429 reaches the client
+      sendTooManyRequests(res, callerHit.retryAfter, callerHit.limit);
+      return;
     }
 
     let rawBody = body;
@@ -163,6 +196,16 @@ export function createMcpHttpHandler({
         error: { code: -32700, message: 'Parse error' },
       });
       return;
+    }
+
+    // Tighter bucket for the expensive tools, once the JSON-RPC method is known.
+    const expensiveTool = expensiveToolOf(parsed);
+    if (expensiveTool) {
+      const toolHit = limits.tool.take(`${callerKey}:${expensiveTool}`);
+      if (!toolHit.allowed) {
+        sendTooManyRequests(res, toolHit.retryAfter, toolHit.limit);
+        return;
+      }
     }
 
     const server = new McpServer({ name: 'callforge', version: '0.2.0' });
