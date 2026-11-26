@@ -162,3 +162,22 @@ the audit trail, and a future bounded token expiry. The registry's `entry()` gai
 §7B issuer/DCR/CIMD, the URL `iss`, F19's shim and step 6; (2) §7G interop against
 Inspector/ChatGPT/Codex (needs a reachable deployment); (3) OpenAI app-review pass (EXT-008).
 Merge order is unchanged and entirely owner-gated: #189 → #191 → #192.
+
+## Cycle 207 — M09 step 6 verifier (PR #192, external IdP seam)
+
+`idp.mjs` is now the SEC-001 answer's engine half: OIDC bearer tokens are verified
+against a configured JWKS (iss `https://…`, `kid` rotation, aud/RFC8707 resource,
+exp/nbf with skew), and claims map to tenant/role with scopes still re-derived from
+the role. Off by default (`CALLFORGE_IDP_MODE=external`), synchronous, and the local
+HS256 path is untouched — so the 186 pre-existing tests never moved. F20 (Medium) from
+the review is closed with `CALLFORGE_OIDC_ALLOW_LOCAL_TOKENS=0` for strict mode.
+
+**What the owner decision now is:** one named legal/DPO sign-off on the dossier's
+question (US-hosted identity under WorkOS/Clerk vs Keycloak-in-UAE for residency), then
+the vendor's issuer URL, JWKS URI and tenant claim go into env. §7B DCR/CIMD, the
+discovery `iss` and F19's shim follow directly from that choice; none of them block the
+rest of the program.
+
+Nothing local remains on M09 before the decision. After it: §7B DCR/CIMD, §7G interop
+(needs a reachable deployment), OpenAI app-review pass (EXT-008). Merge order unchanged
+and owner-gated: #189 → #191 → #192.

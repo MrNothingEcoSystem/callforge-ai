@@ -266,3 +266,44 @@ Residual, not claimed: the PII check is a placeholder scan, not a classification
 `to_number` is deliberately absent from the audit payload but nothing stops a future handler
 from adding it. §7B (issuer/DCR/CIMD), §7G (external interop) and the OpenAI submission pass
 remain open.
+
+## Cycle 207 — external IdP seam (`c61a5e8` + `3400a2a`), verdict ACCEPT WITH FOLLOW-UPS
+
+Scope: `idp.mjs` (new), the `validateAccessToken` delegate + `isValidLocalToken`
+extraction, `authorizationServerMetadata` issuer/JWKS selection, the `server.mjs`
+startup prime and health fields, and `tests/idp.test.mjs`.
+
+Independent pass in detached worktree `/root/.hermes/cache/scratch/cf207/rev` at
+`3400a2a`, separate `pnpm install --frozen-lockfile`, 26/26 `idp` tests and 66/66
+`idp`+`m02-oauth`+`m09-conformance` reproduced. Diff read for scope and widening.
+
+Checked and found sound:
+- Default-off: with `CALLFORGE_IDP_MODE` unset `validateAccessToken` returns the local
+  verifier's result directly — byte-identical behaviour, no test in the existing 186 moved.
+- Fail-closed edges: `alg: none`, unknown `kid`, expired/`nbf`-future, missing tenant
+  claim, wrong issuer, wrong audience and cross-resource tokens all reject; the signature
+  is verified before any claim is read, so claims cannot steer the key lookup except via
+  `kid`, which is how JWKS is meant to work.
+- No `HS*` or unlocked `alg` acceptance: the algorithm list is fixed and an EC/RSA
+  kty mismatch fails verification rather than silently passing.
+- Scope widening: the external path re-derives scopes from the role and filters claimed
+  scopes exactly like the local path — a token cannot promote itself.
+- The JWKS URI is configuration, never derived from the token, so an attacker cannot
+  point verification at their own key set. Public URL only, `https` enforced in production.
+
+Follow-ups raised:
+- **F20 (Medium)** — the cutover fallback accepted this module's own HS256 tokens while
+  an IdP was configured. Correct during migration, wrong once the IdP is authoritative.
+  **Fixed in this review cycle** (`3400a2a`) with `CALLFORGE_OIDC_ALLOW_LOCAL_TOKENS=0`
+  and a test; permissive default kept.
+- **F21 (Low)** — an externally-issued token with `role` mapped to nothing still returns
+  `valid: true` with `scopes: []`, so it authenticates and then 403s per tool. Same
+  fail-closed shape as the local path (unknown role => no scopes), recorded not changed.
+- **F22 (Info)** — `idpConfig()` re-parses the URL config on every request. Cheap, and
+  parsing is what makes a bad config fail closed per call rather than only at boot;
+  worth caching only if a profile ever shows it.
+- **F23 (Info)** — no `at_hash`/nonce check (access tokens, not ID tokens) and no
+  revocation check; both are IdP-dashboard concerns, not verifier defects.
+
+Not claimed: §7B's DCR/CIMD half needs the vendor decision. The `iss` conformance gap is
+closed only when the mode is on, since the discovery doc keeps the local issuer otherwise.
