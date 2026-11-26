@@ -19,7 +19,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { registerTools, TOOL_SCOPES } from './tools/index.mjs';
 import { authFailure } from './tools/toolAuth.mjs';
-import { AUDIENCE, ISSUER, hasScopes, validateAccessToken } from './oauth.mjs';
+import { AUDIENCE, ISSUER, SUPPORTED_SCOPES, hasScopes, validateAccessToken } from './oauth.mjs';
 import { createRateLimits, expensiveToolOf } from './mcp-rate-limit.mjs';
 import { gate, declinedResult, stateMatches } from './mcp-elicitation.mjs';
 
@@ -508,7 +508,7 @@ export function protectedResourceMetadata(env = process.env) {
     resource: env.MCP_PUBLIC_URL || `${base}/mcp`,
     resource_name: env.MCP_RESOURCE_NAME || 'CallForge MCP',
     authorization_servers: [env.MCP_AUTHORIZATION_SERVER || base],
-    scopes_supported: ['read', 'simulate', 'write', 'admin', 'audit'],
+    scopes_supported: [...SUPPORTED_SCOPES],
     bearer_methods_supported: ['header'],
     tls_client_certificate_bound_access_tokens: false,
     resource_documentation: env.MCP_RESOURCE_DOCUMENTATION || undefined,
@@ -529,7 +529,7 @@ export function authorizationServerMetadata(env = process.env) {
     authorization_endpoint: `${base}/oauth/authorize`,
     token_endpoint: `${base}/oauth/token`,
     jwks_uri: env.MCP_JWKS_URI || undefined,
-    scopes_supported: ['read', 'simulate', 'write', 'admin', 'audit'],
+    scopes_supported: [...SUPPORTED_SCOPES],
     response_types_supported: ['code'],
     grant_types_supported: ['authorization_code'],
     token_endpoint_auth_methods_supported: ['none'],

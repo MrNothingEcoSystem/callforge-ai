@@ -19,7 +19,7 @@ import { createAuditLogger } from '../audit.mjs';
 import { createAuthMiddleware } from '../auth.mjs';
 import { createMcpHttpHandler } from '../mcp-http.mjs';
 import { createOAuthServer, generateCodeVerifier, pkceS256 } from '../oauth.mjs';
-import { registerTools } from '../tools/index.mjs';
+import { registerTools, TOOL_SCOPES } from '../tools/index.mjs';
 import { OUTPUT_SCHEMAS, REMOTE_TOOL_METADATA } from '../mcp-tool-metadata.mjs';
 
 const DIR = mkdtempSync(join(tmpdir(), 'callforge-m09-metadata-'));
@@ -102,6 +102,15 @@ describe('M09 remote tool registry', () => {
       .filter(([, meta]) => meta.exposed)
       .map(([name]) => name);
     expect(names.sort()).toEqual(exposed.sort());
+  });
+
+  it('publishes exactly the enforced scope for each tool (no parallel vocabulary)', () => {
+    for (const [name, meta] of Object.entries(REMOTE_TOOL_METADATA)) {
+      expect(TOOL_SCOPES[name], name).toBeTruthy();
+      expect(meta.securitySchemes, name).toEqual([
+        { type: 'oauth2', scopes: [TOOL_SCOPES[name][0]] },
+      ]);
+    }
   });
 
   it('publishes annotations and securitySchemes for every listed tool', async () => {

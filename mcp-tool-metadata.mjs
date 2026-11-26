@@ -7,21 +7,28 @@
  * annotations (SDK defaults are worst-case: destructive and open-world) plus a
  * single least-privilege `securitySchemes` entry.
  *
+ * Scopes are the enforced vocabulary from `TOOL_SCOPES` (tools/index.mjs), not a
+ * parallel one: a client can request exactly what is published here at
+ * /oauth/authorize and pass the authorizer. `tests/m09-tool-metadata.test.mjs`
+ * asserts published == enforced per tool, because this module cannot import
+ * TOOL_SCOPES (tools/index.mjs already imports it — a cycle). The `callforge:`
+ * prefix is still accepted as an alias on the authorize endpoint.
+ *
  * Annotations are hints only — scope and tenant enforcement in tools/toolAuth.mjs
  * stays authoritative. `create_dev_token` is C3 and never listed remotely.
  *
  * Annotations per design §4 (RO / Destructive / Idempotent / OpenWorld):
- *   onboard_tenant          F/F/F/F  config   C1
- *   configure_business      F/F/T/F  config   C1
- *   simulate_call           F/F/T/F  simulate C1 (*T open-world once live)
- *   simulate_conversation   T/F/T/F  read     C0
- *   check_readiness         T/F/T/F  read     C0
- *   get_call_status         T/F/T/F  read     C0
- *   list_call_history       T/F/T/F  read     C0
- *   generate_report         T/F/T/F  report   C0
- *   access_audit_log        T/F/T/F  audit    C0 (auditor/tenant_admin)
- *   create_dev_token        —        —        C3, not exposed
- *   validate_compliance     F/F/T/F  compliance C1
+ *   onboard_tenant          F/F/F/F  admin      C1
+ *   configure_business      F/F/T/F  admin      C1 (C2 on licensed flags)
+ *   simulate_call           F/F/T/F  simulate   C1 (*T open-world once live)
+ *   simulate_conversation   T/F/T/F  simulate   C0
+ *   check_readiness         T/F/T/F  read       C0
+ *   get_call_status         T/F/T/F  read       C0
+ *   list_call_history       T/F/T/F  read       C0
+ *   generate_report         T/F/T/F  read       C0
+ *   access_audit_log        T/F/T/F  audit      C0 (auditor/tenant_admin)
+ *   create_dev_token        —        —          C3, not exposed
+ *   validate_compliance     F/F/T/F  read       C1
  */
 
 import { z } from 'zod';
@@ -40,62 +47,62 @@ const entry = (title, scope, annotations, exposed = true) => ({
 });
 
 export const REMOTE_TOOL_METADATA = {
-  onboard_tenant: entry('Request onboarding', 'callforge:config', {
+  onboard_tenant: entry('Request onboarding', 'admin', {
     readOnlyHint: false,
     destructiveHint: false,
     idempotentHint: false,
     openWorldHint: false,
   }),
-  configure_business: entry('Configure business', 'callforge:config', {
+  configure_business: entry('Configure business', 'admin', {
     readOnlyHint: false,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
   }),
-  simulate_call: entry('Simulate an inbound call', 'callforge:simulate', {
+  simulate_call: entry('Simulate an inbound call', 'simulate', {
     readOnlyHint: false,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false, // simulated only; true once a live provider is wired
   }),
-  simulate_conversation: entry('Preview a conversation', 'callforge:read', {
+  simulate_conversation: entry('Preview a conversation', 'simulate', {
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
   }),
-  check_readiness: entry('Check tenant readiness', 'callforge:read', {
+  check_readiness: entry('Check tenant readiness', 'read', {
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
   }),
-  get_call_status: entry('Get call status', 'callforge:read', {
+  get_call_status: entry('Get call status', 'read', {
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
   }),
-  list_call_history: entry('List call history', 'callforge:read', {
+  list_call_history: entry('List call history', 'read', {
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
   }),
-  generate_report: entry('Generate report', 'callforge:report', {
+  generate_report: entry('Generate report', 'read', {
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
   }),
-  access_audit_log: entry('Read audit log', 'callforge:audit', {
+  access_audit_log: entry('Read audit log', 'audit', {
     readOnlyHint: true,
     destructiveHint: false,
     idempotentHint: true,
     openWorldHint: false,
   }),
-  create_dev_token: entry('Create dev token', 'callforge:config', null, false),
-  validate_compliance: entry('Record compliance evidence', 'callforge:compliance', {
+  create_dev_token: entry('Create dev token', 'admin', null, false),
+  validate_compliance: entry('Record compliance evidence', 'read', {
     readOnlyHint: false,
     destructiveHint: false,
     idempotentHint: true,

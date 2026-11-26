@@ -58,6 +58,14 @@ export const ROLES = {
 
 const ALL_SCOPES = new Set(Object.values(ROLES).flat());
 
+/** Enforced scopes are bare; `callforge:<scope>` is accepted as a client-facing alias. */
+const SCOPE_ALIAS = 'callforge:';
+const baseScope = s =>
+  typeof s === 'string' && s.startsWith(SCOPE_ALIAS) ? s.slice(SCOPE_ALIAS.length) : s;
+
+/** Every scope name the issuer can grant, for discovery documents. */
+export const SUPPORTED_SCOPES = Object.freeze([...ALL_SCOPES]);
+
 function tokenSecret() {
   // Fail closed: never fall back to a hardcoded secret (M02 audit F1).
   const secret = process.env.CALLFORGE_TOKEN_SECRET;
@@ -147,7 +155,8 @@ export function validateAccessToken(
   }
   // Re-derive scopes from the role (SEC-003 remainder): a token can never carry
   // a scope its role does not hold, even if the claim says otherwise.
-  const claimed = Array.isArray(claims.scope) ? claims.scope : [];
+  // Tolerate tokens minted with the `callforge:` alias prefix.
+  const claimed = (Array.isArray(claims.scope) ? claims.scope : []).map(baseScope);
   // Unknown/absent role fails closed: no role, no scopes.
   const roleScopes = ROLES[claims.role];
   const scopes = roleScopes ? claimed.filter(s => roleScopes.includes(s)) : [];
@@ -201,7 +210,7 @@ export function createOAuthServer() {
       if (resourceError) {
         return { error: resourceError };
       }
-      const requested = Array.isArray(scope) ? scope : ['read'];
+      const requested = [...new Set((Array.isArray(scope) ? scope : ['read']).map(baseScope))];
       if (requested.some(s => !ALL_SCOPES.has(s))) {
         return { error: 'Unknown scope requested' };
       }
