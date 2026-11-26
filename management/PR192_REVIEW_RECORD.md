@@ -59,3 +59,18 @@ Probe (real `server.mjs`, port 3813, flag on, bound token): `tools/list` → 10 
 `_meta.securitySchemes=[{"type":"oauth2","scopes":["callforge:simulate"]}]`, no
 `access_token`/`tenant_id` properties. `tests/m09-tool-metadata.test.mjs` 7/7; full suite
 166 passed / 19 files, 0 failures; eslint 0, prettier clean, tsc clean.
+
+## Cycle 200 independent pass — M09 step 5 (`cd4603f`)
+
+Read-only pass in a detached worktree at `cd4603f` (`pnpm install --frozen-lockfile`,
+`tests/m09-elicitation.test.mjs` 9/9 reproduced). Verdict: **ACCEPT WITH FOLLOW-UPS**.
+
+- F11 (Medium, open): a **batch** JSON-RPC request (`[{...},{...}]`) skips the gate entirely —
+  `gate()` only runs for a single `tools/call`, so `configure_business` with a licensed flag
+  inside a batch applies unconfirmed. Enabled-batch clients get no C2 protection.
+- F12 (Low, open): the gate answers before the tool authorizer runs, so a token without the
+  `callforge:config` scope can receive `input_required` (and an `elicitation_*` audit row) and only
+  then 403 on resume. Correct outcome, one wasted round trip.
+- F13 (Info): `requestState` is unsigned base64url JSON — forgeable, but only by the client that
+  is itself choosing to confirm; the fingerprint's job is staleness, not authenticity. HMAC is the
+  hardening if requestState ever carries state the client must not choose.
