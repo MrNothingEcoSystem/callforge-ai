@@ -121,3 +121,93 @@ export function remoteToolSchema(_name, shape, { authenticated = true } = {}) {
   // safety net in tools/toolAuth.mjs even though it is no longer advertised.
   return z.object(rest).passthrough();
 }
+
+/**
+ * Structured-output schemas (design §4: `outputSchema` + structuredContent).
+ * Loose objects — every published field is optional so an additive change to a
+ * handler cannot start failing validation, and unknown extras are kept. Error
+ * results skip validation in the SDK, so only success shapes are declared.
+ */
+const loose = (shape = {}) => z.looseObject(shape);
+
+export const OUTPUT_SCHEMAS = {
+  onboard_tenant: loose({
+    tenant_id: z.string().optional(),
+    status: z.string().optional(),
+    credential: z.looseObject({}).optional(),
+  }),
+  configure_business: loose({
+    tenant_id: z.string().optional(),
+    status: z.string().optional(),
+    tool: z.string().optional(),
+    reason: z.string().optional(),
+    changed: z.array(z.string()).optional(),
+    message: z.string().optional(),
+  }),
+  simulate_call: loose({
+    call_intent_id: z.string().optional(),
+    status: z.string().optional(),
+    idempotent: z.boolean().optional(),
+    message: z.string().optional(),
+  }),
+  simulate_conversation: loose({
+    language: z.string().optional(),
+    scenario: z.string().optional(),
+    turns: z.array(z.unknown()).optional(),
+    expected_outcome: z.string().optional(),
+  }),
+  check_readiness: loose({ ready: z.boolean().optional(), checks: z.looseObject({}).optional() }),
+  get_call_status: loose({
+    call_intent: z.looseObject({}).optional(),
+    events: z.array(z.looseObject({})).optional(),
+  }),
+  list_call_history: loose({
+    calls: z.array(z.looseObject({})).optional(),
+    pagination: z.looseObject({}).optional(),
+  }),
+  generate_report: loose({
+    report_type: z.string().optional(),
+    tenant_id: z.string().optional(),
+    period: z.looseObject({}).optional(),
+    data: z.looseObject({}).optional(),
+  }),
+  access_audit_log: loose({
+    events: z.array(z.unknown()).optional(),
+    verification: z.unknown().optional(),
+    pagination: z.looseObject({}).optional(),
+  }),
+  validate_compliance: loose({
+    call_intent_id: z.string().optional(),
+    evidence: z.looseObject({}).optional(),
+    results: z.looseObject({}).optional(),
+  }),
+};
+
+/**
+ * The text body is the JSON document, so structured outputs cost the handlers
+ * nothing: parse it back and publish it as `structuredContent`.
+ */
+export function withStructuredContent(name, handler) {
+  const outputSchema = OUTPUT_SCHEMAS[name];
+  if (!outputSchema) {
+    return { outputSchema: undefined, handler };
+  }
+  return {
+    outputSchema,
+    handler: async (args, extra) => {
+      const result = await handler(args, extra);
+      const text = result?.content?.[0]?.text;
+      if (!result?.isError && typeof text === 'string') {
+        try {
+          const structured = JSON.parse(text);
+          if (structured && typeof structured === 'object' && !Array.isArray(structured)) {
+            result.structuredContent = structured;
+          }
+        } catch {
+          // Non-JSON text: leave content-only rather than fail the call.
+        }
+      }
+      return result;
+    },
+  };
+}

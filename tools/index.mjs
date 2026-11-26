@@ -9,7 +9,11 @@
 import { z } from 'zod';
 import { hashEventAsync } from '../store.mjs';
 import { AUTH_MODES, createToolAuthorizer, authFailure } from './toolAuth.mjs';
-import { REMOTE_TOOL_METADATA, remoteToolSchema } from '../mcp-tool-metadata.mjs';
+import {
+  REMOTE_TOOL_METADATA,
+  remoteToolSchema,
+  withStructuredContent,
+} from '../mcp-tool-metadata.mjs';
 
 /**
  * Tool 1: Onboard Tenant
@@ -284,16 +288,20 @@ export async function registerTools(server, deps) {
     const inputSchema = remoteToolSchema(name, shape, {
       authenticated: remote.authenticated !== false,
     });
+    // Structured outputs (design §4): the text body already is the JSON
+    // document, so publishing it as structuredContent costs the handler nothing.
+    const { outputSchema, handler: withOutput } = withStructuredContent(name, handler);
     server.registerTool(
       name,
       {
         title: meta?.title || name,
         description,
         inputSchema,
+        outputSchema,
         annotations: meta?.annotations,
         _meta: meta ? { securitySchemes: meta.securitySchemes } : undefined,
       },
-      handler,
+      withOutput,
     );
   };
 

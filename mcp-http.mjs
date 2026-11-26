@@ -20,6 +20,7 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { registerTools } from './tools/index.mjs';
 import { AUDIENCE, ISSUER, validateAccessToken } from './oauth.mjs';
 import { createRateLimits, expensiveToolOf } from './mcp-rate-limit.mjs';
+import { gate, declinedResult, stateMatches } from './mcp-elicitation.mjs';
 
 export { createRateLimits };
 
@@ -204,6 +205,71 @@ export function createMcpHttpHandler({
       const toolHit = limits.tool.take(`${callerKey}:${expensiveTool}`);
       if (!toolHit.allowed) {
         sendTooManyRequests(res, toolHit.retryAfter, toolHit.limit);
+        return;
+      }
+    }
+
+    // C2 confirmation gate (design §7E). Annotations are hints; this is the
+    // enforcement point. Stateless, so the first call answers `input_required`
+    // and the client resumes with `inputResponses` + the returned requestState.
+    const call = !Array.isArray(parsed) && parsed?.method === 'tools/call' ? parsed : null;
+    if (call && env.MCP_ELICITATION_GATE !== '0') {
+      const toolName = call.params?.name;
+      const toolArgs = call.params?.arguments || {};
+      const decision = gate(toolName, toolArgs, call.params?.inputResponses);
+      const resumeWith = call.params?.requestState;
+      const logElicitation = (event, extra = {}) =>
+        auditLogger
+          ?.log({
+            tenant_id: callerKey === 'unknown' ? null : callerKey,
+            event_type: event,
+            actor_type: 'agent',
+            action: toolName,
+            payload: { tool: toolName, changed: extra.changed, reason: extra.reason },
+          })
+          .catch(() => {});
+      const rpcResult = result =>
+        sendJson(res, 200, { jsonrpc: '2.0', id: parsed.id ?? null, result });
+
+      if (decision.action === 'require') {
+        await logElicitation('elicitation_requested');
+        rpcResult({
+          resultType: 'input_required',
+          inputRequests: decision.inputRequests,
+          requestState: decision.inputRequests.confirm.requestState,
+        });
+        return;
+      }
+      if (decision.action === 'accept') {
+        // A stale confirmation must not apply to a different set of changes.
+        if (resumeWith !== undefined && !stateMatches(resumeWith, toolName, toolArgs)) {
+          const reissued = gate(toolName, toolArgs);
+          await logElicitation('elicitation_requested', { reason: 'stale requestState' });
+          if (reissued.action === 'require') {
+            rpcResult({
+              resultType: 'input_required',
+              inputRequests: reissued.inputRequests,
+              requestState: reissued.inputRequests.confirm.requestState,
+            });
+          }
+          return;
+        }
+        await logElicitation('elicitation_accepted', { changed: decision.changed });
+        const { inputResponses: _i, requestState: _s, ...rest } = call.params;
+        void _i;
+        void _s;
+        call.params = rest;
+      }
+      if (decision.action === 'declined') {
+        const body = declinedResult(toolName, toolArgs, decision.reason);
+        await logElicitation('elicitation_declined', {
+          changed: body.changed,
+          reason: decision.reason,
+        });
+        rpcResult({
+          content: [{ type: 'text', text: JSON.stringify(body, null, 2) }],
+          structuredContent: body,
+        });
         return;
       }
     }
