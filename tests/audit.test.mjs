@@ -200,7 +200,7 @@ describe('Audit Logger', () => {
   });
 
   it('should verify a mid-chain segment seeded from its predecessor (issue #2)', async () => {
-    const e1 = await auditLogger.log({ event_type: 'seg_1', actor_type: 'system', action: 'test' });
+    await auditLogger.log({ event_type: 'seg_1', actor_type: 'system', action: 'test' });
     const e2 = await auditLogger.log({ event_type: 'seg_2', actor_type: 'system', action: 'test' });
     const e3 = await auditLogger.log({ event_type: 'seg_3', actor_type: 'system', action: 'test' });
 
@@ -216,6 +216,15 @@ describe('Audit Logger', () => {
     const tampered = await auditLogger.verifyChain(e2.id);
     expect(tampered.valid).toBe(false);
     expect(tampered.errors.length).toBeGreaterThan(0);
+  });
+
+  it('should report an unknown start event id instead of a false valid (review R2)', async () => {
+    await auditLogger.log({ event_type: 'seg_only', actor_type: 'system', action: 'test' });
+
+    const result = await auditLogger.verifyChain('00000000-0000-0000-0000-000000000000');
+    expect(result.valid).toBe(false);
+    expect(result.events_checked).toBe(0);
+    expect(result.errors[0].error).toBe('Unknown start event');
   });
 
   it('should order events by insertion (rowid) even with identical timestamps (issue #4)', async () => {

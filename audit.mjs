@@ -101,6 +101,17 @@ export function createAuditLogger() {
 
       const events = db.prepare(query).all(...params);
 
+      // An unknown start id yields an empty range; report it rather than
+      // silently returning "valid" for zero events (review R2).
+      if (fromEventId && events.length === 0) {
+        return {
+          valid: false,
+          errors: [{ event_id: fromEventId, error: 'Unknown start event' }],
+          events_checked: 0,
+          chain_head: '0'.repeat(64),
+        };
+      }
+
       // Seed from the actual predecessor when starting mid-chain (issue #2);
       // genesis ('0'.repeat(64)) only when verifying from the first event.
       let previousHash = '0'.repeat(64);

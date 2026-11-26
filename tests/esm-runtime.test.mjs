@@ -3,6 +3,16 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createServer } from 'node:net';
+
+/** Reserve an ephemeral port, then release it for the child to bind (review R4). */
+async function freePort() {
+  const probe = createServer();
+  await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
+  const { port } = probe.address();
+  await new Promise(resolve => probe.close(resolve));
+  return port;
+}
 
 describe('declared Node.js ESM runtime', () => {
   it('creates a development token without CommonJS require', () => {
@@ -51,9 +61,9 @@ describe('declared Node.js ESM runtime', () => {
     expect(result.stdout).toContain('http-server-ok');
   });
 
-  it('binds a real socket via start(), serves /health, and closes cleanly', () => {
+  it('binds a real socket via start(), serves /health, and closes cleanly', async () => {
     const databaseDir = mkdtempSync(join(tmpdir(), 'callforge-http-start-'));
-    const port = 31000 + Math.floor(Math.random() * 2000);
+    const port = await freePort();
     const program = `
       import { CallforgeHttpServer } from './server.mjs';
       const server = new CallforgeHttpServer();
