@@ -12,6 +12,7 @@
 
 - Sync: `git fetch`; local HEAD = origin/main = `75b191acff9cde5a3e8ee6d62033fcd80380a7c2`. No writes to legacy Davidcarmelalex/CALLFORGE.
 - Toolchain verified: Node v24.22.2 at /root/.hermes/cache/scratch/node24/bin, corepack pnpm 12.18.0.
+- Telegram digest sent (last recorded digest was cycle 1); `hermes send` returned `sent`.
 - Selected highest-priority unblocked task: M02 independent security verdict (TECH-001). `delegate_task` is not available in this cron environment, so the audit was performed directly, read-only, on PR #7 (`ac0adcb`) in an isolated worktree (removed afterwards).
 - Tests: pnpm install (better-sqlite3 built from source, ~1m52s) + `pnpm test` = 10 files, 70/70 passed in 1.59s. CI verify pass.
 - Verdict: REJECT for production identity; acceptable only as simulation baseline. SEC-001 self-asserted tenant/role at authorize (verified: code issued for arbitrary tenant as tenant_admin), SEC-002 default secret fallback. See ASCENSION_BLOCKERS.md.
