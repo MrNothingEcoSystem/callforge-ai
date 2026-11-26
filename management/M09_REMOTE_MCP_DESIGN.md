@@ -69,11 +69,24 @@ Scopes (align M02 ROLES): callforge:read, callforge:simulate, callforge:config, 
 
 New owner-facing wrappers to add (not in 11): get_my_profile (stable opaque id — OpenAI profile tool), request_live_call (C2, elicitation confirm, only post-M05), export_report (C1). Split validate_compliance evidence inputs from agent self-attestation: require source refs.
 Every tool: explicit annotations (defaults are worst-case: destructive=true, openWorld=true — set false only if true), title, inputSchema/outputSchema (structuredContent), no tenant_id param (from token), pagination caps, PII redaction in logs.
+
+Implementation (cycle 199, `mcp-tool-metadata.mjs`): the table above is the code
+— `REMOTE_TOOL_METADATA` is the single source for exposure, title, annotations
+and the `securitySchemes` `_meta` entry, and the remote registration seam skips
+C3 tools, strips `access_token`/`tenant_id` from the published schema when bearer
+auth is on, and keeps the legacy schema when `MCP_HTTP_ALLOW_ANONYMOUS=1`. The
+remote input schema is a passthrough object, so a stray `tenant_id` still trips
+the 403 mismatch check in `tools/toolAuth.mjs` even though it is no longer
+advertised (`additionalProperties: {}` is the visible consequence). Annotations
+follow the table: read-only for the six read families, `idempotentHint:false`
+plus `readOnlyHint:false` for `onboard_tenant`. Still open in this section:
+`outputSchema`/structuredContent, tool-level 401 `_meta["mcp/www_authenticate"]`,
+and confirmation levels C1/C2 (§ below) which are annotations today, not a gate.
 Elicitation (2025-06-18; 2026-07-28 input_required+inputResponses): C2 tools return input_required with typed schema + requestState, resume on re-call; headless/no-elicitation clients get decline/cancel → no side effect. Annotations are hints only — server-side scope+tenant+confirmation enforcement is authoritative.
 
 ## 5. MUST NOT expose
 
-create_dev_token, any secret/API-key creation or disclosure, tenant admin (other-tenant access, role grants, user provisioning, api_keys table), cross-tenant audit/verify_chain, raw auth.mjs dev tokens, provider secrets/webhooks (server.mjs /webhook/* stays disabled), debug endpoints. Also strip tenant_id from all tool schemas; reject mismatched tenant_id with 403.
+create_dev_token (delisted remotely, cycle 199), any secret/API-key creation or disclosure, tenant admin (other-tenant access, role grants, user provisioning, api_keys table), cross-tenant audit/verify_chain, raw auth.mjs dev tokens, provider secrets/webhooks (server.mjs /webhook/* stays disabled), debug endpoints. Also strip tenant_id from all tool schemas; reject mismatched tenant_id with 403.
 
 ## 6. Rate limiting & abuse
 
@@ -96,5 +109,5 @@ G. Interop: MCP Inspector + ChatGPT custom connector + Codex, both protocol vers
 1. Upgrade SDK, add Streamable HTTP transport alongside stdio (keep stdio for local dev).
 2. Swap M02 HS256 self-IdP → real IdP (or keep oauth.mjs behind flag for tests); add discovery docs, RFC8707 aud, DCR/CIMD.
 3. Remove tenant_id params; enforce token-derived context; delete create_dev_token from remote registry.
-4. Add annotations/securitySchemes/structured outputs; implement elicitation for C2.
+4. Add annotations/securitySchemes/structured outputs; implement elicitation for C2. — annotations/securitySchemes + credential-param removal **done**, cycle 199 (`2d79fc2`); structured outputs and elicitation outstanding.
 5. Edge rate limiting + Origin + header validation; conformance suite (§7) in CI; OpenAI app-review pass.
