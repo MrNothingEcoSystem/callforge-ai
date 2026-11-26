@@ -232,3 +232,37 @@ remain open on SEC-001 / external clients.
 Coverage still missing from §7 and not claimed: B full RFC8414/OIDC issuer-match and
 DCR/CIMD (needs an issuer decision), D idempotent-replay equality, G Inspector/ChatGPT/Codex
 interop, F OpenAI review checklist numbers.
+
+## Cycle 206 — §7 D replay equality + F OpenAI checklist, at `8427460`
+
+Independent read-only pass in a detached worktree at `8427460` (`pnpm install
+--frozen-lockfile`, `tests/m09-conformance` 25/25 reproduced, diff reviewed: 106 lines
+metadata, 166 lines test, no enforcement change and no annotation value changed — only the
+`entry()` shape gained an optional `justification`).
+
+| ID  | Severity | Finding                                                                                 | Status |
+| --- | -------- | --------------------------------------------------------------------------------------- | ------ |
+| —   | —        | No new defect found by this slice. The suite reproduced the two behaviours it now pins. | —      |
+
+What the slice establishes, and its limits:
+
+- §7D replay equality: `simulate_call` with a repeated `idempotency_key` returns the same
+  `call_intent_id`, `idempotent: true`, one intent row and one `call_intent_created` audit row.
+  The key is tenant-scoped by the lookup, so cross-tenant collision is not tested here.
+- §7D annotation↔behaviour: all six read-only-annotated tools are swept for zero rows in
+  `business_configs`/`call_intents`/`call_events` (audit rows may grow). The list is asserted
+  literally, so a new tool must be classified before the sweep passes.
+- §7D idempotent writer: `validate_compliance` replay returns a byte-identical document and
+  re-audits exactly once. It writes on every call; `idempotentHint` is accurate for the
+  document, not for the audit count — noted rather than "fixed", since re-auditing a
+  re-validation is defensible.
+- §7F checklist: every mutating tool carries a `justification` (non-destructive writers
+  included, so a reviewer sees why), readers may not be destructive, and no tool is
+  destructive today (asserted as a review event). Bearer tokens, `undefined`,
+  `[object Object]` and stack frames are asserted absent from the audit trail and the token
+  absent from the response body. Minted tokens must carry a future, bounded 15-minute expiry.
+
+Residual, not claimed: the PII check is a placeholder scan, not a classification — the
+`to_number` is deliberately absent from the audit payload but nothing stops a future handler
+from adding it. §7B (issuer/DCR/CIMD), §7G (external interop) and the OpenAI submission pass
+remain open.

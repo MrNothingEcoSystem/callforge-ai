@@ -147,3 +147,18 @@ equality, F OpenAI review-checklist numbers; (2) SEC-001 IdP swap (owner), which
 issuer/DCR/CIMD, the URL `iss` and step 6; (3) §7G interop against Inspector/ChatGPT/Codex
 (needs a reachable deployment); (4) OpenAI app-review pass (EXT-008). Merge order is
 unchanged: #189 → #191 → #192.
+
+## Cycle 206 — §7 D replay equality + F OpenAI checklist (PR #192)
+
+`tests/m09-conformance.test.mjs` now pins idempotent replay (`simulate_call` replay → same
+`call_intent_id`, one intent, one audit row), sweeps every read-only-annotated tool for zero
+writes, pins `validate_compliance` replay to a byte-identical document with exactly one extra
+audit row, and covers the OpenAI checklist: a `justification` on every mutating registry entry
+(readers may not be destructive, no tool is destructive today), no bearer/debug/stack text in
+the audit trail, and a future bounded token expiry. The registry's `entry()` gained an optional
+`{ exposed, justification }` object; annotation values are unchanged.
+
+**No local §7 slice remains.** Next, in order: (1) SEC-001 IdP swap (owner), which unblocks
+§7B issuer/DCR/CIMD, the URL `iss`, F19's shim and step 6; (2) §7G interop against
+Inspector/ChatGPT/Codex (needs a reachable deployment); (3) OpenAI app-review pass (EXT-008).
+Merge order is unchanged and entirely owner-gated: #189 → #191 → #192.

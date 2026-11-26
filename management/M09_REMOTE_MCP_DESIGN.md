@@ -115,7 +115,8 @@ accepts. The SDK half is now imported from the SDK and an unknown-but-served ver
 normalised to its latest on `req.headers` and `req.rawHeaders`; a 2026 client is therefore
 served by our own elicitation path (F19: `initialize` still negotiates down to 2025-11-25 —
 remove the shim when the SDK ships 2026-07-28). Still unmechanised: B issuer/DCR/CIMD
-(gated on SEC-001), D idempotent-replay equality, G interop, F OpenAI checklist numbers.
+(gated on SEC-001) and G interop (needs external clients); D replay equality and the F
+OpenAI checklist numbers were mechanised in cycle 206 (`8427460`).
 
 ## 8. Migration steps (M09 build order)
 
