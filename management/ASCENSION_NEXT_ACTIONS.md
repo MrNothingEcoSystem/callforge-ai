@@ -16,6 +16,10 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 - Issues #2, #4, #5, #6 (audit verifyChain, rowid ordering, node:crypto in tests, listen/close smoke) — bundle into one cleanup PR. Issue #8 (MCP surface) before M09.
 - M04 research track (parallel): UAE requirements register with source/jurisdiction/effective-date/legal-review status.
 
+## Cycle 194 — issue #8 review + remediation (PR #191)
+
+Independent-style re-review in an isolated worktree found two High defects and both are fixed on `mcp-tool-tenant-auth`: onboarding under a token stranded the caller on a tenant its token could not address (now returns a scoped credential), and tokens minted by `create_dev_token` were rejected by the tool authorizer (now accepted via `validateDevToken`). Unknown role claims now fail closed. Record: `management/PR191_REVIEW_RECORD.md`. PR #191 is review-complete but stays draft: merge order is #189 then #191, both owner-gated. Retiring unauthenticated (no-token) calls for non-local use remains an owner decision.
+
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.

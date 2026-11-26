@@ -63,3 +63,28 @@
 - Tests: 4 added; 116/116 pass, eslint 0, prettier clean, tsc clean. CI verify PASS (run 45824320496) at head `cdd0d62ea7e4608907c3760f08f0f104bf2b4de4`; remote branch SHA verified equal. PR #189 body updated, stays draft.
 - No merge, no deploy, no live calls, no spend. Signed checkpoints per archive batch (issue option 2) remain owner archival-policy.
 - Resource usage: ~20 min wall clock including pnpm install (2m12s, better-sqlite3 source build), 1 worktree, no persistent processes. Remaining: independent review of the R1 commit; owner merge decisions on PR #189 and the #7/#9/#20 chain; SEC-001 IdP decision still blocks M02 production identity (F-65-4, PR #65).
+
+## 2026-11-26 — Cycle 193 (dispatcher, 13:31 UTC)
+
+- Sync: `git fetch`; local main = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`, clean tree. Work continues on a branch stacked on the open PR #189 lease (`cleanup/issues-2-4-5-6`, ACCEPT WITH FOLLOW-UPS) because the ledger files are shared; merge order is #189 first, then this PR.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, `pnpm install --frozen-lockfile` 1.5s.
+- Selected highest-priority unblocked task: issue #8 (MCP tool surface has self-asserted tenant_id and a `requireScopes()` stub) — the last open M02 security follow-up, prerequisite for M09, and not owner-gated.
+- Change: `tools/toolAuth.mjs` authorizer (token from tool arg or `CALLFORGE_ACCESS_TOKEN`, signature/issuer/audience/expiry validation via `oauth.validateAccessToken`, tenant-mismatch 403, scope 403, fail-closed 401 when `CALLFORGE_REQUIRE_TOOL_AUTH=1`); guard wired into all 11 tools with per-tool scopes; `validateAccessToken` now re-derives scopes from the role, closing the SEC-003 remainder. Returned results stay additive: 8 negative tests at the tool layer.
+- Tests: 116/116 pass when the run is clean; eslint 0, prettier clean, tsc clean. Known pre-existing flake reproduced: a vitest worker SIGABRTs in `better-sqlite3` `Statement::~Statement` on ~2 of 3 full runs (112/116, 4 tests unrun); `tests/tools.test.mjs` in isolation is always green. CI is the gate.
+- No merge, no deploy, no live calls, no spend.
+- Resource usage: ~25 min wall clock, no worktree, no persistent processes. Remaining: independent review of this PR; owner merge decisions on #189 then this; M09 still needs a remote transport decision; SEC-001 IdP decision still blocks M02 production identity.
+- Self-review found two pre-existing defects on the `configure_business` update path that this change would have exposed or left broken: `access_token` spread into the `SET` clause (no such column) and `datetime("now")` (double quotes = identifier in SQLite). Both fixed with a regression test; review record `management/PR191_REVIEW_RECORD.md`, verdict ACCEPT WITH FOLLOW-UPS. Re-verified: 125 tests, eslint 0, prettier clean, tsc clean.
+- Final head `8e0fbf36f42442f030fd59c671c5f0f8a1474c3e`; remote branch SHA verified equal; CI verify SUCCESS (run 45830887519). PR body updated with the review record. No Telegram message this cycle — last digest was cycle 191 (~12:18 UTC), inside the 6-hour window, and nothing here is a milestone acceptance, critical finding, blocked gate or approval request.
+
+## 2026-11-26 — Cycle 194 (dispatcher, 14:10 UTC)
+
+- Sync: `git fetch`; local `main` = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`. The write lease `mcp-tool-tenant-auth` was already checked out here at `6e9a0e9` with 0 commits behind main, so the cycle continued on that lease instead of opening a stacked branch (ledger files are shared; one writer per branch).
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, `pnpm install --frozen-lockfile` 3s.
+- Selected highest-priority unblocked task: independent review of draft PR #191 (issue #8), the only engineering work not yet independently reviewed; every milestone M02+ is owner-gated.
+- Method: fresh worktree `/tmp/cf-pr191`, read-only audit, then executable probes against the real authorizer (`probe191*`).
+- Findings: R1 High — `onboard_tenant` threw away the token tenant and created a caller-unreachable tenant (403 on the very next call, regression vs pre-PR behaviour). R2 High — `create_dev_token` output could not be used as `access_token` (JWT-only validation). R3 Medium — unknown role bypassed scope re-derivation (fail-open). R4-R7 Low/documented.
+- Remediation: authorizer accepts dev tokens through injected `authMiddleware.validateDevToken`; onboard returns a scoped credential for the new tenant; unknown role fails closed. 5 regression tests.
+- Tests: `tests/mcp-tool-auth.test.mjs` 14/14; every other file green in isolation (11-46 per file). Full parallel runs still trip the pre-existing `better-sqlite3` 11.10 `Statement::~Statement` SIGABRT on a random worker (109-122 of 130 execute, no failures). eslint 0, prettier clean, tsc clean.
+- No merge, no deploy, no live calls, no spend. No Telegram message: no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 191, ~12:18 UTC) is inside the 6-hour window.
+- Final head `cc2af532c2d750070a99d4a83ca31265c1171ae4`; remote branch SHA verified equal; CI verify SUCCESS (run 45837141915) at that exact SHA. PR body updated with the review outcome via REST (the CLI `pr edit` exits 1 on the projectCards deprecation notice).
+- Resource usage: ~15 min wall clock, 1 worktree, no persistent processes. Remaining: owner merge decision on #189 then #191; dev tokens still never expire into JWT parity; M09 needs a remote transport decision; SEC-001 IdP decision still blocks M02 production identity.
