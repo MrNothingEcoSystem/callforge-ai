@@ -88,3 +88,16 @@
 - No merge, no deploy, no live calls, no spend. No Telegram message: no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 191, ~12:18 UTC) is inside the 6-hour window.
 - Final head `cc2af532c2d750070a99d4a83ca31265c1171ae4`; remote branch SHA verified equal; CI verify SUCCESS (run 45837141915) at that exact SHA. PR body updated with the review outcome via REST (the CLI `pr edit` exits 1 on the projectCards deprecation notice).
 - Resource usage: ~15 min wall clock, 1 worktree, no persistent processes. Remaining: owner merge decision on #189 then #191; dev tokens still never expire into JWT parity; M09 needs a remote transport decision; SEC-001 IdP decision still blocks M02 production identity.
+
+## 2026-11-26 — Cycle 195 (dispatcher, 14:50 UTC)
+
+- Sync: `git fetch`; local `main` = origin/main = `28c90405b5da65807b9139f05ce0f30bc232bcfe`, clean tree. No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0; SDK already at 1.32.2 (has `streamableHttp`), so no upgrade was needed for M09 step 1.
+- Selected highest-priority unblocked task: M09 build step 1 — a remote transport for the MCP surface. #189 and #191 are review-complete and owner-gated, SEC-001 is an owner IdP decision, so new M09 engineering is the forward path. New branch `m09-streamable-http` stacked on #191 (shared ledger tail; merge order #189 → #191 → #192).
+- Change `2e1a470`: `mcp-http.mjs` handler — stateless `StreamableHTTPServerTransport` with `enableJsonResponse`, opt-in via `MCP_HTTP_ENABLED=1`; bearer required (JWT or dev token) with RFC9728 `WWW-Authenticate` challenge, Origin allow-list, `MCP-Protocol-Version` validation, 1 MiB body cap, 405 + `Allow: POST` on GET/DELETE, protected-resource metadata endpoint. Credential injected into the tool authorizer; every `tenant_id` schema field made optional (mismatch still 403). `server.mjs` routes `/mcp` and `/.well-known/oauth-protected-resource*` behind the flag.
+- Independent review in detached worktree (record `management/PR192_REVIEW_RECORD.md`, ACCEPT WITH FOLLOW-UPS): F1 Medium — `req.destroy()` on body overflow reset the socket instead of delivering the 413; fixed and regression-tested. F2-F6 recorded, F2 (CORS preflight ignores the allow-list) is the next task.
+- Tests: `tests/m09-mcp-http.test.mjs` 7/7; full suite 0 failures with the known `better-sqlite3` worker SIGABRT still taking 2 workers per parallel run (118/136 executed). New TECH-009 records that flake.
+- Verification on the real server (port 3811, flag on): `/health` 200, `/mcp` 401 + challenge, metadata served, GET 405.
+- No merge, no deploy, no live calls, no spend. No Telegram message: no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 191, ~12:18 UTC) is inside the 6-hour window.
+- Head `430b7511d0ab4e1cad5bfd0b9ea15e79b1bf94a1`; CI evidence recorded in the cycle follow-up commit.
+- Resource usage: ~20 min wall clock, 1 detached worktree, no persistent processes. Remaining: owner merge decisions on #189/#191/#192; M09 steps 2-6; SEC-001 IdP still blocks production exposure.
