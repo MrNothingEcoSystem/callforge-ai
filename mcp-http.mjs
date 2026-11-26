@@ -227,7 +227,12 @@ export function createMcpHttpHandler({
     res.on('close', close);
 
     try {
-      await registerTools(server, { auditLogger, authMiddleware, accessToken });
+      await registerTools(server, {
+        auditLogger,
+        authMiddleware,
+        accessToken,
+        remote: { authenticated: requireAuth },
+      });
       await server.connect(transport);
       await transport.handleRequest(req, res, parsed);
     } catch (error) {

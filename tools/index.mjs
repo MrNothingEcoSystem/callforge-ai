@@ -9,6 +9,7 @@
 import { z } from 'zod';
 import { hashEventAsync } from '../store.mjs';
 import { AUTH_MODES, createToolAuthorizer, authFailure } from './toolAuth.mjs';
+import { REMOTE_TOOL_METADATA, remoteToolSchema } from '../mcp-tool-metadata.mjs';
 
 /**
  * Tool 1: Onboard Tenant
@@ -261,12 +262,43 @@ const TOOL_SCOPES = {
 };
 
 export async function registerTools(server, deps) {
-  const { auditLogger, authMiddleware, accessToken = null } = deps;
+  const { auditLogger, authMiddleware, accessToken = null, remote = null } = deps;
   const authorizeTool = createToolAuthorizer({ devTokens: authMiddleware, token: accessToken });
   const db = (await import('../store.mjs')).getDatabase();
 
+  /**
+   * Registration seam. stdio registers verbatim (the caller passes the token and,
+   * when unauthenticated, the tenant). The remote surface drops both from the
+   * schema and publishes annotations + securitySchemes instead — see
+   * `mcp-tool-metadata.mjs`. C3 tools simply are not registered.
+   */
+  const register = (name, description, shape, handler) => {
+    if (!remote) {
+      server.tool(name, description, shape, handler);
+      return;
+    }
+    const meta = REMOTE_TOOL_METADATA[name];
+    if (meta && meta.exposed === false) {
+      return;
+    }
+    const inputSchema = remoteToolSchema(name, shape, {
+      authenticated: remote.authenticated !== false,
+    });
+    server.registerTool(
+      name,
+      {
+        title: meta?.title || name,
+        description,
+        inputSchema,
+        annotations: meta?.annotations,
+        _meta: meta ? { securitySchemes: meta.securitySchemes } : undefined,
+      },
+      handler,
+    );
+  };
+
   // Tool 1: Onboard Tenant
-  server.tool(
+  register(
     'onboard_tenant',
     'Create a new tenant with business configuration',
     withToken(onboardTenantSchema.shape),
@@ -355,7 +387,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 2: Configure Business
-  server.tool(
+  register(
     'configure_business',
     'Update business configuration for a tenant',
     withToken(configureBusinessSchema.shape),
@@ -435,7 +467,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 3: Simulate Call
-  server.tool(
+  register(
     'simulate_call',
     'Create an idempotent simulated call intent (v0.2 simulation mode)',
     withToken(simulateCallSchema.shape),
@@ -567,7 +599,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 4: Simulate Conversation
-  server.tool(
+  register(
     'simulate_conversation',
     'Get deterministic conversation fixture for testing',
     withToken(simulateConversationSchema.shape),
@@ -619,7 +651,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 5: Check Readiness
-  server.tool(
+  register(
     'check_readiness',
     'Validate tenant compliance and configuration readiness',
     withToken(checkReadinessSchema.shape),
@@ -676,7 +708,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 6: Get Call Status
-  server.tool(
+  register(
     'get_call_status',
     'Get call intent status and event history',
     withToken(getCallStatusSchema.shape),
@@ -742,7 +774,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 7: List Call History
-  server.tool(
+  register(
     'list_call_history',
     'List paginated call history for a tenant',
     withToken(listCallHistorySchema.shape),
@@ -833,7 +865,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 8: Generate Report
-  server.tool(
+  register(
     'generate_report',
     'Generate analytics report for a tenant',
     withToken(generateReportSchema.shape),
@@ -928,7 +960,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 9: Access Audit Log
-  server.tool(
+  register(
     'access_audit_log',
     'Retrieve hash-linked audit events',
     withToken(accessAuditLogSchema.shape),
@@ -976,7 +1008,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 10: Create Dev Token
-  server.tool(
+  register(
     'create_dev_token',
     'Create a development bearer token for a tenant (v0.2 only)',
     withToken(createDevTokenSchema.shape),
@@ -1025,7 +1057,7 @@ export async function registerTools(server, deps) {
   );
 
   // Tool 11: Validate Compliance
-  server.tool(
+  register(
     'validate_compliance',
     'Validate compliance evidence for a call intent',
     withToken(validateComplianceSchema.shape),
