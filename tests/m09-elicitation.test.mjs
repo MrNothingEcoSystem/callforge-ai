@@ -237,6 +237,134 @@ describe('M09 confirmation gate over the transport', () => {
   });
 });
 
+describe('batch requests through the gate (review F11)', () => {
+  let http;
+  let base;
+  let auditLogger;
+  let tenantId;
+  let token;
+
+  beforeAll(async () => {
+    mkdirSync(DIR, { recursive: true });
+    await initDatabase();
+    tenantId = crypto.randomUUID();
+    getDatabase()
+      .prepare('INSERT INTO tenants (id, name, settings, compliance_status) VALUES (?, ?, ?, ?)')
+      .run(tenantId, 'batch-tenant', '{}', 'pending');
+    const started = await startServer();
+    http = started.http;
+    base = started.base;
+    auditLogger = started.auditLogger;
+    token = issueToken(tenantId);
+  });
+
+  afterAll(async () => {
+    await new Promise(resolve => http.close(resolve));
+  });
+
+  it('gates the C2 item and still executes the rest of the batch', async () => {
+    const before = config(tenantId)?.license_number ?? null;
+    const { status, body } = await rpc(base, token, [
+      call('configure_business', { license_number: 'BAT-1' }),
+      { ...call('check_readiness', {}), id: 2 },
+    ]);
+    expect(status).toBe(200);
+    expect(Array.isArray(body)).toBe(true);
+    expect(body).toHaveLength(2);
+    expect(body[0].id).toBe(1);
+    expect(body[0].result.resultType).toBe('input_required');
+    expect(body[0].result.inputRequests.confirm.requestedSchema.required).toEqual(['confirm']);
+    expect(body[1].id).toBe(2);
+    expect(body[1].result.structuredContent.checks.tenant_exists).toBe(true);
+    expect(config(tenantId)?.license_number ?? null).toBe(before);
+  });
+
+  it('applies a confirmed batch item and executes the rest', async () => {
+    const asked = await rpc(base, token, [
+      call('configure_business', { license_number: 'BAT-2' }),
+      { ...call('check_readiness', {}), id: 2 },
+    ]);
+    const state = asked.body[0].result.requestState;
+    const { body } = await rpc(base, token, [
+      call(
+        'configure_business',
+        { license_number: 'BAT-2' },
+        {
+          inputResponses: { confirm: { action: 'accept', content: { confirm: true } } },
+          requestState: state,
+        },
+      ),
+      { ...call('check_readiness', {}), id: 2 },
+    ]);
+    expect(body[0].result.structuredContent.status).toBe('configured');
+    expect(body[1].result.structuredContent.checks.tenant_exists).toBe(true);
+    expect(config(tenantId).license_number).toBe('BAT-2');
+  });
+
+  it('declines one item without blocking another and audits it', async () => {
+    const asked = await rpc(base, token, [
+      call('configure_business', { license_number: 'BAT-3' }),
+      call('configure_business', { license_expiry: '2030-01-01' }),
+    ]);
+    const staleState = asked.body[0].result.requestState;
+    const otherState = asked.body[1].result.requestState;
+    const { body } = await rpc(base, token, [
+      call(
+        'configure_business',
+        { license_number: 'BAT-3' },
+        { inputResponses: { confirm: { action: 'decline' } }, requestState: staleState },
+      ),
+      call(
+        'configure_business',
+        { license_expiry: '2030-01-01' },
+        {
+          inputResponses: { confirm: { action: 'accept', content: { confirm: true } } },
+          requestState: otherState,
+        },
+      ),
+    ]);
+    expect(body[0].result.structuredContent.status).toBe('declined');
+    expect(body[1].result.structuredContent.status).toBe('configured');
+    expect(config(tenantId).license_number).toBe('BAT-2');
+    expect(config(tenantId).license_expiry).toBe('2030-01-01');
+    const events = await auditLogger.getEvents({
+      tenant_id: tenantId,
+      event_type: 'elicitation_declined',
+    });
+    expect(events.length).toBeGreaterThan(0);
+  });
+
+  it('re-issues a stale confirmation inside a batch', async () => {
+    const asked = await rpc(base, token, [
+      call('configure_business', { license_number: 'BAT-4' }),
+      { ...call('check_readiness', {}), id: 2 },
+    ]);
+    const state = asked.body[0].result.requestState;
+    const { body } = await rpc(base, token, [
+      call(
+        'configure_business',
+        { license_number: 'BAT-5' },
+        {
+          inputResponses: { confirm: { action: 'accept', content: { confirm: true } } },
+          requestState: state,
+        },
+      ),
+      { ...call('check_readiness', {}), id: 2 },
+    ]);
+    expect(body[0].result.resultType).toBe('input_required');
+    expect(config(tenantId).license_number).toBe('BAT-2');
+  });
+
+  it('keeps the normal transport path for a batch with no gated call', async () => {
+    const { body } = await rpc(base, token, [
+      { ...call('check_readiness', {}), id: 10 },
+      { ...call('check_readiness', {}), id: 11 },
+    ]);
+    expect(body).toHaveLength(2);
+    expect(body[1].result.structuredContent.checks.tenant_exists).toBe(true);
+  });
+});
+
 describe('gate disabled', () => {
   let http;
   let base;

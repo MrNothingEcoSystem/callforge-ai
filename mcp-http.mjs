@@ -209,6 +209,139 @@ export function createMcpHttpHandler({
       }
     }
 
+    /**
+     * Batch requests (independent review F11). A JSON-RPC array went straight to
+     * the SDK dispatch, so a C2 call inside a batch applied unconfirmed. A batch
+     * that touches the gate is answered here item by item instead: gated items get
+     * `input_required` (or a declined result) and every other item executes through
+     * the same SDK request handler the transport would have used. Returns false
+     * when nothing in the batch is gated, so the normal path still handles it.
+     */
+    async function tryGatedBatch(res, items) {
+      const calls = items.filter(item => item?.method === 'tools/call');
+      if (!calls.length) {
+        return false;
+      }
+      const decisions = calls.map(item =>
+        gate(item.params?.name, item.params?.arguments || {}, item.params?.inputResponses),
+      );
+      if (!decisions.some(decision => decision.action !== 'none')) {
+        return false;
+      }
+
+      const server = new McpServer({ name: 'callforge', version: '0.2.0' });
+      await registerTools(server, {
+        auditLogger,
+        authMiddleware,
+        accessToken,
+        remote: { authenticated: requireAuth },
+      });
+      const extra = {
+        signal: new AbortController().signal,
+        sendRequest: async () => {},
+        sendNotification: async () => {},
+      };
+      const logElicitation = (toolName, event, payload = {}) =>
+        auditLogger
+          ?.log({
+            tenant_id: callerKey === 'unknown' ? null : callerKey,
+            event_type: event,
+            actor_type: 'agent',
+            action: toolName,
+            payload: { tool: toolName, changed: payload.changed, reason: payload.reason },
+          })
+          .catch(() => {});
+      const run = async item => {
+        const handler = server.server['_requestHandlers'].get(item.method);
+        if (!handler) {
+          return { error: { code: -32601, message: 'Method not found' } };
+        }
+        try {
+          return { result: await handler({ ...item, jsonrpc: '2.0' }, extra) };
+        } catch (error) {
+          return {
+            error: { code: error?.code ?? -32603, message: error?.message || 'Internal error' },
+          };
+        }
+      };
+      const byItem = new Map(calls.map((item, index) => [item, decisions[index]]));
+      const responses = [];
+      try {
+        for (const item of items) {
+          const decision = byItem.get(item) || { action: 'none' };
+          const toolName = item?.method === 'tools/call' ? item.params?.name : null;
+          const toolArgs = item?.params?.arguments || {};
+          let outcome;
+          if (decision.action === 'require') {
+            await logElicitation(toolName, 'elicitation_requested');
+            outcome = {
+              result: {
+                resultType: 'input_required',
+                inputRequests: decision.inputRequests,
+                requestState: decision.inputRequests.confirm.requestState,
+              },
+            };
+          } else if (decision.action === 'declined') {
+            const body = declinedResult(toolName, toolArgs, decision.reason);
+            await logElicitation(toolName, 'elicitation_declined', {
+              changed: body.changed,
+              reason: decision.reason,
+            });
+            outcome = {
+              result: {
+                content: [{ type: 'text', text: JSON.stringify(body, null, 2) }],
+                structuredContent: body,
+              },
+            };
+          } else {
+            if (decision.action === 'accept') {
+              const resumeWith = item.params?.requestState;
+              // A stale confirmation must not apply to a different set of changes.
+              if (resumeWith !== undefined && !stateMatches(resumeWith, toolName, toolArgs)) {
+                const reissued = gate(toolName, toolArgs);
+                await logElicitation(toolName, 'elicitation_requested', {
+                  reason: 'stale requestState',
+                });
+                if (reissued.action === 'require') {
+                  outcome = {
+                    result: {
+                      resultType: 'input_required',
+                      inputRequests: reissued.inputRequests,
+                      requestState: reissued.inputRequests.confirm.requestState,
+                    },
+                  };
+                }
+              } else {
+                await logElicitation(toolName, 'elicitation_accepted', {
+                  changed: decision.changed,
+                });
+              }
+            }
+            if (!outcome) {
+              const { inputResponses: _i, requestState: _s, ...params } = item.params || {};
+              void _i;
+              void _s;
+              outcome = await run({ ...item, params });
+            }
+          }
+          // JSON-RPC notifications in a batch get no response entry.
+          if (item?.id !== undefined) {
+            responses.push({ jsonrpc: '2.0', id: item.id, ...outcome });
+          }
+        }
+        sendJson(res, 200, responses.length === 1 && items.length === 1 ? responses[0] : responses);
+      } finally {
+        Promise.resolve(server.close()).catch(() => {});
+      }
+      return true;
+    }
+
+    if (env.MCP_ELICITATION_GATE !== '0' && Array.isArray(parsed)) {
+      if (await tryGatedBatch(res, parsed)) {
+        return;
+      }
+    }
+
     // C2 confirmation gate (design §7E). Annotations are hints; this is the
     // enforcement point. Stateless, so the first call answers `input_required`
     // and the client resumes with `inputResponses` + the returned requestState.
