@@ -24,8 +24,8 @@ allow-list, protocol-version gate, body cap. Review record `management/PR192_REV
 verdict ACCEPT WITH FOLLOW-UPS with the Medium 413-socket defect fixed before push.
 
 Merge order for the owner is now #189 → #191 → #192. Next engineering after that, in order:
-(1) F2 CORS preflight honouring the Origin allow-list, (2) RFC9728/8414 discovery + RFC8707
-audience binding, (3) per-tenant rate limiting, (4) tool annotations + securitySchemes and
+(1) F2 CORS preflight honouring the Origin allow-list — **done**, cycle 196 (`4ee48f7`),
+(2) RFC9728/8414 discovery + RFC8707 audience binding, (3) per-tenant rate limiting, (4) tool annotations + securitySchemes and
 removal of `access_token`/`tenant_id` from the remote registry, (5) elicitation for C2 tools,
 (6) IdP swap once SEC-001 is decided.
 

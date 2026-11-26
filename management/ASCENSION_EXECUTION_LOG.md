@@ -101,3 +101,13 @@
 - No merge, no deploy, no live calls, no spend. No Telegram message: no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 191, ~12:18 UTC) is inside the 6-hour window.
 - Head `430b7511d0ab4e1cad5bfd0b9ea15e79b1bf94a1`, CI verify SUCCESS (run 45843752911); docs head `84e14f2187761f68148606c1f06b3b8eff5dd908`, CI verify SUCCESS (run 45843861650). Remote branch SHAs verified equal.
 - Resource usage: ~20 min wall clock, 1 detached worktree, no persistent processes. Remaining: owner merge decisions on #189/#191/#192; M09 steps 2-6; SEC-001 IdP still blocks production exposure.
+
+## 2026-11-26 — Cycle 196 (dispatcher, 15:27 UTC)
+
+- Sync: `git fetch`; local `m09-streamable-http` = `origin/m09-streamable-http` = `df463e0`, 0 commits behind `origin/main` (`28c9040`), clean tree. Writes only to MrNothingEcoSystem/callforge-ai; the lease `m09-streamable-http` was already checked out, so the cycle continued on it rather than opening another stacked branch (ledger tail is shared; merge order #189 → #191 → #192).
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0.
+- Selected highest-priority unblocked task: review follow-up F2 on PR #192 — the OPTIONS preflight in `server.mjs` short-circuited with `Access-Control-Allow-Origin: *` before the transport's Origin allow-list, so a disallowed browser origin passed preflight and only failed on the POST.
+- Change `4ee48f7`: `/mcp` preflight now echoes the matched origin with `Vary: Origin`, advertises only `POST, OPTIONS` and the real header set, and 403s unlisted origins; non-MCP paths keep the historical wildcard; an unset `MCP_ALLOWED_ORIGINS` still falls back to `*` so local/no-config use is unchanged. `parseOrigins` exported from `mcp-http.mjs` so one parser serves both layers.
+- Tests: new `tests/m09-cors-preflight.test.mjs` (real listener, ephemeral port) 5/5 — allowed origin echoed, unlisted 403 with no ACAO, no-Origin wildcard, `/health` unaffected, unset allow-list wildcard. `tests/m09-mcp-http.test.mjs` + `tests/server.test.mjs` 9/9. Full suite 115/142 executed, 0 failures, 14/16 files — the two SIGABRT'd workers are the known TECH-009 `better-sqlite3` 11.10 flake. eslint 0, prettier clean, tsc clean.
+- No merge, no deploy, no live calls, no spend. No Telegram message: no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 191, ~12:18 UTC) is inside the 6-hour window.
+- Resource usage: ~10 min wall clock, no worktree, no persistent processes. Remaining: owner merge decisions on #189/#191/#192; next M09 step is RFC9728/8414 discovery + RFC8707 audience binding; SEC-001 IdP decision still blocks production exposure.
