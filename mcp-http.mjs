@@ -22,10 +22,13 @@ import { authFailure } from './tools/toolAuth.mjs';
 import { AUDIENCE, ISSUER, SUPPORTED_SCOPES, hasScopes, validateAccessToken } from './oauth.mjs';
 import { createRateLimits, expensiveToolOf } from './mcp-rate-limit.mjs';
 import { gate, declinedResult, stateMatches } from './mcp-elicitation.mjs';
+import { SUPPORTED_PROTOCOL_VERSIONS } from '@modelcontextprotocol/sdk/types.js';
 
 export { createRateLimits };
-
-export const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-11-25', '2026-07-28'];
+// The header gate must advertise exactly what the SDK will negotiate; a literal
+// list here drifted (it named 2026-07-28, which SDK 1.32.2 rejects with -32000,
+// and withheld versions the SDK accepts).
+export { SUPPORTED_PROTOCOL_VERSIONS };
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
 
 function sendJson(res, status, payload, headers = {}) {

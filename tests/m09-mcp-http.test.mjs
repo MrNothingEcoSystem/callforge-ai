@@ -116,7 +116,7 @@ describe('M09 remote MCP transport', () => {
       headers: {
         origin: ORIGIN,
         authorization: `Bearer ${token}`,
-        'mcp-protocol-version': '2024-11-05',
+        'mcp-protocol-version': '2024-01-01',
       },
       body: '{}',
     });
