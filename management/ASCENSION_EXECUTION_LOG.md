@@ -177,5 +177,5 @@
 - Independent read-only pass in a detached worktree at `f2a109c` (`pnpm install --frozen-lockfile`, elicitation suite 14/14 reproduced); record `management/PR192_REVIEW_RECORD.md` — F11 fixed, F14 accepted, F15 open follow-up.
 - Head `f2a109c` CI verify SUCCESS (run 45878117222); remote branch SHA verified equal; PR #192 body updated via REST (`gh pr edit` still exits 1 on the projectCards deprecation).
 - Failed gate caught and fixed: docs head `963cc14` failed CI on `prettier --check` (`management/PR192_REVIEW_RECORD.md`); fixed in `186834a` (prettier only, content unchanged), CI verify SUCCESS (run 45878393283) — final head, remote SHA verified equal.
-- Telegram: digest sent this cycle (last digest cycle 191 ~12:18 UTC, 6-hour window expired ~18:18 UTC).
+- Telegram: digest sent this cycle (last digest cycle 191 ~12:18 UTC, 6-hour window expired ~18:18 UTC) via `hermes send -t telegram:8400775109`, CLI receipt `sent`.
 - Resource usage: ~11 min wall clock, 1 temporary detached worktree (removed), one background server killed after the probe. Estimated remaining M09 work: F15 fix + conformance suite §7 (~1 cycle), step 6 IdP swap (owner-gated on SEC-001), then the OpenAI app-review pass; F12/F13/F14 remain Low/Info.
