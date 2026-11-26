@@ -16,7 +16,7 @@ import { createAuthMiddleware } from './auth.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
-import { createMcpHttpHandler, protectedResourceMetadata } from './mcp-http.mjs';
+import { createMcpHttpHandler, protectedResourceMetadata, parseOrigins } from './mcp-http.mjs';
 
 const PORT = process.env.PORT || 3000;
 const SIMULATION_MODE = process.env.SIMULATION_MODE !== 'false'; // Default true for v0.2
@@ -46,6 +46,10 @@ class CallforgeHttpServer {
     this.recoveryDone = false;
     this.dispatcher = null;
     this.mcpEnabled = process.env.MCP_HTTP_ENABLED === '1';
+    // F2: browser origins must be preflighted against the same allow-list the
+    // transport enforces, otherwise a disallowed origin passes OPTIONS and only
+    // fails on the POST.
+    this.allowedOrigins = parseOrigins(process.env.MCP_ALLOWED_ORIGINS);
     this.handleMcp = null;
   }
 
@@ -80,12 +84,33 @@ class CallforgeHttpServer {
       const path = parsedUrl.pathname;
       const method = req.method;
 
-      // CORS headers
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      // CORS headers. The MCP endpoint is allow-listed per origin; everything
+      // else keeps the historical wildcard.
+      const origin = req.headers.origin;
+      const originScoped = path === '/mcp' && this.allowedOrigins.length > 0;
+      if (originScoped) {
+        res.setHeader('Vary', 'Origin');
+        if (!origin || this.allowedOrigins.includes(origin)) {
+          res.setHeader('Access-Control-Allow-Origin', origin || '*');
+          res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+          res.setHeader(
+            'Access-Control-Allow-Headers',
+            'Content-Type, Authorization, MCP-Protocol-Version',
+          );
+          res.setHeader('Access-Control-Max-Age', '600');
+        }
+      } else {
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      }
 
       if (method === 'OPTIONS') {
+        if (originScoped && origin && !this.allowedOrigins.includes(origin)) {
+          res.writeHead(403, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ error: `Origin not allowed: ${origin}` }));
+          return;
+        }
         res.writeHead(204);
         res.end();
         return;

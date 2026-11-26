@@ -28,7 +28,7 @@ function sendJson(res, status, payload, headers = {}) {
   res.end(JSON.stringify(payload));
 }
 
-function parseOrigins(value) {
+export function parseOrigins(value) {
   return (value || '')
     .split(',')
     .map(s => s.trim())
