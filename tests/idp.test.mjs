@@ -76,6 +76,7 @@ const ENV_KEYS = [
   'CALLFORGE_OIDC_ROLE_CLAIM',
   'CALLFORGE_OIDC_ROLE_MAP',
   'CALLFORGE_OIDC_CLOCK_SKEW',
+  'CALLFORGE_OIDC_ALLOW_LOCAL_TOKENS',
   'CALLFORGE_TOKEN_SECRET',
   'MCP_AUTHORIZATION_SERVER',
   'NODE_ENV',
@@ -360,6 +361,25 @@ describe('validateAccessToken in external mode', () => {
     const result = validateAccessToken(`${header}.${body}.${sig}`);
     expect(result.valid).toBe(true);
     expect(result.context.tenantId).toBe(TENANT);
+  });
+
+  it('refuses a local token in strict mode', async () => {
+    publishKey('rsa-1');
+    applyEnv(baseEnv({ CALLFORGE_OIDC_ALLOW_LOCAL_TOKENS: '0' }));
+    await primeJwks(idpConfig(), { fetchImpl });
+    process.env.CALLFORGE_TOKEN_SECRET = 'test-secret';
+    const now = Math.floor(Date.now() / 1000);
+    const h = b64({ alg: 'HS256', typ: 'JWT' });
+    const body = b64({
+      iss: 'callforge',
+      aud: 'callforge-api',
+      tenant_id: TENANT,
+      role: 'operator',
+      scope: ['simulate'],
+      exp: now + 60,
+    });
+    const sig = createHmac('sha256', 'test-secret').update(`${h}.${body}`).digest('base64url');
+    expect(validateAccessToken(`${h}.${body}.${sig}`).error).toMatch(/Unsupported token algorithm/);
   });
 
   it('reports an external failure rather than a generic one', async () => {

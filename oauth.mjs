@@ -208,6 +208,10 @@ export function validateAccessToken(
   }
   // Tokens minted by this module remain HS256 with iss=callforge, so a cutover
   // deployment keeps honouring unexpired dev tokens instead of logging everyone out.
+  // Strict mode (CALLFORGE_OIDC_ALLOW_LOCAL_TOKENS=0) makes the IdP the only authority.
+  if (!idp.allowLocalTokens) {
+    return external;
+  }
   let local;
   try {
     local = isValidLocalToken(token, nowSeconds, { resource, allowLegacyAudience });

@@ -22,6 +22,8 @@
  *   CALLFORGE_OIDC_ROLE_CLAIM          claim holding the role (default `role`)
  *   CALLFORGE_OIDC_ROLE_MAP            JSON object mapping IdP roles -> CALLFORGE roles
  *   CALLFORGE_OIDC_CLOCK_SKEW          seconds of leeway on exp/nbf (default 60)
+ *   CALLFORGE_OIDC_ALLOW_LOCAL_TOKENS  set to 0 to refuse this module's own HS256
+ *                                      tokens once an IdP is configured (strict mode)
  *
  * Verification is synchronous: the JWKS is fetched ahead of time (startup prime and
  * background refresh) into a key cache, so `validateAccessToken` keeps its sync
@@ -98,6 +100,7 @@ export function idpConfig(env = process.env) {
     roleClaim: env.CALLFORGE_OIDC_ROLE_CLAIM || 'role',
     roleMap,
     clockSkew: Number.isFinite(skew) && skew >= 0 ? skew : 60,
+    allowLocalTokens: env.CALLFORGE_OIDC_ALLOW_LOCAL_TOKENS !== '0',
   };
 }
 
