@@ -125,6 +125,33 @@ clean, tsc clean. Live probe (real `server.mjs`, port 3817, `MCP_HTTP_ALLOW_ANON
 health 200, anonymous `onboard_tenant` → 200, `structuredContent {status: "onboarded",
 credential: null}`, no `isError`. CI verify SUCCESS (run 45882910723).
 
-Open on this PR after cycle 202: F12, F13 (Low/Info, unchanged), F14 (accepted). The IdP swap
+## Cycle 203 — F12 closed (scope before the gate)
+
+Independent read-only pass in a detached worktree at `e29ee95` (`pnpm install
+--frozen-lockfile`; `tests/m09-elicitation.test.mjs` 18/18 reproduced). F12 is closed.
+
+`preGateAuth()` runs before the gate can answer, on the single-call and the batch path, using the
+authoritative `TOOL_SCOPES` map (now exported from `tools/index.mjs` — the same one the tool
+authorizer enforces, so the check cannot drift from the real requirement). A denied gated item
+returns exactly the tool-error result `authFailure()` produces, writes **no** `elicitation_*`
+audit row, and in a batch does not block the remaining items. Anonymous calls (no bearer) keep
+the annotation-only path; `MCP_ELICITATION_GATE=0` is unchanged. Dev-token contexts now carry
+`subject`/`scopes` like the authorizer's own context, which the check needs.
+
+Two notes for the reviewer: the published `securitySchemes` scope (`callforge:config`) and the
+enforced tool scope (`admin`) are different vocabularies — the enforced one is what matters here,
+and mapping the published scopes onto the enforcer stays a separate M09 item; and the pre-check
+is advisory only, the authorizer remains the authority (a call that passes it still re-checks).
+
+Verified: `tests/m09-elicitation.test.mjs` 18/18 (4 new F12 cases: denial before
+`input_required`, no gate audit row, admin still gated, batch denial with the rest executing,
+anonymous path untouched); unrelated M09 suites 38/38; full suite 186 tests, 0 failed (170 in the
+full run, `tests/audit.test.mjs` 16/16 re-run alone — known TECH-009 SIGABRT); eslint 0, prettier
+clean, tsc clean. Live probe (real `server.mjs`, port 3819, read-scoped and admin tokens):
+read-scoped gated call → tool error 403 `Insufficient scope: requires admin`, no licence written;
+same in a batch with `check_readiness` still answering; admin token → `input_required`; audit
+table holds exactly one `elicitation_requested` row, from the admin call.
+
+Open on this PR after cycle 203: F13 (Info), F14 (accepted). F12 and F15 closed. The IdP swap
 (step 6) and the `iss` URL-vs-literal conformance stay gated on SEC-001; merge order remains
 #189 → #191 → #192.

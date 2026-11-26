@@ -106,3 +106,17 @@ output-validation error. Now `.nullish()`; handler untouched; 2 regression tests
 Full suite 182 tests 0 failed, CI SUCCESS. Remaining open on PR #192: F12, F13 (Low/Info), F14
 (accepted). Next M09 step is now (6) IdP swap once SEC-001 is decided, then conformance suite §7;
 those need no further local gate work. Owner merge order unchanged: #189 → #191 → #192.
+
+## Cycle 203 — M09 review F12 closed (scope check before the gate)
+
+F12 fixed: the C2 gate answered `input_required` before the tool authorizer ran, so a token without
+the tool scope got a confirmation form and an `elicitation_*` audit row and only 403'd on the
+resume. `preGateAuth()` now checks the authoritative `TOOL_SCOPES` map (exported from
+`tools/index.mjs`) against the verified token before any gate answer, on the single-call and batch
+paths; a denied item gets the authorizer's tool-error result and no gate audit row, and the rest of
+a batch still executes. Anonymous calls keep the annotation-only path. 4 regression tests, live
+probe with read-scoped vs admin tokens, full suite 186 tests 0 failed, CI SUCCESS. Reviewers should
+note the published `securitySchemes` scope (`callforge:config`) and the enforced scope (`admin`) are
+different vocabularies — reconciling them is a separate M09 item. Open on PR #192 now: F13 (Info),
+F14 (accepted). Next M09 step is still (6) IdP swap once SEC-001 is decided, then conformance suite
+§7; owner merge order unchanged: #189 → #191 → #192.
