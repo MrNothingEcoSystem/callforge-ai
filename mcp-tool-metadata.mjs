@@ -39,32 +39,70 @@ function oauth2(scope) {
   return [{ type: 'oauth2', scopes: [scope] }];
 }
 
-const entry = (title, scope, annotations, exposed = true) => ({
-  exposed,
-  title,
-  annotations,
-  securitySchemes: oauth2(scope),
-});
+/**
+ * @param {string} title
+ * @param {string} scope
+ * @param {Record<string, boolean>|null} annotations
+ * @param {{ exposed?: boolean, justification?: string } | boolean} [opts]
+ */
+const entry = (title, scope, annotations, opts = true) => {
+  const o = typeof opts === 'boolean' ? { exposed: opts } : opts;
+  return {
+    exposed: o.exposed ?? true,
+    title,
+    annotations,
+    // Why a mutating tool is or is not `destructiveHint`. The OpenAI review
+    // checklist wants destructive annotations justified, and a reviewer needs
+    // the same sentence for a writer that is *not* destructive; the conformance
+    // suite enforces one for every non-read-only tool.
+    justification: o.justification,
+    securitySchemes: oauth2(scope),
+  };
+};
 
 export const REMOTE_TOOL_METADATA = {
-  onboard_tenant: entry('Request onboarding', 'admin', {
-    readOnlyHint: false,
-    destructiveHint: false,
-    idempotentHint: false,
-    openWorldHint: false,
-  }),
-  configure_business: entry('Configure business', 'admin', {
-    readOnlyHint: false,
-    destructiveHint: false,
-    idempotentHint: true,
-    openWorldHint: false,
-  }),
-  simulate_call: entry('Simulate an inbound call', 'simulate', {
-    readOnlyHint: false,
-    destructiveHint: false,
-    idempotentHint: true,
-    openWorldHint: false, // simulated only; true once a live provider is wired
-  }),
+  onboard_tenant: entry(
+    'Request onboarding',
+    'admin',
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+    },
+    {
+      justification:
+        'Creates one tenants row; the id is the client-supplied PK, so a repeat with the same id is a rejected duplicate rather than an overwrite of live rows.',
+    },
+  ),
+  configure_business: entry(
+    'Configure business',
+    'admin',
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    {
+      justification:
+        'Overwrites published business_configs fields in place without a prior-value snapshot; annotated non-destructive because the row survives and the changed[] list reports what moved.',
+    },
+  ),
+  simulate_call: entry(
+    'Simulate an inbound call',
+    'simulate',
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false, // simulated only; true once a live provider is wired
+    },
+    {
+      justification:
+        'Writes one call_intents row plus its genesis event; idempotency_key is what makes a retry safe.',
+    },
+  ),
   simulate_conversation: entry('Preview a conversation', 'simulate', {
     readOnlyHint: true,
     destructiveHint: false,
@@ -102,12 +140,20 @@ export const REMOTE_TOOL_METADATA = {
     openWorldHint: false,
   }),
   create_dev_token: entry('Create dev token', 'admin', null, false),
-  validate_compliance: entry('Record compliance evidence', 'read', {
-    readOnlyHint: false,
-    destructiveHint: false,
-    idempotentHint: true,
-    openWorldHint: false,
-  }),
+  validate_compliance: entry(
+    'Record compliance evidence',
+    'read',
+    {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: true,
+      openWorldHint: false,
+    },
+    {
+      justification:
+        'Overwrites the compliance evidence JSON and status on an existing intent; the intent row survives, so non-destructive.',
+    },
+  ),
 };
 
 export { READ };

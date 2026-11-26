@@ -99,6 +99,9 @@ describe('M09 conformance', () => {
         'INSERT INTO tenants (id, name, settings, compliance_status) VALUES (?,?,?,?)',
       ).run(id, name, '{}', 'pending');
     }
+    db.prepare(
+      'INSERT INTO conversation_fixtures (id, language, scenario, turns, expected_outcome) VALUES (?,?,?,?,?)',
+    ).run(crypto.randomUUID(), 'en', 'faq_inquiry', '[]', 'answered');
     ({ http, base } = await startHandler());
     adminToken = issueToken(tenantId, 'tenant_admin', ['read', 'simulate', 'audit', 'admin']);
     operatorToken = issueToken(tenantId, 'operator', ['read', 'simulate']);
@@ -249,6 +252,114 @@ describe('M09 conformance', () => {
       expect(db.prepare('SELECT COUNT(*) c FROM business_configs').get().c).toBe(0);
     });
 
+    it('returns the same call_intent_id for a replay with the same idempotency_key', async () => {
+      const db = getDatabase();
+      const key = `conf-replay-${crypto.randomUUID()}`;
+      const args = {
+        idempotency_key: key,
+        direction: 'inbound',
+        to_number: '+971500000001',
+        language: 'en',
+      };
+      const first = await (
+        await post(adminToken, rpc('tools/call', { name: 'simulate_call', arguments: args }))
+      ).json();
+      const firstBody = JSON.parse(first.result.content[0].text);
+      expect(firstBody.idempotent).toBe(false);
+      const intents = db
+        .prepare('SELECT COUNT(*) c FROM call_intents WHERE idempotency_key = ?')
+        .get(key).c;
+      const audits = db
+        .prepare("SELECT COUNT(*) c FROM audit_events WHERE event_type = 'call_intent_created'")
+        .get().c;
+
+      const second = await (
+        await post(adminToken, rpc('tools/call', { name: 'simulate_call', arguments: args }))
+      ).json();
+      const secondBody = JSON.parse(second.result.content[0].text);
+
+      expect(second.result.isError).toBeFalsy();
+      expect(secondBody.idempotent).toBe(true);
+      expect(secondBody.call_intent_id).toBe(firstBody.call_intent_id);
+      expect(
+        db.prepare('SELECT COUNT(*) c FROM call_intents WHERE idempotency_key = ?').get(key).c,
+      ).toBe(intents);
+      expect(
+        db
+          .prepare("SELECT COUNT(*) c FROM audit_events WHERE event_type = 'call_intent_created'")
+          .get().c,
+      ).toBe(audits);
+    });
+
+    it('every read-only-annotated tool leaves configuration and intents untouched', async () => {
+      const db = getDatabase();
+      const snapshot = () => ({
+        configs: db.prepare('SELECT COUNT(*) c FROM business_configs').get().c,
+        intents: db.prepare('SELECT COUNT(*) c FROM call_intents').get().c,
+        events: db.prepare('SELECT COUNT(*) c FROM call_events').get().c,
+      });
+      const intentId = db.prepare('SELECT id FROM call_intents LIMIT 1').get().id;
+      const readOnly = Object.entries(REMOTE_TOOL_METADATA)
+        .filter(([, m]) => m.exposed !== false && m.annotations?.readOnlyHint === true)
+        .map(([n]) => n)
+        .sort();
+      expect(readOnly).toEqual([
+        'access_audit_log',
+        'check_readiness',
+        'generate_report',
+        'get_call_status',
+        'list_call_history',
+        'simulate_conversation',
+      ]);
+      const argsFor = {
+        simulate_conversation: { language: 'en', scenario: 'faq_inquiry' },
+        get_call_status: { call_intent_id: intentId },
+        generate_report: {
+          report_type: 'call_volume',
+          from_date: '2026-11-01',
+          to_date: '2026-11-26',
+        },
+      };
+      for (const name of readOnly) {
+        const before = snapshot();
+        const body = await (
+          await post(adminToken, rpc('tools/call', { name, arguments: argsFor[name] ?? {} }))
+        ).json();
+        expect(body.result.isError, name).toBeFalsy();
+        expect(snapshot(), name).toEqual(before);
+      }
+    });
+
+    it('a replay of an idempotent writer returns the same document and audits once', async () => {
+      const db = getDatabase();
+      const intentId = db.prepare('SELECT id FROM call_intents LIMIT 1').get().id;
+      const args = {
+        call_intent_id: intentId,
+        evidence: {
+          business_license_verified: true,
+          dncr_checked: true,
+          consent_obtained: true,
+          ai_disclosure_planned: true,
+          calling_hours_compliant: true,
+        },
+      };
+      const auditCount = () =>
+        db.prepare('SELECT COUNT(*) c FROM audit_events WHERE resource_id = ?').get(intentId).c;
+      const first = await (
+        await post(adminToken, rpc('tools/call', { name: 'validate_compliance', arguments: args }))
+      ).json();
+      expect(first.result.isError).toBeFalsy();
+      const audits = auditCount();
+      const second = await (
+        await post(adminToken, rpc('tools/call', { name: 'validate_compliance', arguments: args }))
+      ).json();
+      expect(JSON.parse(second.result.content[0].text)).toEqual(
+        JSON.parse(first.result.content[0].text),
+      );
+      // A replay is re-audited (one row per call); it must not fork state.
+      expect(auditCount()).toBe(audits + 1);
+    });
+
     it('rejects a list_call_history limit above the 100 cap', async () => {
       const res = await post(
         adminToken,
@@ -338,6 +449,61 @@ describe('M09 conformance', () => {
       } finally {
         await new Promise(resolve => tiny.close(resolve));
       }
+    });
+
+    it('justifies every mutating tool and never marks a read-only tool destructive', () => {
+      const entries = Object.entries(REMOTE_TOOL_METADATA).filter(([, m]) => m.annotations);
+      expect(entries.length).toBeGreaterThan(0);
+      for (const [name, meta] of entries) {
+        if (meta.annotations.readOnlyHint) {
+          expect(meta.annotations.destructiveHint, name).toBe(false);
+          continue;
+        }
+        expect(typeof meta.justification, name).toBe('string');
+        expect(meta.justification.length, name).toBeGreaterThan(40);
+      }
+      // §4 currently marks no tool destructive; a change here is a review event.
+      expect(entries.filter(([, m]) => m.annotations.destructiveHint).map(([n]) => n)).toEqual([]);
+    });
+
+    it('keeps bearer tokens, debug placeholders and stacks out of the audit trail', async () => {
+      const db = getDatabase();
+      const key = `conf-pii-${crypto.randomUUID()}`;
+      const res = await post(
+        adminToken,
+        rpc('tools/call', {
+          name: 'simulate_call',
+          arguments: {
+            idempotency_key: key,
+            direction: 'inbound',
+            to_number: '+971500000002',
+            language: 'en',
+          },
+        }),
+      );
+      expect((await res.text()).includes(adminToken)).toBe(false);
+      const rows = db
+        .prepare('SELECT event_type, action, resource_type, resource_id, payload FROM audit_events')
+        .all();
+      expect(rows.length).toBeGreaterThan(0);
+      for (const row of rows) {
+        const dump = JSON.stringify(row);
+        expect(dump).not.toContain(adminToken);
+        expect(dump).not.toContain(undefined);
+        expect(dump).not.toContain('[object Object]');
+        expect(dump).not.toContain('\n    at ');
+      }
+    });
+
+    it('mints test credentials with a future, bounded expiry', () => {
+      const claims = JSON.parse(
+        Buffer.from(
+          issueToken(tenantId, 'tenant_admin', ['read']).split('.')[1],
+          'base64url',
+        ).toString(),
+      );
+      expect(claims.exp - claims.iat).toBe(15 * 60);
+      expect(claims.exp * 1000).toBeGreaterThan(Date.now());
     });
 
     it('429s a burst with Retry-After', async () => {
