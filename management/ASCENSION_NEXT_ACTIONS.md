@@ -181,3 +181,20 @@ rest of the program.
 Nothing local remains on M09 before the decision. After it: §7B DCR/CIMD, §7G interop
 (needs a reachable deployment), OpenAI app-review pass (EXT-008). Merge order unchanged
 and owner-gated: #189 → #191 → #192.
+
+## Cycle 208 — TECH-009 closed (worker SIGABRT; PR #193)
+
+The suite was losing two workers per run to a `better-sqlite3` 11.10 native teardown abort
+(`tests/audit.test.mjs`, `tests/m03-orchestration.test.mjs`; `tests/store.test.mjs`
+intermittently), exit 1, ~36 collected tests never counted — every suite number in this ledger
+was therefore soft. `^12.11.1` ships Node 24 bindings and the abort is gone: two consecutive full
+runs, 22/22 files, 239/239 tests, exit 0, plus one independent worktree reproduction.
+
+Merge order is now **#193** (independent, dep-only, rebasable to `main` if the owner wants it
+first) **→ #189 → #191 → #192**. Review record: `management/TECH009_REVIEW_RECORD.md`, verdict
+ACCEPT, R2 (assert file/test counts, not just exit code) and R3 (lockfile re-prettify) recorded as
+follow-ups.
+
+M09 next step is unchanged and still owner-gated: SEC-001 IdP sign-off, then §7B DCR/CIMD, the
+discovery `iss`, F19's shim and step 6 vendor wiring; after that §7G interop (needs a reachable
+deployment) and the OpenAI app-review pass (EXT-008).
