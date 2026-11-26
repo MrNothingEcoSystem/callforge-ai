@@ -32,11 +32,11 @@ the files on disk. Guard parsing is report-based, so it also works under `--shar
 
 ## Findings
 
-| ID  | Severity | Finding | Status |
-| --- | -------- | ------- | ------ |
-| R2a | Info | Floor is a minimum, not an equality: adding tests is green with a staleness hint, deleting tests is red. Prevents constant churn while still catching loss. | Accepted |
-| R2b | Low | Redundant reports are overwritten per run (`--outputFile.json`), so parallel CI matrix jobs sharing a workspace would need distinct paths — CI is single-job today. | Accepted |
-| R2c | Info | The guard only proves tests *ran and reported*; it cannot detect a test whose body was gutted. Complementary to, not a replacement for, review. | Accepted |
+| ID  | Severity | Finding                                                                                                                                                             | Status   |
+| --- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| R2a | Info     | Floor is a minimum, not an equality: adding tests is green with a staleness hint, deleting tests is red. Prevents constant churn while still catching loss.         | Accepted |
+| R2b | Low      | Redundant reports are overwritten per run (`--outputFile.json`), so parallel CI matrix jobs sharing a workspace would need distinct paths — CI is single-job today. | Accepted |
+| R2c | Info     | The guard only proves tests _ran and reported_; it cannot detect a test whose body was gutted. Complementary to, not a replacement for, review.                     | Accepted |
 
 ## Verdict
 

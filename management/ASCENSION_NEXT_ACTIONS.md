@@ -181,3 +181,18 @@ rest of the program.
 Nothing local remains on M09 before the decision. After it: §7B DCR/CIMD, §7G interop
 (needs a reachable deployment), OpenAI app-review pass (EXT-008). Merge order unchanged
 and owner-gated: #189 → #191 → #192.
+
+## Cycle 209 — TECH-009 R2 closed (guarded suite runner; PR #193)
+
+R2 from `management/TECH009_REVIEW_RECORD.md` is fixed in `2907515`: `pnpm test` now runs
+`scripts/guard-suite.mjs`, which fails the run on a file that never reports, a file reporting zero
+assertions (verified: a worker killed pre-collection shows as `passed` with no results), any failed
+test or file, and a collected count under `tests/.test-floor.json`. CI needed no change, `test:raw`
+keeps the bare runner, `--bump` raises the floor, and a guard-suite test fails if the floor exceeds
+the files on disk. 23/23 files, 242/242, negative paths red both ways. Record:
+`management/TECH009_R2_REVIEW_RECORD.md`, verdict **ACCEPT**.
+
+R3 (lockfile re-prettify after every dep change) stays accepted/noted. Open on PR #193 after this
+cycle: none locally. Merge order unchanged and owner-gated: **#193 → #189 → #191 → #192**.
+M09 next step is still the SEC-001 sign-off, then §7B DCR/CIMD, the discovery `iss`, F19's shim and
+step 6 vendor wiring; then §7G interop (needs a reachable deployment) and EXT-008 app review.
