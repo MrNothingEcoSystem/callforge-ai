@@ -108,6 +108,15 @@ E. Confirmation: C1/C2 tools require elicitation accept; decline/cancel → no m
 F. Rate limit/robustness: burst →429+Retry-After, Origin spoof →403, oversized body →413/400, OpenAI review checklist (annotations match behavior, destructive justification, no debug/PII in logs, test creds unexpired).
 G. Interop: MCP Inspector + ChatGPT custom connector + Codex, both protocol versions.
 
+Status (cycle 205): `tests/m09-conformance.test.mjs` mechanises A, C, D (registry fidelity,
+read-only effects, pagination cap), E and F. Writing A found F18 — the gate listed
+`2026-07-28` (rejected by SDK 1.32.2 with `-32000`) and withheld three versions the SDK
+accepts. The SDK half is now imported from the SDK and an unknown-but-served version is
+normalised to its latest on `req.headers` and `req.rawHeaders`; a 2026 client is therefore
+served by our own elicitation path (F19: `initialize` still negotiates down to 2025-11-25 —
+remove the shim when the SDK ships 2026-07-28). Still unmechanised: B issuer/DCR/CIMD
+(gated on SEC-001), D idempotent-replay equality, G interop, F OpenAI checklist numbers.
+
 ## 8. Migration steps (M09 build order)
 
 1. Upgrade SDK, add Streamable HTTP transport alongside stdio (keep stdio for local dev).

@@ -133,3 +133,17 @@ gone). A drift test asserts published == enforced for every tool; alias retentio
 Info F17. 25/25 targeted, full suite 188 tests 0 failed, CI SUCCESS. Open on PR #192: F13 (Info),
 F14 (accepted), F17 (Info). Next M09 step is still (6) IdP swap once SEC-001 is decided, then
 conformance suite §7; owner merge order unchanged: #189 → #191 → #192.
+
+## Cycle 205 — conformance suite §7 (PR #192)
+
+`tests/m09-conformance.test.mjs` mechanises design §7 A/C/D/E/F (19 tests) and closed the
+defect it found, **F18**: the version gate advertised `2026-07-28` while the SDK rejected it
+and withheld three versions the SDK accepts. The gate now imports the SDK list and normalises
+an SDK-unknown header (on `req.headers` and `req.rawHeaders`) so 2026 clients are served;
+F19 records that a real SDK bump should retire the shim.
+
+Next, in order: (1) the remaining §7 slices that need no owner decision — D idempotent-replay
+equality, F OpenAI review-checklist numbers; (2) SEC-001 IdP swap (owner), which unblocks §7B
+issuer/DCR/CIMD, the URL `iss` and step 6; (3) §7G interop against Inspector/ChatGPT/Codex
+(needs a reachable deployment); (4) OpenAI app-review pass (EXT-008). Merge order is
+unchanged: #189 → #191 → #192.

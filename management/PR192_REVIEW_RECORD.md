@@ -195,3 +195,40 @@ ones, admin token `configure_business` → `configured`, operator token → 403 
 Residual (new, Info): `callforge:` stays an alias rather than the canonical form, so if a real IdP
 (EU/OpenAI clients) is wired later, keep the alias or migrate both sides together. Open on this
 PR after cycle 204: F13 (Info), F14 (accepted), F17 (Info, alias retention). F12, F15, F16 closed.
+
+## Cycle 205 — conformance suite §7 and F18 (closed)
+
+Selected as the next unblocked item (build order §8 step 5). `tests/m09-conformance.test.mjs`
+mechanises §7 A/C/D/E/F: POST-only 405, header-version 400, -32601, initialize negotiation,
+Accept both-types vs 406, -32700; 401 for missing/garbage/foreign-audience token, 403
+cross-tenant and scope-matrix denials, delisted `create_dev_token`; `tools/list`
+annotations/`securitySchemes`/`outputSchema` equality with the registry, read-only tool
+logging without configuration writes, `list_call_history` limit cap; C2 park/accept/decline
+with the decline audited; Origin spoof 403, 413 body cap, 429 burst with `Retry-After`.
+
+Writing §7A found **F18**: the transport's `SUPPORTED_PROTOCOL_VERSIONS` was a literal list
+that named `2026-07-28` — which SDK 1.32.2 rejects with `-32000` — while withholding
+`2025-03-26`, `2024-11-05` and `2024-10-07` that the SDK accepts. The gate therefore
+advertised a version the runtime refused; the elicitation code for the 2026 shape was
+unreachable for a real 2026 client.
+
+| ID  | Severity | Finding                                                                                                                                                                                 | Status                                                                                                   |
+| --- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| F18 | Medium   | Header gate advertised a protocol version the SDK rejects and withheld three it accepts.                                                                                                | **Fixed** — SDK list imported, `2026-07-28` served via normalisation; 19 conformance tests + live probe. |
+| F19 | Info     | Normalising the header to the SDK's latest means a 2026 client is _served_, but `initialize` negotiates down to `2025-11-25`; the 2026 request/response shapes are ours, not the SDK's. | Accepted — drop the shim when an SDK release ships `2026-07-28`.                                         |
+
+Fix: `SUPPORTED_PROTOCOL_VERSIONS` is `[...SDK_PROTOCOL_VERSIONS, '2026-07-28']`, and a
+header the SDK cannot validate is rewritten to `LATEST_PROTOCOL_VERSION` on `req.headers`
+**and** `req.rawHeaders` before `handleRequest` — the node transport converts through
+`@hono/node-server`, which materialises `Headers` from `rawHeaders`, so mutating the parsed
+object alone is silently ignored (found by live probe after the unit tests went green).
+
+Independent read-only pass in a detached worktree at `1c2b3b3` (`pnpm` install,
+`tests/m09-conformance` + `tests/m09-mcp-http` 26/26 reproduced, diff reviewed: 28 lines of
+source, no enforcement widening, the `rawHeaders` edit cannot duplicate or drop other
+headers). Verdict **ACCEPT**; F19 recorded. §7B issuer assertions and §7G client interop
+remain open on SEC-001 / external clients.
+
+Coverage still missing from §7 and not claimed: B full RFC8414/OIDC issuer-match and
+DCR/CIMD (needs an issuer decision), D idempotent-replay equality, G Inspector/ChatGPT/Codex
+interop, F OpenAI review checklist numbers.
