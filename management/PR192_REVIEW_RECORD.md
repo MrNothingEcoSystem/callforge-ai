@@ -98,3 +98,33 @@ resume with the returned `requestState` → `status: configured` for id 1 and id
 `tests/m09-elicitation.test.mjs` 14/14; unrelated M09 suites 37/37; full suite 180 tests
 (161 in one run, `tests/tools.test.mjs` 19/19 re-run alone — known TECH-009 `better-sqlite3`
 SIGABRT); eslint 0, prettier clean, tsc clean.
+
+## Cycle 202 — F15 closed (anonymous onboarding output schema)
+
+Independent read-only pass in a detached worktree at `0f518ab`. Root cause of F15 was one
+wrong modifier: the published `onboard_tenant` output schema declared
+`credential: z.looseObject({}).optional()`, and `.optional()` accepts `undefined`, not `null`.
+Anonymous remote mode mints no dev token, so a _successful_ onboarding produced
+`credential: null` and the SDK turned it into an output-validation error. Fix: the field is now
+`.nullish()`; the handler is untouched. Reproduced first as a failing schema assertion, then
+green.
+
+| ID  | Severity | Finding                                                                                                                                              | Status                                                                                                                                                                  |
+| --- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| F15 | Low      | Anonymous `onboard_tenant` returned `credential: null`, rejected by its own `outputSchema`, so a created tenant reported an output-validation error. | **Fixed** — `nullish()`; 2 regression tests (schema null/object/absent, anonymous transport call); live probe shows `structuredContent.credential: null`, no `isError`. |
+
+Scope check: the change only widens that one field. Authenticated onboarding still hands back
+the `cf_dev_…` credential and the existing hand-off test still passes, so the loosening cannot
+mask a missing token. `credential: null` is unreachable on stdio in any case, where no
+`outputSchema` is published.
+
+Verified at `0f518ab`: `tests/m09-tool-metadata.test.mjs` 9/9 reproduced from a clean install;
+related M09 suites 38/38; full suite 182 tests, 0 failed (171 in the full run,
+`tests/m03-workflow.test.mjs` 11/11 re-run alone — known TECH-009 SIGABRT); eslint 0, prettier
+clean, tsc clean. Live probe (real `server.mjs`, port 3817, `MCP_HTTP_ALLOW_ANONYMOUS=1`):
+health 200, anonymous `onboard_tenant` → 200, `structuredContent {status: "onboarded",
+credential: null}`, no `isError`. CI verify SUCCESS (run 45882910723).
+
+Open on this PR after cycle 202: F12, F13 (Low/Info, unchanged), F14 (accepted). The IdP swap
+(step 6) and the `iss` URL-vs-literal conformance stay gated on SEC-001; merge order remains
+#189 → #191 → #192.

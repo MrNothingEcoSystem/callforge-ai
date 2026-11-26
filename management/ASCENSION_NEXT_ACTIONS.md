@@ -97,3 +97,12 @@ F14 (Low — a resumed batch re-executes its non-gated items; accepted) and F15 
 the call reports an output-validation error even though the tenant is created). Next M09 step
 stays (6) IdP swap once SEC-001 is decided, together with the F15 fix and conformance suite §7;
 owner merge order is still #189 → #191 → #192.
+
+## Cycle 202 — M09 review F15 closed (anonymous onboarding output schema)
+
+F15 fixed: the `onboard_tenant` `outputSchema` used `.optional()` for `credential`, which rejects
+the `null` that anonymous mode legitimately returns, so a created tenant reported an
+output-validation error. Now `.nullish()`; handler untouched; 2 regression tests + live probe.
+Full suite 182 tests 0 failed, CI SUCCESS. Remaining open on PR #192: F12, F13 (Low/Info), F14
+(accepted). Next M09 step is now (6) IdP swap once SEC-001 is decided, then conformance suite §7;
+those need no further local gate work. Owner merge order unchanged: #189 → #191 → #192.
