@@ -198,4 +198,135 @@ describe('Audit Logger', () => {
     const headAfter = auditLogger.getChainHead();
     expect(headAfter).toBe(event.event_hash);
   });
+
+  it('should verify a mid-chain segment seeded from its predecessor (issue #2)', async () => {
+    await auditLogger.log({ event_type: 'seg_1', actor_type: 'system', action: 'test' });
+    const e2 = await auditLogger.log({ event_type: 'seg_2', actor_type: 'system', action: 'test' });
+    const e3 = await auditLogger.log({ event_type: 'seg_3', actor_type: 'system', action: 'test' });
+
+    const partial = await auditLogger.verifyChain(e2.id);
+    expect(partial.valid).toBe(true);
+    expect(partial.errors).toHaveLength(0);
+    expect(partial.events_checked).toBe(2);
+    expect(partial.chain_head).toBe(e3.event_hash);
+
+    // Tampering inside the segment must be detected on partial verification
+    const db = getDatabase();
+    db.prepare('UPDATE audit_events SET payload = ? WHERE id = ?').run('{"tampered":true}', e3.id);
+    const tampered = await auditLogger.verifyChain(e2.id);
+    expect(tampered.valid).toBe(false);
+    expect(tampered.errors.length).toBeGreaterThan(0);
+  });
+
+  it('should report an unknown start event id instead of a false valid (review R2)', async () => {
+    await auditLogger.log({ event_type: 'seg_only', actor_type: 'system', action: 'test' });
+
+    const result = await auditLogger.verifyChain('00000000-0000-0000-0000-000000000000');
+    expect(result.valid).toBe(false);
+    expect(result.events_checked).toBe(0);
+    expect(result.errors[0].error).toBe('Unknown start event');
+  });
+
+  it('should order events by insertion (rowid) even with identical timestamps (issue #4)', async () => {
+    const ts = '2026-01-01T00:00:00.000Z';
+    await auditLogger.log({
+      event_type: 'same_ts_1',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
+    await auditLogger.log({
+      event_type: 'same_ts_2',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
+    await auditLogger.log({
+      event_type: 'same_ts_3',
+      actor_type: 'system',
+      action: 'test',
+      created_at: ts,
+    });
+
+    const events = await auditLogger.getEvents({ limit: 3, offset: 0 });
+    expect(events.map(e => e.event_type)).toEqual(['same_ts_3', 'same_ts_2', 'same_ts_1']);
+  });
+
+  it('should verify an intact chain as anchored', async () => {
+    await auditLogger.log({ event_type: 'anch_1', actor_type: 'system', action: 'test' });
+    await auditLogger.log({ event_type: 'anch_2', actor_type: 'system', action: 'test' });
+
+    const result = await auditLogger.verifyChain();
+    expect(result.valid).toBe(true);
+    expect(result.anchored).toBe(true);
+    expect(result.warnings).toHaveLength(0);
+    expect(result.events_checked).toBe(2);
+  });
+
+  it('should report a truncated head as unanchored instead of broken (issue #190)', async () => {
+    await auditLogger.log({ event_type: 'trunc_1', actor_type: 'system', action: 'test' });
+    const e2 = await auditLogger.log({
+      event_type: 'trunc_2',
+      actor_type: 'system',
+      action: 'test',
+    });
+    const e3 = await auditLogger.log({
+      event_type: 'trunc_3',
+      actor_type: 'system',
+      action: 'test',
+    });
+
+    const db = getDatabase();
+    db.prepare(
+      'DELETE FROM audit_events WHERE rowid = (SELECT MIN(rowid) FROM audit_events)',
+    ).run();
+
+    const result = await auditLogger.verifyChain();
+    expect(result.valid).toBe(true);
+    expect(result.anchored).toBe(false);
+    expect(result.events_checked).toBe(2);
+    expect(result.chain_head).toBe(e3.event_hash);
+    expect(result.errors).toHaveLength(0);
+    expect(result.warnings[0].warning).toMatch(/unanchored/);
+
+    // Mid-chain verification starting at the surviving head behaves the same
+    const fromHead = await auditLogger.verifyChain(e2.id);
+    expect(fromHead.valid).toBe(true);
+    expect(fromHead.anchored).toBe(false);
+    expect(fromHead.events_checked).toBe(2);
+  });
+
+  it('should still detect a deleted middle row as a broken chain (issue #190)', async () => {
+    await auditLogger.log({ event_type: 'mid_1', actor_type: 'system', action: 'test' });
+    const e2 = await auditLogger.log({ event_type: 'mid_2', actor_type: 'system', action: 'test' });
+    const e3 = await auditLogger.log({ event_type: 'mid_3', actor_type: 'system', action: 'test' });
+
+    const db = getDatabase();
+    db.prepare('DELETE FROM audit_events WHERE id = ?').run(e2.id);
+
+    const result = await auditLogger.verifyChain();
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.error === 'Hash chain broken' && e.event_id === e3.id)).toBe(
+      true,
+    );
+  });
+
+  it('should reject a mid-chain event that forges the genesis sentinel', async () => {
+    await auditLogger.log({ event_type: 'forge_1', actor_type: 'system', action: 'test' });
+    const e2 = await auditLogger.log({
+      event_type: 'forge_2',
+      actor_type: 'system',
+      action: 'test',
+    });
+    await auditLogger.log({ event_type: 'forge_3', actor_type: 'system', action: 'test' });
+
+    const db = getDatabase();
+    db.prepare('UPDATE audit_events SET previous_hash = ? WHERE id = ?').run('0'.repeat(64), e2.id);
+
+    const result = await auditLogger.verifyChain();
+    expect(result.valid).toBe(false);
+    expect(result.errors.some(e => e.error === 'Hash chain broken' && e.event_id === e2.id)).toBe(
+      true,
+    );
+  });
 });

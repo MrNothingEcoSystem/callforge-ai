@@ -101,7 +101,52 @@ export function createAuditLogger() {
 
       const events = db.prepare(query).all(...params);
 
-      let previousHash = '0'.repeat(64);
+      const GENESIS = '0'.repeat(64);
+
+      // An unknown start id yields an empty range; report it rather than
+      // silently returning "valid" for zero events (review R2).
+      if (fromEventId && events.length === 0) {
+        return {
+          valid: false,
+          anchored: false,
+          warnings: [],
+          errors: [{ event_id: fromEventId, error: 'Unknown start event' }],
+          events_checked: 0,
+          chain_head: GENESIS,
+        };
+      }
+
+      // Anchored means the oldest stored event still carries the genesis
+      // sentinel, i.e. no prefix has been archived or deleted. A truncated head
+      // is reported as an unanchored segment instead of a false chain break
+      // (issue #190 / review R1). Full archival still needs a checkpoint policy.
+      const root = db
+        .prepare('SELECT previous_hash FROM audit_events ORDER BY rowid ASC LIMIT 1')
+        .get();
+      const anchored = root ? root.previous_hash === GENESIS : true;
+      const warnings = [];
+
+      // Seed from the actual predecessor when starting mid-chain (issue #2);
+      // genesis only when the range really starts at the chain root.
+      let previousHash = GENESIS;
+      if (!anchored && events.length > 0) {
+        previousHash = events[0].previous_hash;
+        warnings.push({
+          event_id: events[0].id,
+          warning:
+            'Chain head is unanchored: earlier events are missing, segment verified from its first available event',
+        });
+      }
+      if (fromEventId && events.length > 0) {
+        const predecessor = db
+          .prepare(
+            'SELECT event_hash FROM audit_events WHERE rowid < (SELECT rowid FROM audit_events WHERE id = ?) ORDER BY rowid DESC LIMIT 1',
+          )
+          .get(fromEventId);
+        if (predecessor) {
+          previousHash = predecessor.event_hash;
+        }
+      }
       let valid = true;
       const errors = [];
 
@@ -131,8 +176,10 @@ export function createAuditLogger() {
           });
         }
 
-        // Skip genesis previous_hash check (first event with previous_hash = '0'.repeat(64))
-        if (event.id === events[0]?.id && event.previous_hash === '0'.repeat(64)) {
+        // Skip the previous_hash check only for the first checked event when it
+        // carries the genesis sentinel; a mid-chain event claiming genesis is a
+        // forgery attempt and must still be link-checked.
+        if (event === events[0] && event.previous_hash === GENESIS) {
           previousHash = event.event_hash;
           continue;
         }
@@ -151,7 +198,14 @@ export function createAuditLogger() {
         previousHash = event.event_hash;
       }
 
-      return { valid, errors, events_checked: events.length, chain_head: previousHash };
+      return {
+        valid,
+        anchored,
+        warnings,
+        errors,
+        events_checked: events.length,
+        chain_head: previousHash,
+      };
     },
 
     async getEvents(filters = {}) {
@@ -193,7 +247,7 @@ export function createAuditLogger() {
           `
         SELECT * FROM audit_events
         WHERE ${where}
-        ORDER BY created_at DESC
+        ORDER BY rowid DESC
         LIMIT ? OFFSET ?
       `,
         )

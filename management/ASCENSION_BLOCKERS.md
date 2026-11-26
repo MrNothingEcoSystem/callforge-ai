@@ -16,13 +16,14 @@
 
 ## Technical blockers
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                             | Schedule into M02/M03 branches                  |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
+| ID       | Blocker                                              | Status                                               | Next action                                     |
+| -------- | ---------------------------------------------------- | ---------------------------------------------------- | ----------------------------------------------- |
+| TECH-001 | M02 PR #7 independent security verdict pending       | In progress (auditor dispatched)                     | Record verdict; fix blocking findings on branch |
+| TECH-002 | Issues #2, #4, #5, #6 open follow-ups                | Fixes done on PR #189, review ACCEPT WITH FOLLOW-UPS | Owner merge decision; close on merge            |
+| TECH-006 | Audit archival breaks full-chain verify (issue #190) | **Addressed on PR #189** (unanchored-head reporting) | Review; signed checkpoints stay owner-policy    |
+| TECH-003 | No durable workflow layer yet                        | M03 design dispatched                                | Implement increment 1                           |
+| TECH-004 | Postgres vs SQLite decision                          | M03 evaluation                                       | Design deliverable                              |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles    | Pending                                              | Run + verify recovery                           |
 
 Engineering continues on independent work whenever a gate is blocked.
 
@@ -35,3 +36,7 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 190 — cleanup PR #189 (issues #2/#4/#5/#6), head 97efda6
+
+Draft PR #189 (branch cleanup/issues-2-4-5-6): verifyChain partial-verification fix, rowid ordering, node:crypto test imports, start() socket smoke test. Local 111/111 pass. Awaiting independent review + owner merge; issues remain open until merged.

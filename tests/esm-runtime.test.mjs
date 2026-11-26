@@ -3,6 +3,16 @@ import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { createServer } from 'node:net';
+
+/** Reserve an ephemeral port, then release it for the child to bind (review R4). */
+async function freePort() {
+  const probe = createServer();
+  await new Promise(resolve => probe.listen(0, '127.0.0.1', resolve));
+  const { port } = probe.address();
+  await new Promise(resolve => probe.close(resolve));
+  return port;
+}
 
 describe('declared Node.js ESM runtime', () => {
   it('creates a development token without CommonJS require', () => {
@@ -49,5 +59,37 @@ describe('declared Node.js ESM runtime', () => {
     rmSync(databaseDir, { recursive: true, force: true });
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout).toContain('http-server-ok');
+  });
+
+  it('binds a real socket via start(), serves /health, and closes cleanly', async () => {
+    const databaseDir = mkdtempSync(join(tmpdir(), 'callforge-http-start-'));
+    const port = await freePort();
+    const program = `
+      import { CallforgeHttpServer } from './server.mjs';
+      const server = new CallforgeHttpServer();
+      await server.initialize();
+      server.start();
+      let res;
+      for (let i = 0; i < 50; i++) {
+        try { res = await fetch('http://127.0.0.1:${port}/health'); break; }
+        catch { await new Promise(r => setTimeout(r, 100)); }
+      }
+      if (!res || res.status !== 200) throw new Error('server did not serve /health');
+      const body = await res.json();
+      if (body.status !== 'ok') throw new Error('unexpected /health body');
+      await server.shutdown();
+      console.log('http-start-ok');
+    `;
+
+    const result = spawnSync(process.execPath, ['--input-type=module', '--eval', program], {
+      cwd: process.cwd(),
+      env: { ...process.env, CALLFORGE_DB_DIR: databaseDir, PORT: String(port) },
+      encoding: 'utf8',
+      timeout: 30000,
+    });
+
+    rmSync(databaseDir, { recursive: true, force: true });
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stdout).toContain('http-start-ok');
   });
 });
