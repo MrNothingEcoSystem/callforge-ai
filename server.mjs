@@ -11,12 +11,17 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { parse } from 'url';
 import { initDatabase, getDatabase, closeStore } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
-import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
+import { createOAuthServer } from './oauth.mjs';
 import { createAuthMiddleware } from './auth.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
-import { createMcpHttpHandler, protectedResourceMetadata, parseOrigins } from './mcp-http.mjs';
+import {
+  createMcpHttpHandler,
+  protectedResourceMetadata,
+  authorizationServerMetadata,
+  parseOrigins,
+} from './mcp-http.mjs';
 
 const PORT = process.env.PORT || 3000;
 const SIMULATION_MODE = process.env.SIMULATION_MODE !== 'false'; // Default true for v0.2
@@ -67,6 +72,7 @@ class CallforgeHttpServer {
         authMiddleware: createAuthMiddleware(),
         auditLogger: this.auditLogger,
         env: process.env,
+        publicUrl: process.env.MCP_PUBLIC_URL || null,
       });
     }
 
@@ -87,7 +93,11 @@ class CallforgeHttpServer {
       // CORS headers. The MCP endpoint is allow-listed per origin; everything
       // else keeps the historical wildcard.
       const origin = req.headers.origin;
-      const originScoped = path === '/mcp' && this.allowedOrigins.length > 0;
+      const originScoped =
+        this.allowedOrigins.length > 0 &&
+        (path === '/mcp' ||
+          path.startsWith('/.well-known/oauth-protected-resource') ||
+          path.startsWith('/.well-known/oauth-authorization-server'));
       if (originScoped) {
         res.setHeader('Vary', 'Origin');
         if (!origin || this.allowedOrigins.includes(origin)) {
@@ -169,8 +179,14 @@ class CallforgeHttpServer {
       await this.handleMcp(req, res);
       return;
     }
-    if (this.mcpEnabled && path.startsWith('/.well-known/oauth-protected-resource')) {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
+    // RFC9728 discovery: both the bare and the /mcp-suffixed form (RFC9728 §3.1
+    // inserts the resource path after the well-known segment).
+    if (
+      this.mcpEnabled &&
+      (path === '/.well-known/oauth-protected-resource' ||
+        path === '/.well-known/oauth-protected-resource/mcp')
+    ) {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' });
       res.end(JSON.stringify(protectedResourceMetadata(process.env)));
       return;
     }
@@ -184,18 +200,14 @@ class CallforgeHttpServer {
       await this.handleOAuthToken(req, res);
       return;
     }
-    if (path === '/.well-known/oauth-authorization-server' && method === 'GET') {
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(
-        JSON.stringify({
-          issuer: ISSUER,
-          audience: AUDIENCE,
-          authorization_endpoint: '/oauth/authorize',
-          token_endpoint: '/oauth/token',
-          code_challenge_methods_supported: ['S256'],
-          grant_types_supported: ['authorization_code'],
-        }),
-      );
+    // RFC8414 authorization-server metadata, bare and /mcp-suffixed (RFC8414 §3.1).
+    if (
+      method === 'GET' &&
+      (path === '/.well-known/oauth-authorization-server' ||
+        path === '/.well-known/oauth-authorization-server/mcp')
+    ) {
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'max-age=300' });
+      res.end(JSON.stringify(authorizationServerMetadata(process.env)));
       return;
     }
 

@@ -18,7 +18,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { registerTools } from './tools/index.mjs';
-import { validateAccessToken } from './oauth.mjs';
+import { AUDIENCE, ISSUER, validateAccessToken } from './oauth.mjs';
 
 export const SUPPORTED_PROTOCOL_VERSIONS = ['2025-06-18', '2025-11-25', '2026-07-28'];
 const DEFAULT_MAX_BODY_BYTES = 1024 * 1024;
@@ -74,6 +74,11 @@ export function createMcpHttpHandler({
   const allowedOrigins = parseOrigins(env.MCP_ALLOWED_ORIGINS);
   const maxBodyBytes = Number(env.MCP_MAX_BODY_BYTES || DEFAULT_MAX_BODY_BYTES);
   const requireAuth = env.MCP_HTTP_ALLOW_ANONYMOUS !== '1';
+  // RFC8707 binding: strict whenever a canonical public URL is configured (any
+  // real deployment); MCP_REQUIRE_RESOURCE_AUDIENCE overrides either way.
+  const requireResourceAudience = env.MCP_REQUIRE_RESOURCE_AUDIENCE
+    ? env.MCP_REQUIRE_RESOURCE_AUDIENCE === '1'
+    : Boolean(env.MCP_PUBLIC_URL);
 
   async function authenticate(req) {
     const header = req.headers.authorization || '';
@@ -81,7 +86,10 @@ export function createMcpHttpHandler({
     if (scheme !== 'Bearer' || !token) {
       return { ok: false, error: 'Access token required' };
     }
-    const jwt = validateAccessToken(token);
+    const jwt = validateAccessToken(token, undefined, {
+      resource: requireResourceAudience ? resourceUrl : null,
+      allowLegacyAudience: !requireResourceAudience,
+    });
     if (jwt.valid) {
       return { ok: true, token, context: jwt.context };
     }
@@ -125,7 +133,9 @@ export function createMcpHttpHandler({
           401,
           { error: auth.error },
           {
-            'WWW-Authenticate': `Bearer resource_metadata="${resourceMetadata}", scope="read"`,
+            'WWW-Authenticate':
+              `Bearer error="invalid_token", error_description="${auth.error}", ` +
+              `resource_metadata="${resourceMetadata}", scope="read"`,
           },
         );
         return;
@@ -187,15 +197,52 @@ export function createMcpHttpHandler({
   };
 }
 
+/**
+ * Base URL for the deployment. Discovery documents MUST carry absolute URIs
+ * (RFC8414 §2), so this is derived once and shared by both metadata builders.
+ */
+export function publicBaseUrl(env = process.env) {
+  if (env.MCP_PUBLIC_URL) {
+    return new URL(env.MCP_PUBLIC_URL).origin;
+  }
+  return `http://localhost:${env.PORT || 3000}`;
+}
+
 /** RFC9728 protected-resource metadata (informational, unauthenticated). */
 /** @param {Record<string, string | undefined>} [env] */
 export function protectedResourceMetadata(env = process.env) {
-  const resourceUrl = env.MCP_PUBLIC_URL || `http://localhost:${env.PORT || 3000}/mcp`;
+  const base = publicBaseUrl(env);
   return {
-    resource: resourceUrl,
-    authorization_servers: [env.MCP_AUTHORIZATION_SERVER || resourceUrl.replace(/\/mcp$/, '')],
+    resource: env.MCP_PUBLIC_URL || `${base}/mcp`,
+    resource_name: env.MCP_RESOURCE_NAME || 'CallForge MCP',
+    authorization_servers: [env.MCP_AUTHORIZATION_SERVER || base],
     scopes_supported: ['read', 'simulate', 'write', 'admin', 'audit'],
     bearer_methods_supported: ['header'],
+    tls_client_certificate_bound_access_tokens: false,
     resource_documentation: env.MCP_RESOURCE_DOCUMENTATION || undefined,
+  };
+}
+
+/**
+ * RFC8414 authorization-server metadata. The simulation issuer reuses the same
+ * origin, so endpoints are absolute and resource indicators (RFC8707) are
+ * advertised so clients know to send `resource` at authorize time.
+ */
+export function authorizationServerMetadata(env = process.env) {
+  const base = publicBaseUrl(env);
+  return {
+    issuer: env.MCP_AUTHORIZATION_SERVER || base,
+    audience: AUDIENCE,
+    issuer_name: ISSUER,
+    authorization_endpoint: `${base}/oauth/authorize`,
+    token_endpoint: `${base}/oauth/token`,
+    jwks_uri: env.MCP_JWKS_URI || undefined,
+    scopes_supported: ['read', 'simulate', 'write', 'admin', 'audit'],
+    response_types_supported: ['code'],
+    grant_types_supported: ['authorization_code'],
+    token_endpoint_auth_methods_supported: ['none'],
+    code_challenge_methods_supported: ['S256'],
+    resource_indicators_supported: true,
+    authorization_response_iss_parameter_supported: false,
   };
 }

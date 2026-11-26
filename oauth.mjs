@@ -17,6 +17,36 @@ import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypt
 
 export const ISSUER = 'callforge';
 export const AUDIENCE = 'callforge-api';
+
+/**
+ * RFC8707 resource indicators. A `resource` value must be an absolute URI with
+ * no fragment; the fragment is stripped per RFC8707 §2.
+ */
+export function normalizeResource(value) {
+  if (value === undefined || value === null || value === '') {
+    return { resource: null };
+  }
+  if (typeof value !== 'string') {
+    return { error: 'resource must be a string' };
+  }
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return { error: 'resource must be an absolute URI' };
+  }
+  if (!['http:', 'https:'].includes(url.protocol)) {
+    return { error: 'resource must be an http(s) URI' };
+  }
+  url.hash = '';
+  return { resource: url.toString() };
+}
+
+/** JWT `aud` is a string or an array (RFC7519 §4.1.3); match either. */
+export function audMatches(aud, expected) {
+  const list = Array.isArray(aud) ? aud : typeof aud === 'string' ? [aud] : [];
+  return list.includes(expected);
+}
 const CODE_TTL_MS = 10 * 60 * 1000;
 const TOKEN_TTL_SECONDS = 15 * 60;
 
@@ -80,7 +110,11 @@ function verifySignature(token) {
   }
 }
 
-export function validateAccessToken(token, nowSeconds = Math.floor(Date.now() / 1000)) {
+export function validateAccessToken(
+  token,
+  nowSeconds = Math.floor(Date.now() / 1000),
+  { resource = null, allowLegacyAudience = false } = {},
+) {
   if (!token || typeof token !== 'string') {
     return { valid: false, error: 'Missing access token' };
   }
@@ -91,7 +125,18 @@ export function validateAccessToken(token, nowSeconds = Math.floor(Date.now() / 
   if (claims.iss !== ISSUER) {
     return { valid: false, error: 'Invalid issuer' };
   }
-  if (claims.aud !== AUDIENCE) {
+  // RFC8707: when the caller must address a specific resource, the token has to
+  // name it. Tokens minted before resource binding (aud=callforge-api only) are
+  // still accepted when allowLegacyAudience is set — but never for another
+  // resource, which is the whole point of the binding.
+  if (resource) {
+    if (
+      !audMatches(claims.aud, resource) &&
+      !(allowLegacyAudience && audMatches(claims.aud, AUDIENCE))
+    ) {
+      return { valid: false, error: 'Token not valid for this resource' };
+    }
+  } else if (claims.aud !== AUDIENCE && !audMatches(claims.aud, AUDIENCE)) {
     return { valid: false, error: 'Invalid audience' };
   }
   if (typeof claims.exp !== 'number' || claims.exp <= nowSeconds) {
@@ -138,6 +183,7 @@ export function createOAuthServer() {
       scope,
       code_challenge,
       code_challenge_method = 'S256',
+      resource: resourceInput,
     }) {
       if (!tenant_id) {
         return { error: 'tenant_id required' };
@@ -150,6 +196,10 @@ export function createOAuthServer() {
       }
       if (code_challenge_method !== 'S256') {
         return { error: 'Only S256 code_challenge_method supported' };
+      }
+      const { resource, error: resourceError } = normalizeResource(resourceInput);
+      if (resourceError) {
+        return { error: resourceError };
       }
       const requested = Array.isArray(scope) ? scope : ['read'];
       if (requested.some(s => !ALL_SCOPES.has(s))) {
@@ -167,11 +217,12 @@ export function createOAuthServer() {
         client_id,
         role,
         scope: granted,
+        resource,
         code_challenge,
         expires_at: Date.now() + CODE_TTL_MS,
         used: false,
       });
-      return { code, expires_in: CODE_TTL_MS / 1000 };
+      return { code, expires_in: CODE_TTL_MS / 1000, resource };
     },
 
     /** Token endpoint: exchange code + verifier for a signed access token. */
@@ -210,7 +261,7 @@ export function createOAuthServer() {
       const now = Math.floor(Date.now() / 1000);
       const access_token = sign({
         iss: ISSUER,
-        aud: AUDIENCE,
+        aud: record.resource ? [AUDIENCE, record.resource] : AUDIENCE,
         sub: record.tenant_id,
         tenant_id: record.tenant_id,
         role: record.role,
@@ -222,6 +273,7 @@ export function createOAuthServer() {
       return {
         access_token,
         token_type: 'Bearer',
+        resource: record.resource || undefined,
         expires_in: TOKEN_TTL_SECONDS,
         scope: record.scope.join(' '),
       };

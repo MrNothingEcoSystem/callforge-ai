@@ -23,13 +23,19 @@ setTestDatabasePath(join(DIR, 'callforge.db'));
 
 const ORIGIN = 'https://chat.example';
 
-function issueToken(tenantId, role = 'tenant_admin', scope = ['read']) {
+function issueToken(
+  tenantId,
+  role = 'tenant_admin',
+  scope = ['read'],
+  resource = 'https://mcp.example/mcp',
+) {
   const oauth = createOAuthServer();
   const verifier = generateCodeVerifier();
   const { code } = oauth.authorize({
     tenant_id: tenantId,
     role,
     scope,
+    resource,
     code_challenge: pkceS256(verifier),
   });
   return oauth.exchange({ code, code_verifier: verifier }).access_token;
