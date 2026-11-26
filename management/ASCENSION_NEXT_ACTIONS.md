@@ -120,3 +120,16 @@ note the published `securitySchemes` scope (`callforge:config`) and the enforced
 different vocabularies — reconciling them is a separate M09 item. Open on PR #192 now: F13 (Info),
 F14 (accepted). Next M09 step is still (6) IdP swap once SEC-001 is decided, then conformance suite
 §7; owner merge order unchanged: #189 → #191 → #192.
+
+## Cycle 204 — M09 F16 closed (published scope == enforced scope)
+
+F16 (raised by cycle 203) fixed in `7add464`: the published `securitySchemes` are now the enforced
+`TOOL_SCOPES` value per tool, and `/oauth/authorize` accepts the `callforge:` alias so previously
+documented scope names still work. The issuer previously rejected every published scope with
+`400 Unknown scope requested` — a client following `tools/list` could not get a token at all — and
+`simulate_conversation`/`generate_report`/`validate_compliance` published a scope the authorizer
+does not accept. Discovery `scopes_supported` is derived from `ROLES` now (the phantom `write` is
+gone). A drift test asserts published == enforced for every tool; alias retention is recorded as
+Info F17. 25/25 targeted, full suite 188 tests 0 failed, CI SUCCESS. Open on PR #192: F13 (Info),
+F14 (accepted), F17 (Info). Next M09 step is still (6) IdP swap once SEC-001 is decided, then
+conformance suite §7; owner merge order unchanged: #189 → #191 → #192.

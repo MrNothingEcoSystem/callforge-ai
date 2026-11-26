@@ -86,11 +86,13 @@ with no gated call still takes the normal path unchanged. Batch notifications ge
 response entry; a batch with a single gated item still answers a single object, matching
 the SDK's one-element-batch behaviour (F3).
 
-| ID  | Severity | Finding                                                                                                                                                                                                                                               | Status                                                                                           |
-| --- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| F11 | Medium   | Batch requests skipped the C2 gate entirely, so a licensed `configure_business` applied inside a batch.                                                                                                                                               | **Fixed** — per-item gate; 5 regression tests; live probe pass1 `input_required`, pass2 applied. |
-| F14 | Low      | A batch containing an already-issued confirmation is re-executed in full, including non-gated items, on resume.                                                                                                                                       | Accepted — batches are idempotent for the read tools and `onboard_tenant`; documented.           |
-| F15 | Low      | Pre-existing, found by the live probe: anonymous `onboard_tenant` returns `credential: null`, which its own `outputSchema` rejects (`expected object, received null`), so the call reports an output-validation error although the tenant is created. | Open follow-up, outside F11 scope.                                                               |
+| ID  | Severity | Finding                                                                                                                                                                                                                                               | Status                                                                                                  |
+| --- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| F11 | Medium   | Batch requests skipped the C2 gate entirely, so a licensed `configure_business` applied inside a batch.                                                                                                                                               | **Fixed** — per-item gate; 5 regression tests; live probe pass1 `input_required`, pass2 applied.        |
+| F14 | Low      | A batch containing an already-issued confirmation is re-executed in full, including non-gated items, on resume.                                                                                                                                       | Accepted — batches are idempotent for the read tools and `onboard_tenant`; documented.                  |
+| F15 | Low      | Pre-existing, found by the live probe: anonymous `onboard_tenant` returns `credential: null`, which its own `outputSchema` rejects (`expected object, received null`), so the call reports an output-validation error although the tenant is created. | Open follow-up, outside F11 scope.                                                                      |
+| F16 | Medium   | Published `securitySchemes` were a parallel vocabulary (`callforge:*`) the issuer rejected with `400 Unknown scope requested`, and three tools published a scope the authorizer does not accept.                                                      | **Fixed** in cycle 204 — published scopes equal the enforced `TOOL_SCOPES`; alias accepted; drift test. |
+| F17 | Info     | `callforge:` is an alias, not the canonical scope form.                                                                                                                                                                                               | Accepted — migrate both sides together if a real IdP is wired.                                          |
 
 Probe (real `server.mjs`, port 3816, flag on, anonymous): batch [`configure_business{license_number}`,
 `check_readiness`] → 200 with `input_required` for id 1 and a real readiness result for id 2;
@@ -155,3 +157,41 @@ table holds exactly one `elicitation_requested` row, from the admin call.
 Open on this PR after cycle 203: F13 (Info), F14 (accepted). F12 and F15 closed. The IdP swap
 (step 6) and the `iss` URL-vs-literal conformance stay gated on SEC-001; merge order remains
 #189 → #191 → #192.
+
+## Cycle 204 — F16: published scope vocabulary vs enforced scope (closed)
+
+Raised by cycle 203 and accepted as the next item. The published `securitySchemes` were a parallel
+vocabulary (`callforge:config`, `callforge:report`, `callforge:compliance`, …) that the issuer did
+not accept at all — `/oauth/authorize` validates against the bare `ALL_SCOPES` and answered
+**400 `Unknown scope requested`**, so a client following `tools/list` or the discovery documents
+could not obtain a token, let alone pass the authorizer. Three entries were also simply wrong:
+`simulate_conversation` published `read` while the authorizer demands `simulate`,
+`generate_report` published `report` and `validate_compliance` published `compliance` while both
+enforce `read`.
+
+Fix `7add464`, deliberately in three parts:
+
+1. `mcp-tool-metadata.mjs` publishes the enforced value (`TOOL_SCOPES[name][0]`) per tool. The
+   module cannot import `TOOL_SCOPES` — `tools/index.mjs` imports this module, so a top-level read
+   would hit the TDZ — so a new test asserts `REMOTE_TOOL_METADATA[n].securitySchemes ===
+[{oauth2, scopes:[TOOL_SCOPES[n][0]]}]` for every tool. That is the anti-drift guarantee, not a
+   comment.
+2. `oauth.mjs` accepts `callforge:<scope>` as an alias: requested scopes are de-prefixed and
+   de-duplicated before the role check, and `validateAccessToken` de-prefixes claims too, so
+   already-minted prefixed tokens keep working. Tokens are signed and echoed with the bare scope.
+3. Discovery `scopes_supported` in both well-known documents is now `SUPPORTED_SCOPES` (derived
+   from `ROLES`) instead of a hardcoded list that advertised a `write` scope no role holds.
+
+No widening: the enforcement maps are untouched, only the published names and the issuer's input
+normalisation changed. Verified: `tests/m02-oauth.test.mjs` + `tests/m09-tool-metadata.test.mjs`
+25/25 (2 new: alias accepted then enforced token scopes, published == enforced for every tool),
+reproduced in a detached worktree at `7add464`; unrelated suites unaffected; full suite 188 tests,
+0 failed (172 in the full run, `tests/audit.test.mjs` 16/16 re-run alone — known TECH-009
+SIGABRT); eslint 0, prettier clean, tsc clean; CI SUCCESS run 45891967433. Live probe (real
+`server.mjs`, port 3821): discovery advertises `[simulate, read, audit, admin]`, `callforge:read`
+authorize → code → token with `scope: read`, `tools/list` shows bare scopes equal to the enforced
+ones, admin token `configure_business` → `configured`, operator token → 403 `requires admin`.
+
+Residual (new, Info): `callforge:` stays an alias rather than the canonical form, so if a real IdP
+(EU/OpenAI clients) is wired later, keep the alias or migrate both sides together. Open on this
+PR after cycle 204: F13 (Info), F14 (accepted), F17 (Info, alias retention). F12, F15, F16 closed.
