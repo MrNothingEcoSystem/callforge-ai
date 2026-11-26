@@ -27,8 +27,8 @@ Merge order for the owner is now #189 → #191 → #192. Next engineering after 
 (1) F2 CORS preflight honouring the Origin allow-list — **done**, cycle 196 (`4ee48f7`),
 (2) RFC9728/8414 discovery + RFC8707 audience binding — **done**, cycle 197 (`4fa9dd5`),
 (3) per-tenant rate limiting — **done**, cycle 198 (`b349b06`), (4) tool annotations + securitySchemes and
-removal of `access_token`/`tenant_id` from the remote registry, (5) elicitation for C2 tools,
-(6) IdP swap once SEC-001 is decided.
+removal of `access_token`/`tenant_id` from the remote registry — **done**, cycle 199 (`2d79fc2`),
+(5) structured outputs and elicitation for C2 tools, (6) IdP swap once SEC-001 is decided.
 
 Cycle 197 detail: discovery documents now carry absolute URIs (RFC8414 §2), the `/mcp`
 path-aware well-known variants answer, `resource_indicators_supported` is advertised, and
@@ -50,6 +50,17 @@ spammed expensive tool also spends caller budget (order is caller → tool). Not
 rejected-tool request still consumes a caller token. Next M09 step: (4) tool
 annotations + securitySchemes and removal of `access_token`/`tenant_id` from the
 remote registry.
+
+## Cycle 199 — M09 step 4 remote registry metadata (PR #192)
+
+`mcp-tool-metadata.mjs` is now the remote registry: the owner-facing subset with explicit
+annotations and one least-privilege `securitySchemes` scope per tool, `create_dev_token`
+(C3) delisted, `access_token`/`tenant_id` gone from the published schema whenever bearer
+auth is on (passthrough keeps the 403 mismatch net and the onboarding credential hand-off).
+7 tests, live probe, full suite 166/166. Review record F4 closed with F7–F10. Next M09 step:
+(5) structured outputs + elicitation for C2 tools — that turns the C1/C2 confirmation levels
+from annotations into an actual gate. Note for the owner: a remote client can no longer
+mint its own dev token, so provisioning has to come from the IdP or an operator-issued token.
 
 ## Cycle 194 — issue #8 review + remediation (PR #191)
 
