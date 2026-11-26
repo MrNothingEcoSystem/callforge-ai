@@ -74,7 +74,7 @@ write nothing and audit `elicitation_declined`; a stale state is re-issued rathe
 Every exposed tool now publishes an `outputSchema` and returns `structuredContent`
 (`MCP_ELICITATION_GATE=0` restores annotations-only). 9 new tests, full suite 156/156 executed pairs.
 Next M09 step: (6) IdP swap once SEC-001 is decided, then conformance suite §7 and the OpenAI
-app-review pass. Owner-visible: a remote client that ignores `input_required` can no longer change
+app-review pass. (Batch gate F11 closed in cycle 201 — see the cycle 201 section at the end.) Owner-visible: a remote client that ignores `input_required` can no longer change
 licensed settings in one shot.
 
 ## Cycle 194 — issue #8 review + remediation (PR #191)
@@ -84,3 +84,16 @@ Independent-style re-review in an isolated worktree found two High defects and b
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 201 — M09 review F11 closed (batch C2 gate)
+
+Batch JSON-RPC requests used to reach the SDK dispatch wholesale, so a C2 `configure_business`
+inside a batch applied unconfirmed. `mcp-http.mjs` now answers a gate-touching batch itself:
+gated items get `input_required` / declined / stale re-issue, other items execute through the
+same SDK request handler, and batches without a gated call take the normal path (F11 closed).
+5 regression tests, live probe pass1/pass2, full suite 180 tests 0 failed. New follow-ups:
+F14 (Low — a resumed batch re-executes its non-gated items; accepted) and F15 (Low, pre-existing
+— anonymous `onboard_tenant` returns `credential: null` that its own `outputSchema` rejects, so
+the call reports an output-validation error even though the tenant is created). Next M09 step
+stays (6) IdP swap once SEC-001 is decided, together with the F15 fix and conformance suite §7;
+owner merge order is still #189 → #191 → #192.

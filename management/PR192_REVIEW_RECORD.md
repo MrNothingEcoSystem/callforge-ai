@@ -74,3 +74,27 @@ Read-only pass in a detached worktree at `cd4603f` (`pnpm install --frozen-lockf
 - F13 (Info): `requestState` is unsigned base64url JSON — forgeable, but only by the client that
   is itself choosing to confirm; the fingerprint's job is staleness, not authenticity. HMAC is the
   hardening if requestState ever carries state the client must not choose.
+
+## Cycle 201 — F11 closed (batch gate)
+
+Independent read-only pass in a detached worktree at `f2a109c`. F11 is closed: a JSON-RPC
+batch that contains a C2 `tools/call` no longer reaches the SDK dispatch unconfirmed. The
+transport now answers such a batch itself, item by item — gated items get
+`input_required` (or a declined result, or a stale-state re-issue), every other item is
+executed through the same SDK request handler the transport would have used, and a batch
+with no gated call still takes the normal path unchanged. Batch notifications get no
+response entry; a batch with a single gated item still answers a single object, matching
+the SDK's one-element-batch behaviour (F3).
+
+| ID  | Severity | Finding                                                                                                       | Status                                                                                  |
+| --- | -------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| F11 | Medium   | Batch requests skipped the C2 gate entirely, so a licensed `configure_business` applied inside a batch.       | **Fixed** — per-item gate; 5 regression tests; live probe pass1 `input_required`, pass2 applied. |
+| F14 | Low      | A batch containing an already-issued confirmation is re-executed in full, including non-gated items, on resume. | Accepted — batches are idempotent for the read tools and `onboard_tenant`; documented.  |
+| F15 | Low      | Pre-existing, found by the live probe: anonymous `onboard_tenant` returns `credential: null`, which its own `outputSchema` rejects (`expected object, received null`), so the call reports an output-validation error although the tenant is created. | Open follow-up, outside F11 scope. |
+
+Probe (real `server.mjs`, port 3816, flag on, anonymous): batch [`configure_business{license_number}`,
+`check_readiness`] → 200 with `input_required` for id 1 and a real readiness result for id 2;
+resume with the returned `requestState` → `status: configured` for id 1 and id 2 still executes.
+`tests/m09-elicitation.test.mjs` 14/14; unrelated M09 suites 37/37; full suite 180 tests
+(161 in one run, `tests/tools.test.mjs` 19/19 re-run alone — known TECH-009 `better-sqlite3`
+SIGABRT); eslint 0, prettier clean, tsc clean.
