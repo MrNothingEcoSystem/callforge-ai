@@ -99,5 +99,5 @@
 - Tests: `tests/m09-mcp-http.test.mjs` 7/7; full suite 0 failures with the known `better-sqlite3` worker SIGABRT still taking 2 workers per parallel run (118/136 executed). New TECH-009 records that flake.
 - Verification on the real server (port 3811, flag on): `/health` 200, `/mcp` 401 + challenge, metadata served, GET 405.
 - No merge, no deploy, no live calls, no spend. No Telegram message: no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 191, ~12:18 UTC) is inside the 6-hour window.
-- Head `430b7511d0ab4e1cad5bfd0b9ea15e79b1bf94a1`; CI evidence recorded in the cycle follow-up commit.
+- Head `430b7511d0ab4e1cad5bfd0b9ea15e79b1bf94a1`, CI verify SUCCESS (run 45843752911); docs head `84e14f2187761f68148606c1f06b3b8eff5dd908`, CI verify SUCCESS (run 45843861650). Remote branch SHAs verified equal.
 - Resource usage: ~20 min wall clock, 1 detached worktree, no persistent processes. Remaining: owner merge decisions on #189/#191/#192; M09 steps 2-6; SEC-001 IdP still blocks production exposure.
