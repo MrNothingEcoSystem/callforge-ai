@@ -25,9 +25,19 @@ verdict ACCEPT WITH FOLLOW-UPS with the Medium 413-socket defect fixed before pu
 
 Merge order for the owner is now #189 → #191 → #192. Next engineering after that, in order:
 (1) F2 CORS preflight honouring the Origin allow-list — **done**, cycle 196 (`4ee48f7`),
-(2) RFC9728/8414 discovery + RFC8707 audience binding, (3) per-tenant rate limiting, (4) tool annotations + securitySchemes and
+(2) RFC9728/8414 discovery + RFC8707 audience binding — **done**, cycle 197 (`4fa9dd5`),
+(3) per-tenant rate limiting, (4) tool annotations + securitySchemes and
 removal of `access_token`/`tenant_id` from the remote registry, (5) elicitation for C2 tools,
 (6) IdP swap once SEC-001 is decided.
+
+Cycle 197 detail: discovery documents now carry absolute URIs (RFC8414 §2), the `/mcp`
+path-aware well-known variants answer, `resource_indicators_supported` is advertised, and
+`authorize` accepts an RFC8707 `resource` that becomes the token's `aud` alongside
+`callforge-api`. The `/mcp` gate refuses a token minted for another resource (401 +
+`invalid_token`). **Owner-visible behaviour change:** a token without a `resource` is now
+rejected there unless `MCP_REQUIRE_RESOURCE_AUDIENCE=0`. Still open in this area: the `iss`
+claim is the literal `callforge` while RFC8414 metadata publishes a URL issuer — closing
+that needs the SEC-001 IdP decision, not more local code.
 
 ## Cycle 194 — issue #8 review + remediation (PR #191)
 
