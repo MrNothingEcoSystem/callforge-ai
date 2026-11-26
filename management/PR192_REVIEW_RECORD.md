@@ -278,6 +278,7 @@ Independent pass in detached worktree `/root/.hermes/cache/scratch/cf207/rev` at
 `idp`+`m02-oauth`+`m09-conformance` reproduced. Diff read for scope and widening.
 
 Checked and found sound:
+
 - Default-off: with `CALLFORGE_IDP_MODE` unset `validateAccessToken` returns the local
   verifier's result directly — byte-identical behaviour, no test in the existing 186 moved.
 - Fail-closed edges: `alg: none`, unknown `kid`, expired/`nbf`-future, missing tenant
@@ -292,6 +293,7 @@ Checked and found sound:
   point verification at their own key set. Public URL only, `https` enforced in production.
 
 Follow-ups raised:
+
 - **F20 (Medium)** — the cutover fallback accepted this module's own HS256 tokens while
   an IdP was configured. Correct during migration, wrong once the IdP is authoritative.
   **Fixed in this review cycle** (`3400a2a`) with `CALLFORGE_OIDC_ALLOW_LOCAL_TOKENS=0`
