@@ -162,6 +162,36 @@ describe('M09 remote tool registry', () => {
     expect(payload.error).toMatch(/Tenant mismatch/);
   });
 
+  it('still honours an explicitly passed credential for the onboarding hand-off', async () => {
+    // access_token is no longer advertised, but onboarding hands one back; the
+    // passthrough schema must let a client use it for the new tenant.
+    const admin = issueToken(tenantId, ['admin', 'read']);
+    const { body } = await rpc(base, admin, {
+      jsonrpc: '2.0',
+      id: 6,
+      method: 'tools/call',
+      params: {
+        name: 'onboard_tenant',
+        arguments: { name: 'Passthrough Co', admin_email: 'owner@passthrough.example' },
+      },
+    });
+    const onboarded = JSON.parse(body.result.content[0].text);
+    expect(onboarded.credential.access_token).toMatch(/^cf_dev_/);
+
+    const followUp = await rpc(base, token, {
+      jsonrpc: '2.0',
+      id: 7,
+      method: 'tools/call',
+      params: {
+        name: 'check_readiness',
+        arguments: { access_token: onboarded.credential.access_token },
+      },
+    });
+    const readiness = JSON.parse(followUp.body.result.content[0].text);
+    expect(readiness.checks.tenant_exists).toBe(true);
+    expect(readiness.tenant_id).not.toBe(tenantId);
+  });
+
   it('leaves the stdio registry on its legacy schema', async () => {
     const server = new McpServer({ name: 'stdio', version: '0.0.0' });
     const auditLogger = createAuditLogger();

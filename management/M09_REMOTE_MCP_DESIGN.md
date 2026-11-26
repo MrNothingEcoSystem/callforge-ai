@@ -77,7 +77,9 @@ C3 tools, strips `access_token`/`tenant_id` from the published schema when beare
 auth is on, and keeps the legacy schema when `MCP_HTTP_ALLOW_ANONYMOUS=1`. The
 remote input schema is a passthrough object, so a stray `tenant_id` still trips
 the 403 mismatch check in `tools/toolAuth.mjs` even though it is no longer
-advertised (`additionalProperties: {}` is the visible consequence). Annotations
+advertised (`additionalProperties: {}` is the visible consequence). An unadvertised `access_token` passed explicitly still wins over the transport
+bearer in `toolAuth`, which is what keeps the onboarding credential hand-off
+usable. Annotations
 follow the table: read-only for the six read families, `idempotentHint:false`
 plus `readOnlyHint:false` for `onboard_tenant`. Still open in this section:
 `outputSchema`/structuredContent, tool-level 401 `_meta["mcp/www_authenticate"]`,
