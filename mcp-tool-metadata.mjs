@@ -134,7 +134,10 @@ export const OUTPUT_SCHEMAS = {
   onboard_tenant: loose({
     tenant_id: z.string().optional(),
     status: z.string().optional(),
-    credential: z.looseObject({}).optional(),
+    // `null` is the legitimate value when no dev token is minted (anonymous
+    // mode, F15); `.optional()` alone rejects it and fails an otherwise
+    // successful onboarding on output validation.
+    credential: z.looseObject({}).nullish(),
   }),
   configure_business: loose({
     tenant_id: z.string().optional(),

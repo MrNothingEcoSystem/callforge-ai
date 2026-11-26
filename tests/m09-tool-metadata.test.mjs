@@ -20,7 +20,7 @@ import { createAuthMiddleware } from '../auth.mjs';
 import { createMcpHttpHandler } from '../mcp-http.mjs';
 import { createOAuthServer, generateCodeVerifier, pkceS256 } from '../oauth.mjs';
 import { registerTools } from '../tools/index.mjs';
-import { REMOTE_TOOL_METADATA } from '../mcp-tool-metadata.mjs';
+import { OUTPUT_SCHEMAS, REMOTE_TOOL_METADATA } from '../mcp-tool-metadata.mjs';
 
 const DIR = mkdtempSync(join(tmpdir(), 'callforge-m09-metadata-'));
 setTestDatabasePath(join(DIR, 'callforge.db'));
@@ -190,6 +190,72 @@ describe('M09 remote tool registry', () => {
     const readiness = JSON.parse(followUp.body.result.content[0].text);
     expect(readiness.checks.tenant_exists).toBe(true);
     expect(readiness.tenant_id).not.toBe(tenantId);
+  });
+
+  it('validates the anonymous onboarding result when no credential is minted (F15)', async () => {
+    // Anonymous mode mints no dev token, so the handler legitimately returns
+    // credential: null. The published outputSchema must accept it instead of
+    // turning a successful onboarding into an output-validation error.
+    const auditLogger = createAuditLogger();
+    await auditLogger.initialize();
+    const anonHandler = createMcpHttpHandler({
+      authMiddleware: createAuthMiddleware({ auditLogger }),
+      auditLogger,
+      env: {
+        MCP_HTTP_ALLOW_ANONYMOUS: '1',
+        MCP_ALLOWED_ORIGINS: ORIGIN,
+        MCP_PUBLIC_URL: 'https://mcp.example/mcp',
+        PORT: '0',
+      },
+    });
+    const anon = createServer((req, res) => anonHandler(req, res));
+    await new Promise(resolve => anon.listen(0, '127.0.0.1', resolve));
+    const anonBase = `http://127.0.0.1:${anon.address().port}`;
+    try {
+      const res = await fetch(`${anonBase}/mcp`, {
+        method: 'POST',
+        headers: {
+          origin: ORIGIN,
+          'content-type': 'application/json',
+          accept: 'application/json, text/event-stream',
+        },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 61,
+          method: 'tools/call',
+          params: {
+            name: 'onboard_tenant',
+            arguments: { name: 'Anonymous Co', admin_email: 'anon@example.com' },
+          },
+        }),
+      });
+      const body = await res.json();
+      expect(res.status).toBe(200);
+      expect(body.result.isError).toBeFalsy();
+      expect(body.result.structuredContent.credential).toBeNull();
+      expect(body.result.structuredContent.status).toBe('onboarded');
+      const row = getDatabase()
+        .prepare('SELECT name FROM tenants WHERE id = ?')
+        .get(body.result.structuredContent.tenant_id);
+      expect(row.name).toBe('Anonymous Co');
+    } finally {
+      await new Promise(resolve => anon.close(resolve));
+    }
+  });
+
+  it('accepts a minted credential object in the same output schema', () => {
+    const schema = OUTPUT_SCHEMAS.onboard_tenant;
+    expect(
+      schema.safeParse({ tenant_id: 't', status: 'onboarded', credential: null }).success,
+    ).toBe(true);
+    expect(
+      schema.safeParse({
+        tenant_id: 't',
+        status: 'onboarded',
+        credential: { access_token: 'cf_dev_x', scopes: ['read'] },
+      }).success,
+    ).toBe(true);
+    expect(schema.safeParse({ tenant_id: 't', status: 'onboarded' }).success).toBe(true);
   });
 
   it('leaves the stdio registry on its legacy schema', async () => {
