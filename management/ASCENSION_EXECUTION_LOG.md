@@ -123,3 +123,14 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
 - Resource usage: ~7 min wall clock, 1 worktree, no background processes. Remaining: review
   of this branch, TECH-012 (owner/carrier portal), M05 sink, then EXT-002 for M04 closure.
   Assumption: wiring before the dialer exists is cheaper than retrofitting every caller.
+- Independent review of this branch (detached worktree, read-only) recorded verdict
+  **ACCEPT WITH FOLLOW-UPS** in `management/TECH011_REVIEW_RECORD.md`. F1 (Medium, real) —
+  `requestDial` never checked that the intent exists or belongs to the caller's tenant, so a
+  foreign intent id produced dial rows under the wrong tenant — fixed in-cycle with
+  `ReferenceError`/`RangeError` before any write and a test; F3 (double `created_at` write)
+  fixed. F2 (allowed-but-never-placed still consumes the R10 ceiling until M05 reconciles),
+  F4 (denied is terminal; dashboard needs a re-evaluate action) and F5 (migration number gap
+  until #196) recorded, none blocking.
+- Post-remediation gates: 163/163, eslint 0, tsc 0, prettier clean. CI `verify` SUCCESS at
+  `0034113` (45946206076) and review head `1cc7c87` (45946433794). PR #198 updated, stays
+  draft, base `m04-compliance-dial-gates`.
