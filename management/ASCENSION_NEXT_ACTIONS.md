@@ -226,3 +226,16 @@ and the queue must be verified with `gh run list` before a head is called green.
 Everything left on PR #193 is owner-gated: merge order #193 → #189 → #191 → #192, and the
 SEC-001 IdP sign-off (then §7B DCR/CIMD, the discovery `iss`, F19's shim, step 6 wiring, §7G
 interop, OpenAI app-review EXT-008).
+
+## Cycle 211 — PR #193 stack conflict resolved (docs-only merge)
+
+`4dc07fc` merges the base into #193 and keeps both ledger tails chronologically; PR is
+`MERGEABLE` again and `verify` is SUCCESS on the head (run 45920636504). EXT-010 (Actions event
+delivery) recovered as observed — a `pull_request` run queued again; workaround and `gh run
+list` verification stay in force. Review record `management/PR193_STACK_SYNC_REVIEW_RECORD.md`,
+verdict ACCEPT; if the owner prefers rebasing #193 onto `main`, drop this merge rather than
+carry it.
+
+Nothing local remains on #193. Everything is owner-gated: **#193 → #189 → #191 → #192** and the
+SEC-001 IdP sign-off, then §7B DCR/CIMD, the discovery `iss`, F19's shim, step 6 wiring, §7G
+interop (needs a reachable deployment) and EXT-008 app review.

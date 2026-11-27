@@ -323,3 +323,38 @@ API and record whether a repository/workflow-level pause exists.
 - Resource usage: ~40 min wall clock (over the 20-min target: 10 min lost to the abandoned duplicate-guard attempt and 6 min to the CI queue investigation), 2 detached worktrees (both removed), no background server. Estimated remaining work on PR #193: **no local item** — R1/R3 accepted, R2 and its hardening closed. Merge order unchanged and owner-gated: #193 → #189 → #191 → #192. Assumption: EXT-010 is delivery-side, not configuration, so no further repo change is warranted until GitHub or the owner reports otherwise; cycles must dispatch CI explicitly for every head from now on.
 - Telegram receipt: `sent` (CLI, `telegram:8400775109`) — EXT-010 blocker + cycle status, not a 6-hour digest (cycle 209's digest consumed that window at ~23:47 UTC). Docs head `9dc7156` CI SUCCESS (run 45917023506), remote SHA verified equal; PR #193 body updated via REST.
 - Housekeeping: the abandoned attempt left a local-only, unpushed branch `fix/tech-009-suite-integrity` (at `38bf40b`, no unique commit — its content is folded into `854697d`). Deleting a branch needs the force form, which the cron dangerous-command gate blocks, so it stays local; a future cycle may remove it. Final head `6002351` CI SUCCESS (run 45917229545), remote SHA verified equal; `m09-streamable-http` restored at `1c62a12`, clean tree.
+
+## 2026-11-27 — Cycle 211 (dispatcher, 01:05 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` (0 commits ahead of the branch base);
+  `m09-streamable-http` local = `origin` = `1c62a12`, clean tree. Lease taken on
+  `fix/tech-009-sqlite-worker-abort` (PR #193); M09 lease untouched. No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, vitest 5.1.0.
+- Selected highest-priority unblocked task: **PR #193 was `CONFLICTING`** against its base —
+  found at intake via `gh pr list`. #193 is first in the owner merge order, so its conflict
+  blocked #189/#191/#192 as well. No M09 item is locally open (SEC-001 is the owner decision).
+- Cause: the branch was cut at `363b4a6`, before the cycle 208 docs landed on the base, so the
+  append-only ledger tails conflicted. Change `4dc07fc` (merge commit, **docs only**): base
+  merged in, both sides kept in chronological order (208 from base, 209/210 from the branch).
+  `6793f57..4dc07fc` = 5 `management/` files, +69/−3; no code, test, workflow or dependency diff.
+- Tests: guarded suite 23/23 files, **252/252**, exit 0, floor 23/252; repeated 252/252 in a
+  detached worktree on the pushed head. typecheck, lint, format:check clean (the two ledger
+  files needed the known `prettier --write` before push).
+- `mergeable: MERGEABLE` after push; CI `verify` SUCCESS on the merge head (run 45920636504).
+  No live probe: no transport surface touched (assumption recorded).
+- No merge, no deploy, no live calls, no spend.
+- Independent read-only pass in a detached worktree at `4dc07fc` (`pnpm install
+--frozen-lockfile`, 252/252 reproduced, both diffs read for drift, ledger joint read): record
+  `management/PR193_STACK_SYNC_REVIEW_RECORD.md`, verdict **ACCEPT**, no defect, one residual
+  (drop this merge if the owner prefers rebasing #193 to `main`).
+- **EXT-010 status change:** the push queued a `pull_request` run for the first time since
+  `1c62a12`, so Actions event delivery has recovered as observed. EXT-010 moves to
+  recovered-observed; the `workflow_dispatch` workaround and the `gh run list` check stay.
+- Telegram: no message — no milestone acceptance, critical finding, external blocker, failed gate
+  or approval request. Last digest cycle 210 ~00:33 UTC, window closed until ~06:33 UTC.
+- Resource usage: ~12 min wall clock, 1 detached worktree (removed), no background server.
+  Estimated remaining work: **no local item on #193**; the program is owner-gated at
+  #193 → #189 → #191 → #192 merges, the SEC-001 IdP sign-off (then §7B DCR/CIMD, the discovery
+  `iss`, F19's shim, step 6 wiring, §7G interop), and EXT-008 app review. Assumption: the base
+  `m09-streamable-http` gains no further commits before the owner merges; if it does, sync again
+  rather than letting the PR drift back into conflict.

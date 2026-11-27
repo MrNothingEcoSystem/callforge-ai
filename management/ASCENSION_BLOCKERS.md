@@ -44,7 +44,7 @@ Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7
 
 Draft PR #189 (branch cleanup/issues-2-4-5-6): verifyChain partial-verification fix, rowid ordering, node:crypto test imports, start() socket smoke test. Local 111/111 pass. Awaiting independent review + owner merge; issues remain open until merged.
 
-## Cycle 210 — EXT-010 Actions event delivery (2026-11-27, OPEN)
+## Cycle 210 — EXT-010 Actions event delivery (2026-11-27, RECOVERED-OBSERVED)
 
 `pull_request` events queued **no** workflow run for five consecutive heads (`2907515`,
 `f2d4284`, `fde6522`, `38bf40b`, `854697d`), while the same commit's `workflow_dispatch` run
@@ -58,3 +58,10 @@ stale by ~95 min).
   declaring any head green.
 - Owner action if it persists: check the org's Actions settings / any repo-level "paused
   workflow" and re-enable event triggers; no further local code change is expected to help.
+
+## Cycle 211 — EXT-010 update
+
+The `4dc07fc` push queued a `pull_request` run (45920636504, SUCCESS) — the first since
+`1c62a12` and the first evidence of recovery after ~2 h of dispatch-only delivery. Treated as
+**recovered-observed**, not closed: the `workflow_dispatch` workaround and the `gh run list`
+pre-check remain, and the owner action below still applies if it regresses.
