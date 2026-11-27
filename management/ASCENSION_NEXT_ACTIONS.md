@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-27T04:2xZ (cycle 217)
+Updated: 2026-11-27T09:5xZ (cycle 218)
 
 ## Highest priority (supervisor-verified 2026-11-09T04:30Z)
 
@@ -41,3 +41,20 @@ table rebuild), F4 (single-writer collision is fail-loud, revisit at port), F5 (
 backfill if the table grows). Nothing here is merge-blocking; the owner merge chain is now
 #193 → #194 → #189 → #196 → #191 → #192, then #195. Local gates need `--pool=threads` until
 #193 lands (TECH-009 fork-teardown SIGABRT).
+
+## Cycle 218 — review follow-ups F3/F5 closed on #196
+
+`53c4990` adds `db/migrations/0005_audit_seq_notnull.sql`: 12-step rebuild of `audit_events`
+with `seq INTEGER NOT NULL`, dense `ROW_NUMBER()` backfill, and allocation moved into the
+INSERT at both call sites (an AFTER trigger can never satisfy NOT NULL). 120/120, CI verify
+PASS (run 45976522060). `CHECK (seq > 0)` was tried and dropped — the seq-inversion tests need
+an out-of-band sentinel.
+
+Still open and unblocked: nothing in the defect class. Remaining #196 items are documented-only
+(F4 fail-loud single-writer collision — revisit with the port; F6 test restores `seq` in place).
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192, then #195.
+
+Next cycle should not start new code without owner input if CI stays green: the queue is six
+draft PRs and the SEC-001 IdP decision. Cheapest remaining unblocked item is the #189/#196
+retarget dry-run notes (base switch after #189 merges) or a TECH-005 dispatcher recovery check
+over two cycles.

@@ -132,3 +132,38 @@
   chain #193 → #194 → #189 → #196 → #191 → #192 → #195, then the SEC-001 IdP decision, then
   §7B/§7G/EXT-008 deployment work. Assumption: D-008 stands, so finishing this hedge (rather
   than starting a Postgres port) is the correct use of cycles until the merge chain clears.
+
+## 2026-11-27 — Cycle 218 (dispatcher, 09:44 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged; local HEAD `b18e315` on
+  `tech-004-audit-seq-hedge` equalled the remote branch tip, 25 ahead / 0 behind `main`, clean
+  tree. #196's write lease reused (one lease per branch). No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0.
+- Task selection: queue is draft PRs awaiting owner merge; SEC-001 is IdP/owner-gated. The one
+  open, unblocked engineering item was the two accepted review follow-ups on #196 — F3 (nullable
+  `seq`) and F5 (O(n^2) backfill) — recorded as "for the table-rebuild increment".
+- Probe first: confirmed empirically that an `AFTER INSERT` trigger can never satisfy NOT NULL
+  and that `UPDATE ... WHERE rowid = NEW.rowid` in a BEFORE trigger affects 0 rows, so the
+  allocator had to move into the INSERT. That is the design driver below.
+- Change `53c4990`: `0005_audit_seq_notnull.sql` (SQLite 12-step rebuild to `seq INTEGER NOT
+NULL`, dense `ROW_NUMBER()` backfill over the authoritative `seq` order, indexes recreated,
+  trigger dropped); `audit.mjs` and `workflow/stateMachine.mjs` allocate `COALESCE(MAX(seq),0)+1`
+  inside their own INSERT (atomic in-statement, and one write per event instead of insert +
+  trigger UPDATE). Net-negligible behaviour change, structural guarantee gained.
+- `CHECK (seq > 0)` was added then dropped: the seq-inversion tests and repair jobs need an
+  out-of-band sentinel; `0` is the natural one. Recorded on the review record so it does not
+  resurface as a "missing" constraint.
+- Tests +2 (120 total, was 118): column `NOT NULL`, no trigger left, raw insert without `seq`
+  throws, both insert sites still allocate densely, and an upgrade test drives a real
+  `0003`→`0004`→`0005` database asserting dense `1..n` following `seq` and not `rowid`. Also
+  verified by hand on a copy of the WAL dev database: 4 rows and their hashes preserved, order
+  followed the reordered `seq` (r1 moved to the tail), NOT NULL applied, zero triggers left.
+- Gates: 120/120 (`--pool=threads`), eslint 0, tsc 0, prettier clean. CI verify PASS (run 45976522060) at `53c4990`, remote branch SHA verified equal. PR #196 body updated with the
+  remediation section, stays draft, base still #189.
+- No merge, deploy, live call or spend. Telegram: 6-hour digest window (last digest cycle 210,
+  ~00:33 UTC) had elapsed, so one concise digest sent.
+- Resource usage: ~12 min wall clock, no background processes, no extra worktrees (single
+  in-place checkout, scratch DB copies under the scratch cache). Remaining work estimate: no
+  unblocked defect-class engineering; owner merge chain #193 → #194 → #189 → #196 → #191 →
+  #192 → #195, then the SEC-001 IdP decision, then §7B/§7G/EXT-008 deployment work. Assumption:
+  D-008 stands, so closing its follow-ups beats starting a Postgres port.

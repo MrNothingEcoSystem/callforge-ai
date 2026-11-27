@@ -44,6 +44,24 @@ so existing chain heads stay valid.
   teardown `SIGABRT` is fork-pool specific — `vitest run --pool=threads` is clean, plain
   `vitest run` loses whole workers (84/117). Drop the flag after #193 lands.
 
+## Cycle 218 remediation (F3 + F5)
+
+`53c4990`. `0005_audit_seq_notnull.sql` performs the SQLite 12-step rebuild: new table with
+`seq INTEGER NOT NULL`, `ROW_NUMBER()` backfill, indexes recreated, `AFTER INSERT` trigger
+dropped. No table references `audit_events`, so the drop/rename is contained, and the file
+runs inside the runner's per-migration transaction. `audit.mjs` and `workflow/stateMachine.mjs`
+now allocate `COALESCE(MAX(seq),0)+1` inside their own INSERT (atomic in-statement, one write
+instead of insert + trigger UPDATE). `seq` stays out of the hash preimage, so existing chain
+heads are untouched.
+
+A `CHECK (seq > 0)` was tried and dropped: both the seq-inversion tests and repair jobs
+legitimately force out-of-band values, and `0` is the natural sentinel.
+
+Tests added: column is `NOT NULL`, no trigger remains, a raw insert without `seq` throws, both
+insert sites still allocate densely, and an upgrade test drives `0003`→`0004`→`0005` on a real
+database asserting dense `1..n` following `seq` not `rowid`. Also verified by hand on a copy of
+the WAL dev database: rows and hashes preserved, order followed `seq`.
+
 ## Residual risk
 
 `seq` is not signed, so a database-level actor can still reorder or gap the chain; the
