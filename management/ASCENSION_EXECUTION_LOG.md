@@ -162,6 +162,7 @@ NULL`, dense `ROW_NUMBER()` backfill over the authoritative `seq` order, indexes
   remediation section, stays draft, base still #189.
 - No merge, deploy, live call or spend. Telegram: 6-hour digest window (last digest cycle 210,
   ~00:33 UTC) had elapsed, so one concise digest sent.
+- Docs head `200443e` also CI PASS (run 45976684467); remote branch SHA verified equal.
 - Resource usage: ~12 min wall clock, no background processes, no extra worktrees (single
   in-place checkout, scratch DB copies under the scratch cache). Remaining work estimate: no
   unblocked defect-class engineering; owner merge chain #193 → #194 → #189 → #196 → #191 →
