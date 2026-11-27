@@ -260,23 +260,71 @@ class CallforgeHttpServer {
 
   async handleOAuthAuthorize(req, res) {
     const body = await readJsonBody(req);
-    const result = this.oauth.authorize(body);
+    // Authenticate request using bearer token
+    const authResult = this.oauth.authenticate(req);
+    if (!authResult.valid) {
+      res.writeHead(authResult.status || 401, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: authResult.error }));
+      return;
+    }
+    const authContext = authResult.context;
+    // Ensure tenant_id in request matches token tenant (M02 security gate)
+    if (body.tenant_id && body.tenant_id !== authContext.tenantId) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({ error: 'Tenant mismatch: token tenant does not match request tenant' }),
+      );
+      return;
+    }
+    // Role is pinned to the token context (SEC-001 F-65-3 fix): a client must
+    // never self-assert a role. Any body.role that differs from the token role
+    // (escalation or downgrade) is rejected, not silently honored.
+    if (!authContext.role) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Token has no role binding' }));
+      return;
+    }
+    if (body.role && body.role !== authContext.role) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Role mismatch: role is derived from the access token' }));
+      return;
+    }
+    // Scope is intersected with the token scopes: the authorize step can only
+    // ever narrow, never widen, what the presenting token already holds.
+    const tokenScopes = Array.isArray(authContext.scopes) ? authContext.scopes : [];
+    const requestedScopes =
+      Array.isArray(body.scope) && body.scope.length > 0 ? body.scope : tokenScopes;
+    const grantedScopes = requestedScopes.filter(s => tokenScopes.includes(s));
+    if (grantedScopes.length === 0) {
+      res.writeHead(403, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Requested scope exceeds token scopes' }));
+      return;
+    }
+    // Build authorize payload using token's authenticated tenant and role
+    const authorizePayload = {
+      tenant_id: authContext.tenantId,
+      client_id: body.client_id || 'callforge-sim',
+      role: authContext.role,
+      scope: grantedScopes,
+      code_challenge: body.code_challenge,
+      code_challenge_method: body.code_challenge_method || 'S256',
+    };
+    const result = this.oauth.authorize(authorizePayload);
     if (result.error) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: result.error }));
       return;
     }
     await this.auditLogger.log({
-      tenant_id: body.tenant_id,
+      tenant_id: authContext.tenantId,
       event_type: 'oauth_authorize',
       actor_type: 'system',
       action: 'authorize',
-      payload: { client_id: body.client_id || 'callforge-sim', role: body.role || 'operator' },
+      payload: { client_id: authorizePayload.client_id, role: authorizePayload.role },
     });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(result));
   }
-
   async handleOAuthToken(req, res) {
     const body = await readJsonBody(req);
     const result = this.oauth.exchange(body);
