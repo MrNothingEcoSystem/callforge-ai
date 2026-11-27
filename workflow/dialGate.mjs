@@ -16,12 +16,16 @@
  * is the stronger path — TECH-012 — and reads consent, opt-outs and a TTL-cached
  * DNCR answer from the sources of record instead of trusting the caller.
  *
+ * The tenant's own calling window / ceilings / DNCR freshness (TECH-013) are
+ * snapshotted alongside, so the decision stays reproducible at dispatch time.
+ *
  * Still unwired by design: the M05 sink behind `call.dial`.
  */
 import { generateId } from '../store.mjs';
 import { enqueue } from './outbox.mjs';
 import { evaluateDial, POLICY_DEFAULTS } from '../policies/dialEligibility.mjs';
 import { resolveContactFacts } from '../sources/facts.mjs';
+import { readTenantPolicy } from '../policies/tenantPolicy.mjs';
 
 const ATTEMPT_WINDOW_MS = 7 * 86_400_000;
 
@@ -205,6 +209,9 @@ export async function requestDialResolved(
   if (intent.tenant_id !== tenantId) {
     throw new RangeError(`call intent ${callIntentId} belongs to tenant ${intent.tenant_id}`);
   }
+  const tenantPolicy = /** @type {{options: any, violations: string[]}} */ (
+    readTenantPolicy(db, tenantId)
+  );
   const contact = await resolveContactFacts(db, {
     tenantId,
     phone,
@@ -218,8 +225,12 @@ export async function requestDialResolved(
     idempotencyKey,
     campaign,
     contact,
-    policy,
-    timeZone,
+    policy: {
+      ...policy,
+      options: tenantPolicy.options,
+      policyViolations: tenantPolicy.violations,
+    },
+    timeZone: tenantPolicy.options?.timeZone ?? timeZone,
     now,
   });
 }
@@ -246,7 +257,8 @@ export function dispatchDialRequest(db, row, { now = new Date() } = {}) {
     contact,
     policy,
     attempts: readAttempts(db, { tenantId: request.tenant_id, phone: request.phone, now }),
-    timeZone: policy.timeZone ?? POLICY_DEFAULTS.timeZone,
+    options: policy.options,
+    timeZone: policy.options?.timeZone ?? policy.timeZone ?? POLICY_DEFAULTS.timeZone,
   });
 
   return db.transaction(() => {

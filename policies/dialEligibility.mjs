@@ -21,6 +21,8 @@
  * expressed as policy options, not hard-coded law.
  */
 
+import { validatePolicyOptions } from './tenantPolicy.mjs';
+
 const DEFAULT_TIME_ZONE = 'Asia/Dubai';
 const CALLING_WINDOW = { startHour: 9, endHour: 18 };
 // Art.5(5) allows 1 callback/day and 2/week, so the ceilings count *calls*:
@@ -148,7 +150,7 @@ function checkConsent(contact, campaign, reasons) {
   }
 }
 
-function checkDncr(contact, now, reasons) {
+function checkDncr(contact, now, maxAgeHours, reasons) {
   const status = contact.dncrStatus;
   if (status === 'listed') {
     reasons.push(reason('r06_dncr_listed', 'R06', 'contact is on the DNCR'));
@@ -163,12 +165,12 @@ function checkDncr(contact, now, reasons) {
     return;
   }
   const ageHours = (now.getTime() - contact.dncrCheckedAt.getTime()) / 3_600_000;
-  if (ageHours < 0 || ageHours > DNCR_MAX_AGE_HOURS) {
+  if (ageHours < 0 || ageHours > maxAgeHours) {
     reasons.push(reason('r06_dncr_stale', 'R06', `DNCR check is ${ageHours.toFixed(1)}h old`));
   }
 }
 
-function checkWindow(now, timeZone, reasons) {
+function checkWindow(now, { timeZone, callingWindow: window }, reasons) {
   let hour;
   let minute;
   try {
@@ -179,14 +181,14 @@ function checkWindow(now, timeZone, reasons) {
     );
     return;
   }
-  const before = hour < CALLING_WINDOW.startHour || (hour === CALLING_WINDOW.endHour && minute > 0);
-  const after = hour >= CALLING_WINDOW.endHour;
+  const before = hour < window.startHour || (hour === window.endHour && minute > 0);
+  const after = hour >= window.endHour;
   if (before || after) {
     reasons.push(
       reason(
         'r08_outside_window',
         'R08',
-        `local time ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} is outside 09:00–18:00`,
+        `local time ${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')} is outside ${String(window.startHour).padStart(2, '0')}:00–${String(window.endHour).padStart(2, '0')}:00`,
       ),
     );
   }
@@ -201,6 +203,7 @@ function checkWindow(now, timeZone, reasons) {
  * @param {Record<string, any>} ctx.contact   { phone, consent?, dncrStatus?, dncrCheckedAt?, optedOut?, optOutGlobal? }
  * @param {Record<string, any>} ctx.policy    { licensed, approvalRef, approvalExpiresAt, cliInventory }
  * @param {Array<{at: Date, outcome: string}>} [ctx.attempts]
+ * @param {object} [ctx.options] tenant policy overrides; absent → POLICY_DEFAULTS
  * @param {string} [ctx.timeZone='Asia/Dubai']
  * @returns {{ allowed: boolean, reasons: Array<object>, warnings: string[] }}
  */
@@ -210,6 +213,31 @@ export function evaluateDial(ctx = /** @type {any} */ ({})) {
   const { now, campaign, contact, policy } = ctx;
   const attempts = Array.isArray(ctx.attempts) ? ctx.attempts : [];
   const timeZone = ctx.timeZone ?? DEFAULT_TIME_ZONE;
+
+  // Tenant overrides are re-validated by the caller's record, but a hand-edited
+  // or stale snapshot can still be unusable; deny rather than widen the gate.
+  let options = POLICY_DEFAULTS;
+  const rawOptions = /** @type {Record<string, any>} */ (ctx.options);
+  if (rawOptions) {
+    const checked = validatePolicyOptions({
+      ...rawOptions,
+      timeZone: rawOptions.timeZone ?? timeZone,
+    });
+    if (!checked.options) {
+      return {
+        allowed: false,
+        reasons: [
+          reason(
+            'invalid_policy',
+            'R01',
+            `tenant policy unusable: ${checked.violations.join('; ')}`,
+          ),
+        ],
+        warnings,
+      };
+    }
+    options = checked.options;
+  }
 
   if (!isDate(now) || !campaign || !contact || !policy) {
     return {
@@ -236,13 +264,13 @@ export function evaluateDial(ctx = /** @type {any} */ ({})) {
   checkCli(policy, campaign, reasons);
 
   if (kind === 'marketing' || kind === 'consumer_requested') {
-    checkWindow(now, timeZone, reasons);
+    checkWindow(now, { ...options, timeZone }, reasons);
   }
 
   if (kind === 'marketing') {
     checkApproval(policy, now, reasons);
     checkConsent(contact, campaign, reasons);
-    checkDncr(contact, now, reasons);
+    checkDncr(contact, now, options.dncrMaxAgeHours, reasons);
     if (contact.optOutGlobal) {
       reasons.push(reason('r09_global_opt_out', 'R09', 'contact is globally opted out'));
     }
@@ -250,7 +278,7 @@ export function evaluateDial(ctx = /** @type {any} */ ({})) {
       reasons.push(reason('r09_offer_refused', 'R09', 'contact refused this offer'));
     }
   } else if (kind === 'consumer_requested') {
-    checkDncr(contact, now, reasons);
+    checkDncr(contact, now, options.dncrMaxAgeHours, reasons);
     if (contact.optOutGlobal) {
       reasons.push(reason('r09_global_opt_out', 'R09', 'contact is globally opted out'));
     }
@@ -261,10 +289,10 @@ export function evaluateDial(ctx = /** @type {any} */ ({})) {
   if (kind !== 'transactional') {
     const day = attemptCount(attempts, UNANSWERED_OUTCOMES, 86_400_000, now);
     const week = attemptCount(attempts, UNANSWERED_OUTCOMES, 7 * 86_400_000, now);
-    if (day >= RETRY_LIMITS.day) {
+    if (day >= options.retryLimits.day) {
       reasons.push(reason('r10_retry_day', 'R10', `${day} unanswered call(s) in the last 24h`));
     }
-    if (week >= RETRY_LIMITS.week) {
+    if (week >= options.retryLimits.week) {
       reasons.push(reason('r10_retry_week', 'R10', `${week} unanswered call(s) in the last 7d`));
     }
   }
