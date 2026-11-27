@@ -576,7 +576,7 @@ the change is additive. `GET` now serves `version`; `readTenantPolicy` reports 0
 - Draft PR #209 against #208. No merge, deploy, live call or spend. Telegram: none — last
   message was the cycle-232 critical-defect send at ~14:50Z, inside the 6-hour digest window,
   and this is a sub-task acceptance rather than a milestone one.
-- Resource usage: ~16 min wall, one worktree (removed), no background processes, no model spend
+- Resource usage: ~6 min wall, one worktree (removed), no background processes, no model spend
   beyond this session. Remaining: DELETE fence (F1) and revision retention/pruning ≈ 1 cycle
   each; after that the M04/M05 track is EXT-gated (EXT-002 legal, EXT-003 carrier). Assumption:
   D-008 holds, so internal hardening stays the right use of cycles until the carrier and counsel
