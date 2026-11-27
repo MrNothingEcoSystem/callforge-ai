@@ -299,3 +299,4 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   routes); what remains is the owner merge chain, EXT-002, and the M05 `call.dial` sink.
   Assumption: EXT-002 is still outstanding, so the gate surface — not the approval workflow — is
   the correct spend of cycles.
+- Final head record: docs commit `213f6bf`; CI verify PASS (run 45966733773); remote branch SHA verified equal.
