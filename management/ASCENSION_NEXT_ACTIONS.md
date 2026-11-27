@@ -1,6 +1,6 @@
 # CALLFORGE OMEGA — Ascension Next Actions
 
-Updated: 2026-11-09T04:25Z (cycle 1)
+Updated: 2026-11-27T04:2xZ (cycle 217)
 
 ## Highest priority (supervisor-verified 2026-11-09T04:30Z)
 
@@ -31,3 +31,13 @@ cheap engine-neutral hedge D-008 requires before any Postgres port; #190 option 
 
 Open owner decisions unchanged: merge order #193 → #194 → #189 → hedge → #191 → #192,
 then #195 (decision record). SEC-001 IdP sign-off still blocks M02 production identity.
+
+## Cycle 217 — PR #196 independent review
+
+Verdict ACCEPT WITH FOLLOW-UPS on `management/PR196_REVIEW_RECORD.md`. Review F1 was real:
+`workflow/stateMachine.mjs` was the one reader left on `rowid`; fixed and covered by a test
+that forces `seq`/`rowid` to disagree. Remaining follow-ups are F3 (nullable `seq`, needs a
+table rebuild), F4 (single-writer collision is fail-loud, revisit at port), F5 (`ROW_NUMBER()`
+backfill if the table grows). Nothing here is merge-blocking; the owner merge chain is now
+#193 → #194 → #189 → #196 → #191 → #192, then #195. Local gates need `--pool=threads` until
+#193 lands (TECH-009 fork-teardown SIGABRT).
