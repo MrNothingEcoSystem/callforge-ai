@@ -28,7 +28,7 @@ returns the row for backoff.
 - **F4** — `call_attempts` has no retention policy and is not joined to `provider_events`; outcome
   correlation (and therefore `readAttempts()` counting a real outcome rather than assuming
   `no_answer`) waits on webhook→intent mapping.
-- **F5** — the sink trusts `payload.dialRequestId` without cross-checking `row.aggregate_id` against
+- **F5 (CLOSED cycle 229, `616379d`, PR #205)** — the sink trusts `payload.dialRequestId` without cross-checking `row.aggregate_id` against
   `request.call_intent_id`. Cheap to add; no reachable divergence today since the payload is minted in
   the same transaction as the request.
 - **F6** — `simulatedProvider` keeps `calls` as module-level state, so a long-lived process grows it

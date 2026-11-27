@@ -178,3 +178,18 @@ call log, list/delete policy routes, last-write-wins on concurrent PUTs. EXT-002
 EXT-003 (carrier) gate closure.
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → #199 → #200 → #201 → #202 → #203 → this.
+
+## Cycle 229 — TECH-015 F5 intent cross-check
+
+`616379d` on `tech-015-f5-intent-crosscheck` (draft PR #205, stacked on #204) makes the sink verify
+that `row.aggregate_id` and `payload.callIntentId` agree with the request's `call_intent_id` before
+claiming, so a divergent pair no-ops as `intent_mismatch` instead of dialling evidence toward the
+wrong intent. 3 tests, 230/230, tsc/eslint/prettier clean, CI PASS. Read-only worktree probe on both
+sides of the fix, verdict ACCEPT (`management/TECH015_F5_REVIEW_RECORD.md`).
+
+Remaining M04/M05 engineering, all non-blocking: F6 bounded simulated call log, list/delete policy
+routes, last-write-wins on concurrent PUTs. EXT-002 (legal) and EXT-003 (carrier) gate closure.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → this.
+Next engineering: F6 (bounded simulated log — pure test-support hygiene), then the policy list/delete
+routes.

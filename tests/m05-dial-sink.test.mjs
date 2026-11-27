@@ -209,6 +209,48 @@ describe('M05 call.dial sink (TECH-015)', () => {
     ).toMatchObject({ noop: true, reason: 'dial_request_missing' });
   });
 
+  it('no-ops when the outbox aggregate disagrees with the request intent (F5)', async () => {
+    const provider = fakeProvider();
+    const { request } = allowed(db);
+    const row = dialRow(db, request.id);
+    db.prepare('UPDATE outbox SET aggregate_id = ? WHERE id = ?').run('some-other-intent', row.id);
+    const tampered = dialRow(db, request.id);
+
+    expect(await handleCallDial(db, tampered, { provider })).toMatchObject({
+      noop: true,
+      reason: 'intent_mismatch',
+    });
+    expect(provider.calls).toHaveLength(0);
+    expect(attempt(db, request.id)).toBeUndefined();
+  });
+
+  it('no-ops when the payload intent copy disagrees with the request (F5)', async () => {
+    const provider = fakeProvider();
+    const { request } = allowed(db);
+    const row = dialRow(db, request.id);
+    const payload = { ...JSON.parse(row.payload), callIntentId: 'some-other-intent' };
+
+    expect(await handleCallDial(db, { ...row, payload }, { provider })).toMatchObject({
+      noop: true,
+      reason: 'intent_mismatch',
+    });
+    expect(provider.calls).toHaveLength(0);
+    expect(attempt(db, request.id)).toBeUndefined();
+  });
+
+  it('still dials when the payload carries no intent copy (older producer) (F5)', async () => {
+    const provider = fakeProvider();
+    const { request } = allowed(db);
+    const row = dialRow(db, request.id);
+    const payload = { dialRequestId: request.id };
+
+    expect(await handleCallDial(db, { ...row, payload }, { provider })).toMatchObject({
+      accepted: true,
+    });
+    expect(provider.calls).toHaveLength(1);
+    expect(attempt(db, request.id).status).toBe('accepted');
+  });
+
   it('runs inside dispatchOnce and acks the row only on success', async () => {
     const provider = fakeProvider();
     const { request } = allowed(db);

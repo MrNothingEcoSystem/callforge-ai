@@ -441,3 +441,34 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   Remaining M04/M05 work: F5 aggregate cross-check, F6 bounded simulated log, list/delete policy
   routes, last-write-wins on concurrent PUTs; EXT-002 and EXT-003 gate closure. Assumption: D-008
   stands. Owner merge chain: #193…#203 → this.
+
+## 2026-11-27 — Cycle 229 (dispatcher, 12:48 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged (local branch sits 43 commits ahead on the
+  M04/M05 stack, clean tree). Writes stayed on the stack: new lease `tech-015-f5-intent-crosscheck`
+  from the #204 tip `7488ec2`. No writes to the legacy repo.
+- Toolchain: the `scratch/node24` copy named in the directive is **gone**; `node -v` resolves to the
+  installed v24.22.1 (`/root/.local/share/agentrunme/node/v24.22.1`), pnpm 12.18.0 via corepack.
+  Verified before any write — no blocker, but the directive's path should be updated.
+- Selection: F5 of the TECH-015 review (outbox aggregate vs request intent). The remaining M04/M05
+  backlog is list/delete policy routes, last-write-wins on concurrent PUTs and F6 (test-only state),
+  all smaller; F5 was the last correctness item.
+- Change `616379d`: `handleCallDial` now requires `row.aggregate_id` and `payload.callIntentId` (when
+  present) to equal `request.call_intent_id`, returning `intent_mismatch` before the claim. Doc
+  `management/M05_TECH015_F5_INTENT_CROSSCHECK.md`. 3 tests, mutation-checked (dropping the
+  aggregate comparison reds the tamper test).
+- Gates: **230/230**, tsc 0, eslint 0, prettier clean; CI `verify` PASS on `616379d` (run 46001918495).
+- Independent read-only pass in detached worktrees at `7488ec2` and `616379d`: the pre-fix sink dials
+  the tampered row (second provider call), the fixed one no-ops with one attempt row. Verdict
+  **ACCEPT** — `management/TECH015_F5_REVIEW_RECORD.md`. Not a delegated external auditor; a
+  cycle-run worktree probe, labelled as such.
+- Draft PR #205 opened against #204. Residual recorded, not fixed: no row/request `tenant_id`
+  cross-check (unreachable — `requestDial` already rejects a foreign-tenant intent).
+- No merge, deploy, live call or spend. Telegram: one digest sent at 13:07 UTC (receipt `sent`) —
+  the 6-hour window since cycle 221 (~06:45 UTC) had elapsed; content was stack status, the two
+  EXT gates and SEC-001. Milestone acceptance, critical finding, blocker and gate checks were all
+  negative, so nothing separate was sent.
+- Resource usage: ~17 min wall clock, two detached worktrees (removed), no background processes.
+  Remaining M04/M05 engineering: F6 bounded simulated log, list/delete policy routes, last-write-wins
+  on concurrent PUTs. EXT-002/EXT-003 gate closure; owner merge chain is nine drafts deep.
+  Assumption: D-008 holds, so internal hardening is the right use of cycles until the carrier lands.
