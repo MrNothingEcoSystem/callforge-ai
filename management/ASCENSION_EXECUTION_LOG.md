@@ -87,5 +87,7 @@
 `0653a95` SUCCESS (45941701001), `161d36f` SUCCESS (45941788439), `5cb930c` SUCCESS
 (45941911006). The ledger commit `56e0ab0` FAILED `verify` (45941972866) purely on
 `format:check` — the two new `management/` records were written unformatted; `c69d40b`
-(prettier only) SUCCESS (45941989332) and is the reviewable head. Lesson repeated from
+(prettier only) SUCCESS (45941989332). Two further docs-only heads also passed: `6b18146`
+(45942102845) and `79dd71c` (45942224954, corrected the resource figure above); `79dd71c` is the
+branch head the ledger records. Lesson repeated from
 cycle 191: run `prettier --check .` over docs before pushing, not just over code.
