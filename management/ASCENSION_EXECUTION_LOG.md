@@ -435,3 +435,9 @@ is 256`, diffs and ledger joints read): record
   work: **no local item on #193**; expected recurrence is one resync per base commit until the
   owner merges #193 or authorises the rebase. Assumption: the base gains no further commits
   this cycle.
+
+- Docs head `d088ff0` CI SUCCESS (run 45982172956) — the `pull_request` event fired but ~50 s
+  late, so the dispatch (`45982175393`) was redundant; remote SHA verified equal. PR body
+  updated via REST (the CLI edit is silently dropped by the Projects-classic deprecation
+  warning). Reviewer worktree removed; four older cycle worktrees (`cf-m04`, `cf-t12`,
+  `wt-tech013`, `wt-tech014`) are left in place because their branches are still in flight.
