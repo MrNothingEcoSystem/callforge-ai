@@ -135,8 +135,8 @@ export function transition(db, { intentId, to, actor = 'system', reason = null, 
     };
     auditEvent.event_hash = hashEventSync(auditEvent);
     db.prepare(
-      `INSERT INTO audit_events (id, tenant_id, event_type, actor_type, action, resource_type, resource_id, payload, previous_hash, event_hash, created_at)
-       VALUES (?, ?, ?, 'system', ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO audit_events (id, tenant_id, event_type, actor_type, action, resource_type, resource_id, payload, previous_hash, event_hash, created_at, seq)
+       SELECT ?, ?, ?, 'system', ?, ?, ?, ?, ?, ?, ?, COALESCE(MAX(seq), 0) + 1 FROM audit_events`,
     ).run(
       auditEvent.id,
       intent.tenant_id,

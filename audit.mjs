@@ -57,8 +57,8 @@ export function createAuditLogger() {
 
         db.prepare(
           `
-          INSERT INTO audit_events (id, tenant_id, event_type, actor_type, actor_id, action, resource_type, resource_id, payload, previous_hash, event_hash, created_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO audit_events (id, tenant_id, event_type, actor_type, actor_id, action, resource_type, resource_id, payload, previous_hash, event_hash, created_at, seq)
+          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(MAX(seq), 0) + 1 FROM audit_events
         `,
         ).run(
           event.id,
