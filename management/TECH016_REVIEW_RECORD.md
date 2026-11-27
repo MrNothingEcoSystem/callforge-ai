@@ -18,7 +18,7 @@ head), plus an out-of-band SQLite replay. Not a milestone acceptance; PR #203 st
 
 ## Findings
 
-- **F1 (Low, fixed `b96fa1a`)** — `reconcileProviderEvent` now parses a JSON-string `payload`. The
+- **F1 (Low, fixed `a0e4590`)** — `reconcileProviderEvent` now parses a JSON-string `payload`. The
   in-memory callers pass objects, but the inbox stores `raw_body` as text, so a replay path handing
   the stored string back would have skipped outcome capture silently. Test added (224 total).
 - **F2 (Low, note only)** — `readAttempts()`'s LEFT JOIN is single-row only because

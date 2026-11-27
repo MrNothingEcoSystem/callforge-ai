@@ -406,3 +406,15 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   estimate: M04/M05 defect class is empty; EXT-002 (legal sign-off) and EXT-003 (provider +
   carrier vocabulary) gate the rest, plus owner merge of seven draft PRs. Assumption: D-008 stands
   and the dialect-neutral policy/telephony work is the right use of cycles until EXT-002/003 land.
+
+### Cycle 227 review + follow-up
+
+- Independent read-only pass against `84cceee`, plus an out-of-band SQLite replay of the upgrade
+  path (database built to `0008`, real row inserted, `0009` applied: row preserved, `outcome`
+  NULL, CHECK rejected `hung_up`, index present). Verdict **ACCEPT WITH FOLLOW-UPS** —
+  `management/TECH016_REVIEW_RECORD.md`.
+- F1 was real and is fixed in-cycle (`a0e4590`): a JSON-string `payload` (the shape an inbox
+  replay of `raw_body` would hand back) silently skipped outcome capture; now parsed, with a
+  test. Suite 224 collected, 0 assertion failures. F2 (LEFT JOIN relies on
+  `UNIQUE(dial_request_id)`), F3 (a handle-less `failed` attempt cannot be correlated, correctly
+  stays unanswered) and F4 (unvalidated `outcome_at` format) recorded as non-blocking.
