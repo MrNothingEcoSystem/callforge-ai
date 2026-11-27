@@ -218,8 +218,9 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   `undefined` from `null`, denies `invalid_policy`, and names the snapshotted violations. Two
   tests added (unit contract; end-to-end corrupt-after-request) — both red with the condition
   reverted, green with it. F6 (import cycle) and F7 (shallow-frozen defaults) recorded Low.
-- Gates: 188/188 (`--pool=threads`), eslint 0, tsc 0, prettier clean. Draft PR #200 body
-  updated with the verdict pointer; still based on `tech-012-fact-sources`, still draft.
+- Gates: 188/188 (`--pool=threads`), eslint 0, tsc 0, prettier clean. CI `verify` PASS at
+  `5e2f504` (run 45958014402), remote branch SHA verified equal. Draft PR #200 body
+  updated with the verdict; still based on `tech-012-fact-sources`, still draft.
 - No merge, deploy, live call or spend. Telegram: none — a review verdict is not a milestone
   acceptance and the 6-hour digest window since cycle 221 (~06:47 UTC) has not elapsed.
 - Resource usage: ~13 min wall clock, 1 worktree, no background processes. Remaining work
