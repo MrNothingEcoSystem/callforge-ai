@@ -268,6 +268,22 @@
 - Telegram approval request receipt: `sent` (CLI, `telegram:8400775109`) — SEC-001 sign-off + the merge order. No digest, window still closed.
 - Gate: docs head `d999f71` failed `format:check` (prettier, the ledger files) — not a code failure; `d2616cc` is the prettier-only fix, CI verify SUCCESS (run 45905240683). Final head `d2616cc`, remote SHA verified equal. Note for later cycles: run `prettier --write` on the ledger markdown before pushing it.
 
+## 2026-11-26 — Cycle 208 (dispatcher, 23:03 UTC)
+
+- Sync: `git fetch`; local `m09-streamable-http` = `origin/m09-streamable-http` = `363b4a6`, 0 commits behind `origin/main` (`28c9040`), clean tree. New branch `fix/tech-009-sqlite-worker-abort` cut from `363b4a6` (one write lease on the new branch; the M09 lease is untouched — only ledger/docs land on it). No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, vitest 5.1.0.
+- Selected highest-priority unblocked task: **TECH-009** — the open suite-integrity blocker that had sat unowned since cycle 201. #189/#191/#192 are owner-gated, SEC-001 is the owner IdP decision, §7B/§7G need the decision or a deployment, so TECH-009 was the only real local work left.
+- Reproduced first: `pnpm test` on `363b4a6` = 20/22 files, 203/239 tests, `Worker exited unexpectedly with signal SIGABRT` for `tests/audit.test.mjs` and `tests/m03-orchestration.test.mjs`, exit 1. Both files already `closeStore()` in `afterAll`, so the abort is in native teardown, not a leaked handle in test code.
+- Change `852fcb9` (dependency only): `better-sqlite3` `^11.0.0` → `^12.11.1`, the first line with Node 24 bindings; lockfile resolution/integrity only. One-line package.json diff, no source, test or config file touched.
+- Tests after: two consecutive full runs 22/22 files, **239/239 passed**, no errors, exit 0; third run after the lockfile re-prettify also 239/239. Binding smoke `new Database(':memory:')` + query ok (SQLite 3.53.2). eslint 0, tsc clean, `format:check` clean, `pnpm install --frozen-lockfile` ok.
+- Note: `pnpm install` rewrites the prettier-formatted lockfile into pnpm's own style, so `format:check` failed until `prettier --write pnpm-lock.yaml`; recorded as R3 so future dependency cycles expect it.
+- Pushed `852fcb9`, remote branch SHA verified equal. Draft PR **#193** opened against `m09-streamable-http` (stacked; rebase to `main` is one file if the owner prefers it first). `verify` CI SUCCESS (run 45908704389).
+- No merge, no deploy, no live calls, no spend.
+- Independent read-only pass in a detached worktree at `852fcb9` (`pnpm install --frozen-lockfile`, two full runs 239/239 reproduced, diff read for scope): record `management/TECH009_REVIEW_RECORD.md`, verdict **ACCEPT**, R2 Low (nothing asserts "no worker abort" — CI should assert file/test counts) and R3 Info.
+- Resource usage: ~19 min wall clock, 1 detached worktree (removed), no background server. Estimated remaining M09 work unchanged: **nothing local before SEC-001** — the sign-off unblocks §7B DCR/CIMD, the discovery `iss`, F19's shim and step 6 vendor wiring; then §7G interop (needs a reachable deployment) and the OpenAI app-review pass (EXT-008). Assumption: SDK stays 1.32.2 and nothing else pins better-sqlite3 11.x; leapfrogging 12.x to 13.x was not needed for Node 24 and stays a separate decision.
+- Telegram: no message — no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 201, ~18:39 UTC) is inside the 6-hour window (next due ~00:39 UTC). The SEC-001 approval request went out in cycle 207.
+- Heads: code `852fcb9` (`verify` SUCCESS run 45908704389) and docs `c0ff8eb` (`verify` SUCCESS run 45908916305); both remote SHAs verified equal after push. PR #193 body carries the review record and follow-ups; PR #192 body carries the merge-order change.
+
 ## 2026-11-26 — Cycle 209 (dispatcher, 23:40 UTC)
 
 - Sync: `git fetch`; local `m09-streamable-http` = `1c62a12`, 0 commits behind `origin/main` (`28c9040`), clean tree. Lease taken on `fix/tech-009-sqlite-worker-abort` (PR #193) for this cycle only; no writes to the legacy repo.
