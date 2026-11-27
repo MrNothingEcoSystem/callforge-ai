@@ -20,3 +20,9 @@ No completion percentages are claimed. Remote main at last sync: 75b191acff9cde5
 - M05 increment 1: `call.dial` now has a consumer. Provider-neutral port with an inert simulated
   adapter, attempt evidence, redelivery-safe sink on the M03 dispatch path (draft PR #202, 211/211).
   No live carrier yet — EXT-003/EXT-005 unchanged. M05 stays open; no milestone accepted.
+
+## Cycle 228 (2026-11-27)
+
+- TECH-015 F3 closed on draft PR #204: claim CAS fixes the double-dial race on the M05 sink
+  (300s lease, fenced terminal writes). 227/227, review ACCEPT with a real two-process probe.
+  No milestone accepted; M04/M05 stay open on EXT-002/EXT-003.

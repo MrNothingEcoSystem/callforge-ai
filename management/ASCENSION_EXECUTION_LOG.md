@@ -418,3 +418,26 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   test. Suite 224 collected, 0 assertion failures. F2 (LEFT JOIN relies on
   `UNIQUE(dial_request_id)`), F3 (a handle-less `failed` attempt cannot be correlated, correctly
   stays unanswered) and F4 (unvalidated `outcome_at` format) recorded as non-blocking.
+
+### Cycle 228 — TECH-015 F3 claim CAS
+
+- Selected TECH-015 F3 (highest-priority unblocked item; the remaining M04/M05 backlog is either
+  cosmetic or EXT-gated).
+- `70d6219` on `tech-015-f3-claim-cas` (stacked on #203): additive `0010` (`claim_token`,
+  `claimed_at`), CAS claim inside an IMMEDIATE transaction, 300s lease, every terminal write fenced
+  on the token, `superseded` skip of the intent transition. Doc
+  `management/M05_TECH015_F3_CLAIM_CAS.md`, draft PR #204.
+- Tests: 3 added; 227/227 whole suite, tsc/eslint/prettier clean.
+- Independent read-only review at `70d6219`: upgrade path replay (accepted row preserved) and a
+  **real two-process race** on one WAL database — one dial, one attempt, one transition, loser
+  `already_dispatching`. Verdict **ACCEPT** — `management/TECH015_F3_REVIEW_RECORD.md`.
+- Environment note: the shared gitignored `data/callforge.db` was stale (migrations through an
+  older `0005` checksum) and threw `Migration 0005 checksum drift` in five files; refreshing it
+  cleared all five, which is why this cycle reports 227/227 rather than the 52 skips cycle 227 saw.
+  Node used: v24.22.1 (the `scratch/node24` copy is v24.11.0 and SIGABRTs the suite).
+- No merge, deploy, live call or spend. Telegram: none — not a milestone acceptance, no new
+  external blocker, and the digest window since cycle 221 (~06:45 UTC) has not reached 12:45.
+- Resource usage: ~13 min wall clock, one detached worktree (removed), no background processes.
+  Remaining M04/M05 work: F5 aggregate cross-check, F6 bounded simulated log, list/delete policy
+  routes, last-write-wins on concurrent PUTs; EXT-002 and EXT-003 gate closure. Assumption: D-008
+  stands. Owner merge chain: #193…#203 → this.

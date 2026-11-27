@@ -161,3 +161,20 @@ list/delete policy routes, last-write-wins on concurrent PUTs, TECH-015 F3 concu
 F5 aggregate cross-check, F6 bounded simulated call log.
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → #199 → #200 → #201 → #202 → this.
+
+## Cycle 228 — TECH-015 F3 claim CAS
+
+`70d6219` on `tech-015-f3-claim-cas`, draft PR #204, stacked on #203. Two dispatcher workers could
+both pass the old `prior` check and dial; the claim is now a CAS on `status`/`claimed_at` inside an
+IMMEDIATE transaction, holding a 300s lease and fenced by `claim_token`, so the loser no-ops as
+`already_dispatching` and a superseded worker cannot overwrite the row or double-transition the
+intent. Additive migration `0010`. 3 tests, 227/227, tsc/eslint/prettier clean. Review **ACCEPT**
+including a real two-process race probe (`management/TECH015_F3_REVIEW_RECORD.md`).
+F3-a remains: a worker slow past the lease can still overlap — carrier `idempotencyKey` is the
+last defence and is EXT-003's to honour.
+
+Remaining M04/M05 engineering, all non-blocking: F5 aggregate cross-check, F6 bounded simulated
+call log, list/delete policy routes, last-write-wins on concurrent PUTs. EXT-002 (legal) and
+EXT-003 (carrier) gate closure.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → #202 → #203 → this.
