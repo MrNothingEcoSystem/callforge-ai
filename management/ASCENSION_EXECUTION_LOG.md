@@ -283,3 +283,44 @@
 - Resource usage: ~19 min wall clock, 1 detached worktree (removed), no background server. Estimated remaining M09 work unchanged: **nothing local before SEC-001** — the sign-off unblocks §7B DCR/CIMD, the discovery `iss`, F19's shim and step 6 vendor wiring; then §7G interop (needs a reachable deployment) and the OpenAI app-review pass (EXT-008). Assumption: SDK stays 1.32.2 and nothing else pins better-sqlite3 11.x; leapfrogging 12.x to 13.x was not needed for Node 24 and stays a separate decision.
 - Telegram: no message — no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 201, ~18:39 UTC) is inside the 6-hour window (next due ~00:39 UTC). The SEC-001 approval request went out in cycle 207.
 - Heads: code `852fcb9` (`verify` SUCCESS run 45908704389) and docs `c0ff8eb` (`verify` SUCCESS run 45908916305); both remote SHAs verified equal after push. PR #193 body carries the review record and follow-ups; PR #192 body carries the merge-order change.
+
+## 2026-11-27 — Cycle 212 (dispatcher, 01:39 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` (unchanged, 0 commits from branch base);
+  local `m09-streamable-http` = `origin` = `1c62a12`, clean tree. Lease taken on
+  `m09-streamable-http` (PR #192); #193's lease untouched. No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, vitest 5.1.0.
+- Selected highest-priority unblocked task: **F13** — the last real defect-class item on
+  PR #192 (`requestState` unsigned). Everything else open is Info (F17/F19/F22/F23), owner
+  gate (SEC-001, merges), or needs a deployment (§7G).
+- Change `30ee1e3`: `requestState` is `v1.<payload>.<hmac-sha256>`, verified with
+  `timingSafeEqual` before the fingerprint is read; unsigned, edited, truncated or
+  other-key states are treated as **stale** (re-issued, never applied). Key precedence
+  `CALLFORGE_ELICITATION_STATE_SECRET` → `CALLFORGE_TOKEN_SECRET` → per-process random.
+  No gate decision, scope or enforcement value changed. `276c6db` adds the
+  transport-level test (signature stripped → `input_required`, nothing written).
+- Tests: `tests/m09-elicitation.test.mjs` 21 → 22. **Base-window caveat:** this branch
+  still pins `better-sqlite3` 11.10, so a raw run here loses 4 workers to the TECH-009
+  SIGABRT (199/242, exit 1). Verified instead at `276c6db` **merged with
+  `origin/fix/tech-009-sqlite-worker-abort`**: guarded suite 23/23 files, **256/256**, exit 0
+  (floor file 252 is stale — the bump belongs with #193). typecheck, lint, `format:check`
+  clean on the head.
+- No live probe: the transport path is exercised in-process against the real handler and
+  the change adds no wire surface (assumption recorded). No merge, no deploy, no live
+  calls, no spend.
+- **EXT-010:** `gh run list --commit` returned `[]` after the push, so delivery is still
+  intermittent; `workflow_dispatch` was absent on this base, so `301b5e0` adds it to
+  `ci.yml` (2 lines, duplicates #193's, `permissions: contents: read` unchanged). `verify`
+  SUCCESS on `301b5e0` — run 45924162914 (dispatch) and 45924163647 (`pull_request`, so
+  delivery did fire for that head); remote SHA verified equal after each push.
+- Independent read-only pass in a detached worktree at `276c6db` (`pnpm install
+--frozen-lockfile`, 22/22 reproduced, diff read): record
+  `management/PR192_F13_REVIEW_RECORD.md`, verdict **ACCEPT**, H1 (shared HMAC key, use the
+  dedicated secret), H2 (per-process key across instances), H3 (no state migration) all Info.
+- Telegram: no message — no milestone acceptance, critical finding, external blocker, failed
+  gate or approval request; last digest cycle 210 ~00:33 UTC, window closed until ~06:33 UTC.
+- Resource usage: ~14 min wall clock, 2 detached worktrees (review one to remove), no
+  background server. Estimated remaining M09 work unchanged: **nothing local before the
+  decision** — SEC-001 sign-off then §7B DCR/CIMD, the discovery `iss`, F19's shim, step 6
+  wiring, §7G interop (deployment), EXT-008 app review. Assumption: the owner still takes
+  every merge; #193 lands first, which also removes the 11.10 SIGABRT from this base.
