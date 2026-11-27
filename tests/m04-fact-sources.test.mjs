@@ -105,6 +105,18 @@ describe('M04 fact sources (TECH-012)', () => {
     expect(provider.calls).toHaveLength(2);
   });
 
+  it('clamps a long requested TTL to the 24h freshness policy', async () => {
+    const t = tenant();
+    const provider = countingProvider({ [PHONE]: 'clean' });
+    const source = createCachedDncrSource(db, { provider, ttlHours: 48, now: () => clock.now });
+    expect(source.ttlHours).toBe(24);
+    await source.check({ tenantId: t, phone: PHONE });
+    clock.now = new Date(NOW.getTime() + 26 * 3_600_000);
+    const again = await source.check({ tenantId: t, phone: PHONE });
+    expect(again.cached).toBe(false);
+    expect(provider.calls).toHaveLength(2);
+  });
+
   it('does not trust a future-dated cache row', async () => {
     const t = tenant();
     const provider = countingProvider({ [PHONE]: 'clean' });
@@ -260,6 +272,23 @@ describe('M04 fact sources (TECH-012)', () => {
       .get(request.id);
     expect(row.status).toBe('denied');
     expect(JSON.parse(row.reasons_json).map(r => r.code)).toContain('r06_dncr_unknown');
+  });
+
+  it('validates the intent before querying the provider', async () => {
+    const t = tenant();
+    const provider = countingProvider({});
+    const ids = seed(t);
+    await expect(
+      requestDialResolved(db, {
+        ...ids,
+        callIntentId: 'nope',
+        campaign: CAMPAIGN,
+        policy: POLICY,
+        dncr: createCachedDncrSource(db, { provider, now: () => clock.now }),
+        now: NOW,
+      }),
+    ).rejects.toThrow(ReferenceError);
+    expect(provider.calls).toHaveLength(0);
   });
 
   it('is idempotent on the key and does not re-resolve', async () => {

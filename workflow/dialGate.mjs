@@ -194,6 +194,17 @@ export async function requestDialResolved(
   if (existing) {
     return { request: existing, outboxRow: null, inserted: false };
   }
+  // Review F2: validate the intent before querying a provider, so a typo'd id
+  // does not burn a DNCR call and write a cache row.
+  const intent = /** @type {any} */ (
+    db.prepare('SELECT tenant_id FROM call_intents WHERE id = ?').get(callIntentId)
+  );
+  if (!intent) {
+    throw new ReferenceError(`call intent ${callIntentId} does not exist`);
+  }
+  if (intent.tenant_id !== tenantId) {
+    throw new RangeError(`call intent ${callIntentId} belongs to tenant ${intent.tenant_id}`);
+  }
   const contact = await resolveContactFacts(db, {
     tenantId,
     phone,

@@ -21,7 +21,9 @@ caller's bookkeeping rather than as good as the record.
 - `sources/consent.mjs` — `recordConsent` (refuses a grant without `evidenceRef`, because
   R05 is a consent-_record_ rule), `withdrawConsent`, `lookupConsent`, `recordOptOut`,
   `readOptOuts`. A global opt-out implies the offer one.
-- `sources/dncr.mjs` — `createCachedDncrSource(db, { provider, ttlHours = 24 })`. Provider
+- `sources/dncr.mjs` — `createCachedDncrSource(db, { provider, ttlHours = 24 })`; the TTL
+  is clamped to the evaluator's 24h freshness limit so a longer poll interval cannot serve
+  an answer the gate rejects as stale (review F1). Provider
   contract is `check({ tenantId, phone }) → { status, reference }`. The timestamp is taken
   from this side's clock when the answer arrives, so a wrong provider clock cannot buy
   freshness. A future-dated cache row is treated as stale.
@@ -64,6 +66,6 @@ denial is visible in `reasons_json` for the compliance dashboard.
 
 ## Gate result
 
-`vitest run --pool=threads` **177/177** (16 files, +14 tests), eslint 0,
+`vitest run --pool=threads` **179/179** (16 files, +16 tests), eslint 0,
 tsc 0, prettier clean. Mutation: forcing the provider-error path to `clean` reds exactly
 the outage unit test and the end-to-end outage denial; restored, green.

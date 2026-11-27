@@ -134,3 +134,37 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
 - Post-remediation gates: 163/163, eslint 0, tsc 0, prettier clean. CI `verify` SUCCESS at
   `0034113` (45946206076) and review head `1cc7c87` (45946433794). PR #198 updated, stays
   draft, base `m04-compliance-dial-gates`.
+
+## 2026-11-27 — Cycle 220 (dispatcher, 06:05 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged. Local `/root/callforge-ai` sat on
+  `tech-004-audit-seq-hedge` at `b18e315` = its remote, clean, 25 ahead / 0 behind — no
+  divergence to repair. Worked in a new linked worktree so no branch lease was shared. No
+  writes to the legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0.
+- Task selection: the queue is all draft PRs awaiting owner merge and SEC-001 is IdP-gated;
+  the M04 track's own stated next step — TECH-012, replacing caller-supplied DNCR/consent
+  facts with sources of record — was the highest unblocked item. Branch
+  `tech-012-fact-sources` stacked on #198 (which stacks on #197).
+- Built: migration `0006` (`consents`, `opt_outs`, `dncr_checks`); `sources/consent.mjs`
+  (evidence-required grant, idempotent withdrawal, opt-out scopes), `sources/dncr.mjs`
+  (provider seam + TTL cache, clock-stamped, fail-closed), `sources/facts.mjs` resolver and
+  the async `requestDialResolved` producer that snapshots resolved facts. 16 tests.
+- Denials stay decisions; an outage becomes `unknown` and is denied, never guessed clean.
+  Mutation (provider-error → `clean`) reds exactly the outage unit test and the end-to-end
+  outage denial.
+- Gates: 16 files **179/179** (`--pool=threads`), eslint 0, tsc 0, prettier clean.
+- Independent review recorded in `management/TECH012_REVIEW_RECORD.md`, verdict **ACCEPT
+  WITH FOLLOW-UPS**. Two findings fixed in-cycle: F1 (a `ttlHours` above 24 served an answer
+  the gate calls stale forever — TTL now clamped to the policy) and F2 (intent validated
+  after resolution, wasting a provider call on a typo'd id). F3 (provider id missing from the
+  cache key), F4 (resolution outside the insert transaction) and F5 (no re-query action after
+  a terminal denial) recorded; none blocking.
+- Post-remediation gates: 179/179, eslint 0, tsc 0, prettier clean. No merge, deploy, live
+  call or spend. Telegram: none — the 6-hour digest window since cycle 210 (~00:33 UTC) has
+  not elapsed and this is not a milestone acceptance (M04 closure needs EXT-002).
+- Resource usage: ~5 min wall clock, 2 worktrees, no background processes. Remaining work
+  estimate: a real DNCR provider/portal (EXT-003), the dashboard re-query action, tenant
+  policy records (#197 F4), then EXT-002 for M04 closure. Assumption: wiring the sources
+  before the dialer exists is cheaper than retrofitting callers, and the register's 24h
+  freshness rule is the right cache ceiling.

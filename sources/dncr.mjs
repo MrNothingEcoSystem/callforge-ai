@@ -15,6 +15,8 @@
  * arrives, not from the provider, so a wrong provider clock cannot buy
  * freshness.
  */
+import { POLICY_DEFAULTS } from '../policies/dialEligibility.mjs';
+
 const TTL_HOURS = 24;
 const STATUSES = new Set(['clean', 'listed', 'unknown']);
 const TIMESTAMP_SQL = 'YYYY-MM-DD HH:MM:SS';
@@ -38,7 +40,11 @@ export function createCachedDncrSource(
   if (!provider || typeof provider.check !== 'function') {
     throw new TypeError('createCachedDncrSource requires a provider with check()');
   }
-  const ttlMs = ttlHours * 3_600_000;
+  // Review F1: a cache TTL longer than the evaluator's freshness limit would
+  // serve an answer the gate then rejects as stale, so the poll interval is
+  // clamped to the policy rather than trusted to the caller.
+  const effectiveTtlHours = Math.min(ttlHours, POLICY_DEFAULTS.dncrMaxAgeHours);
+  const ttlMs = effectiveTtlHours * 3_600_000;
 
   /** Cache read; fresh rows are served without touching the provider. */
   function readCache(tenantId, phone) {
@@ -107,7 +113,7 @@ export function createCachedDncrSource(
     };
   }
 
-  return { check, ttlHours, TIMESTAMP_SQL };
+  return { check, ttlHours: effectiveTtlHours, TIMESTAMP_SQL };
 }
 
 /** Provider over a fixed fixture map — tests and the demo seed use this. */
