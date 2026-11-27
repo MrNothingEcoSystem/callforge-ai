@@ -39,6 +39,9 @@ describe('M03 durable workflow', () => {
     const db = getDatabase();
     // Derive the expected set so a new migration does not need this test edited.
     const expected = listMigrations().map(m => m.version);
+    // Guard against a silently empty scan making the assertion below vacuous.
+    expect(expected.length).toBeGreaterThanOrEqual(4);
+    expect(expected).toContain('0004');
     const versions = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all();
     expect(versions.map(v => v.version)).toEqual(expected);
     const again = runMigrations(db);
@@ -226,6 +229,31 @@ describe('M03 durable workflow', () => {
     await logger.initialize();
     const verification = await logger.verifyChain();
     expect(verification.valid).toBe(true);
+  });
+
+  it('links transition audit events to the seq head, not the rowid head (TECH-004)', async () => {
+    const db = getDatabase();
+    const { intentId } = seedTenantAndIntent(db);
+    const { createAuditLogger } = await import('../audit.mjs');
+    const logger = createAuditLogger();
+    await logger.initialize();
+    await logger.log({ event_type: 'seq_a', actor_type: 'system', action: 'seed' });
+    const b = await logger.log({ event_type: 'seq_b', actor_type: 'system', action: 'seed' });
+    const c = await logger.log({ event_type: 'seq_c', actor_type: 'system', action: 'seed' });
+
+    // Force seq and rowid to disagree: c is the newest rowid but now the lowest seq,
+    // so the seq head is b. A rowid-ordered reader would link the transition to c.
+    db.prepare('UPDATE audit_events SET seq = 0 WHERE id = ?').run(c.id);
+
+    transition(db, { intentId, to: 'approved', actor: 'test' });
+
+    const transitionEvent = db
+      .prepare(
+        "SELECT * FROM audit_events WHERE event_type = 'call_state_transition' AND resource_id = ? ORDER BY rowid DESC LIMIT 1",
+      )
+      .get(intentId);
+    expect(transitionEvent).toBeDefined();
+    expect(transitionEvent.previous_hash).toBe(b.event_hash);
   });
 
   it('backup and restore round-trip', () => {

@@ -116,7 +116,7 @@ export function transition(db, { intentId, to, actor = 'system', reason = null, 
     });
 
     const chainHead = db
-      .prepare('SELECT event_hash FROM audit_events ORDER BY rowid DESC LIMIT 1')
+      .prepare('SELECT event_hash FROM audit_events ORDER BY seq DESC LIMIT 1')
       .get();
     const auditEvent = {
       id: generateId(),
