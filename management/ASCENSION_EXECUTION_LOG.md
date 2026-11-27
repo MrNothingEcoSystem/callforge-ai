@@ -402,7 +402,7 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
 - No merge, deploy, live call or spend. Telegram: none — not a milestone acceptance, no new
   external blocker, and the 6-hour digest window (last digest cycle 218, ~09:5x UTC) has not
   elapsed.
-- Resource usage: ~19 min wall clock, no background processes, no extra worktrees. Remaining work
+- Resource usage: ~10 min wall clock including two CI waits, no background processes, no extra worktrees. Remaining work
   estimate: M04/M05 defect class is empty; EXT-002 (legal sign-off) and EXT-003 (provider +
   carrier vocabulary) gate the rest, plus owner merge of seven draft PRs. Assumption: D-008 stands
   and the dialect-neutral policy/telephony work is the right use of cycles until EXT-002/003 land.
