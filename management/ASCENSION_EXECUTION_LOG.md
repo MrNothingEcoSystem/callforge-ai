@@ -61,8 +61,9 @@
   (`pnpm install --frozen-lockfile`, 1/1 twice, diff scope read): record
   `management/TECH005_REVIEW_RECORD.md`, verdict **ACCEPT**, I1–I3 Info.
 - Draft PR **#194** opened against `main`. `verify` CI SUCCESS (run 45927664727, the
-  `pull_request` event did deliver this time). Docs head `16e23f0` also carries the 1-line
+  `pull_request` event did deliver this time); dispatch escape-hatch run 45927703593 also SUCCESS. Docs head `16e23f0` also carries the 1-line
   `workflow_dispatch` escape hatch for EXT-010 (duplicates #192/#193 — reconcile on merge).
+- Docs head `fe7706e` `verify` SUCCESS (run 45927788077); remote SHA verified equal after each push. `--force-with-lease` unusable in cron, so follow-ups land as extra commits (linear history).
 - Telegram: no message — no milestone acceptance, critical finding, external blocker, failed
   gate or approval request; last digest cycle 210 ~00:33 UTC, window closed until ~06:33 UTC.
 - Resource usage: ~19 min wall clock, 3 detached worktrees (2 removed), no background server.
