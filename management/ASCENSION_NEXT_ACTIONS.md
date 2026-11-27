@@ -19,3 +19,15 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 216 — TECH-004 hedge landed on branch
+
+`tech-004-audit-seq-hedge` (base #189) adds migration 0004: `seq` on `audit_events`,
+backfilled in rowid order, unique index, AFTER INSERT trigger allocating `MAX(seq)+1`;
+`audit.mjs` head/verifyChain/getEvents now order by `seq`. Proof: seq is gap-free and
+monotonic, and reads follow `seq` when `rowid` is left untouched (test). This is the
+cheap engine-neutral hedge D-008 requires before any Postgres port; #190 option 2
+(signed checkpoint) is still the owner-side archival-policy half.
+
+Open owner decisions unchanged: merge order #193 → #194 → #189 → hedge → #191 → #192,
+then #195 (decision record). SEC-001 IdP sign-off still blocks M02 production identity.

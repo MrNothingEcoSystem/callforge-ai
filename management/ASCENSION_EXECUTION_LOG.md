@@ -63,3 +63,37 @@
 - Tests: 4 added; 116/116 pass, eslint 0, prettier clean, tsc clean. CI verify PASS (run 45824320496) at head `cdd0d62ea7e4608907c3760f08f0f104bf2b4de4`; remote branch SHA verified equal. PR #189 body updated, stays draft.
 - No merge, no deploy, no live calls, no spend. Signed checkpoints per archive batch (issue option 2) remain owner archival-policy.
 - Resource usage: ~20 min wall clock including pnpm install (2m12s, better-sqlite3 source build), 1 worktree, no persistent processes. Remaining: independent review of the R1 commit; owner merge decisions on PR #189 and the #7/#9/#20 chain; SEC-001 IdP decision still blocks M02 production identity (F-65-4, PR #65).
+
+## 2026-11-27 — Cycle 216 (dispatcher, 03:29 UTC)
+
+- Sync: `git fetch --all`; `origin/main` = `28c9040`; local HEAD was PR #195's branch head
+  `d3a1f5f` (already pushed, CI SUCCESS, clean) — no divergence to repair, #195 left untouched.
+  No writes to the legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0.
+- Task selection: every queue item is a draft PR awaiting owner merge (#193 → #194 → #189 →
+  #191 → #192), and SEC-001 is owner/IdP-gated. The only engineering item the last cycle left
+  open for itself is the TECH-004 hedge ("add the monotonic `seq` column … before any port"),
+  so that is this cycle's one task.
+- Branch `tech-004-audit-seq-hedge` cut from `origin/cleanup/issues-2-4-5-6` (#189), not from
+  `main`, because the hedge rewrites the same `rowid` read sites #189 touches — one write lease,
+  no duplicate work. PR base is the #189 branch and must be retargeted to `main` after merge.
+- Change: migration `0004_audit_seq.sql` adds `seq INTEGER` on `audit_events`, backfills in
+  rowid order, adds a unique index and an `AFTER INSERT` trigger that allocates
+  `COALESCE(MAX(seq),0)+1` inside the write transaction (a Postgres port swaps the allocator
+  for a real sequence and the readers stay unchanged). `audit.mjs` chain head, `verifyChain`
+  range/predecessor and `getEvents` pagination now order by `seq`. Return shapes unchanged.
+- Tests: 2 added (gap-free monotonic `1..n`; reads follow `seq` with `rowid` deliberately left
+  untouched by inverting `seq`). Also made `tests/m03-workflow` derive its expected migration
+  set from `listMigrations()` — it hardcoded `0001..0003` and failed on any new migration.
+- Gate result: `vitest run` 100/100 tests pass, 0 failed, eslint 0, tsc 0, prettier clean.
+  One worker still dies with the known pre-existing TECH-009 `better-sqlite3` 11.10 teardown
+  SIGABRT (`tests/audit.test.mjs`, and also `store.test.mjs` on the base branch) — reproduced on
+  the base with the test changes stashed, so it is not introduced here and is what #193 fixes.
+- Ledger: blocker row TECH-004 updated, next-actions block added. No merge, deploy, live call or
+  spend. Telegram: none — no milestone acceptance, critical finding, external blocker, failed
+  gate or approval request; 6-hour digest window since cycle 210 (~00:33 UTC) has not elapsed.
+- Resource usage: ~9 min wall clock, 1 detached review worktree, no background processes.
+  Remaining work estimate: no unblocked engineering defect-class work left — what remains is the
+  owner merge chain, the SEC-001 IdP decision, #190 option 2 as archival policy, then
+  §7B/§7G/EXT-008 deployment work. Assumption: the owner accepts D-008, so the hedge (not a port)
+  is the correct next spend of a cycle.
