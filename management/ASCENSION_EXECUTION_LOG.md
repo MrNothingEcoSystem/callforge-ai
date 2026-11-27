@@ -603,7 +603,8 @@ behaviour, so the change is additive.
   both at v1 serialise to a consistent state. Draft test file fails 3/23 pre-fix.
   Verdict **ACCEPT**, F2–F4 recorded (`management/TECH014_DELETE_FENCE_REVIEW_RECORD.md`).
   Cycle-run probe, not a delegated auditor, labelled as such.
-- Draft PR #209 updated. No merge, deploy, live call or spend.
+- CI `verify` PASS on `fafbff1` (run 46028560923). Draft PR #209 updated. No merge,
+  deploy, live call or spend.
 - Telegram: none — cycle-232 critical-defect send was at ~14:50Z, inside the 6-hour
   digest window, and last cycle (233) also sent nothing, so nothing yet overdue.
 - Resource usage: ~9 min wall, one worktree (removed), no background processes, no
