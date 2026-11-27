@@ -19,7 +19,13 @@ import { createAuditLogger } from '../audit.mjs';
 import { createAuthMiddleware } from '../auth.mjs';
 import { createMcpHttpHandler } from '../mcp-http.mjs';
 import { createOAuthServer, generateCodeVerifier, pkceS256 } from '../oauth.mjs';
-import { gate, riskyChanges, stateMatches } from '../mcp-elicitation.mjs';
+import {
+  createRequestState,
+  gate,
+  parseRequestState,
+  riskyChanges,
+  stateMatches,
+} from '../mcp-elicitation.mjs';
 
 const DIR = mkdtempSync(join(tmpdir(), 'callforge-m09-elicit-'));
 setTestDatabasePath(join(DIR, 'callforge.db'));
@@ -120,6 +126,59 @@ describe('unit: gate', () => {
   });
 });
 
+describe('M09 requestState signing (F13)', () => {
+  const ARGS = { license_number: 'L1' };
+
+  it('mints a versioned, signed state that round-trips', () => {
+    const state = createRequestState('configure_business', ARGS);
+    const [version, payload, signature] = state.split('.');
+    expect(version).toBe('v1');
+    expect(payload).toMatch(/^[A-Za-z0-9_-]+$/);
+    expect(signature).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(parseRequestState(state)).toEqual({
+      tool: 'configure_business',
+      fp: expect.stringMatching(/^[0-9a-f]{32}$/),
+    });
+  });
+
+  it('rejects a hand-edited payload, an unsigned state and a short signature', () => {
+    const state = createRequestState('configure_business', ARGS);
+    const [, payload, signature] = state.split('.');
+    const forgedPayload = Buffer.from(
+      JSON.stringify({ tool: 'configure_business', fp: 'f'.repeat(32) }),
+      'utf8',
+    ).toString('base64url');
+
+    expect(stateMatches(`${forgedPayload}`, 'configure_business', ARGS)).toBe(false);
+    expect(stateMatches(`v1.${forgedPayload}.${signature}`, 'configure_business', ARGS)).toBe(
+      false,
+    );
+    expect(
+      stateMatches(`v1.${payload}.${signature.slice(0, -1)}`, 'configure_business', ARGS),
+    ).toBe(false);
+    expect(parseRequestState(`${payload}`)).toBeNull();
+  });
+
+  it('treats a state minted under another key as stale', () => {
+    const state = createRequestState('configure_business', ARGS);
+    const previous = process.env.CALLFORGE_ELICITATION_STATE_SECRET;
+    process.env.CALLFORGE_ELICITATION_STATE_SECRET = 'rotated-key';
+    try {
+      expect(stateMatches(state, 'configure_business', ARGS)).toBe(false);
+      // The state is re-issued, not applied: a fresh one matches again.
+      expect(
+        stateMatches(createRequestState('configure_business', ARGS), 'configure_business', ARGS),
+      ).toBe(true);
+    } finally {
+      if (previous === undefined) {
+        delete process.env.CALLFORGE_ELICITATION_STATE_SECRET;
+      } else {
+        process.env.CALLFORGE_ELICITATION_STATE_SECRET = previous;
+      }
+    }
+  });
+});
+
 describe('M09 confirmation gate over the transport', () => {
   let http;
   let base;
@@ -205,6 +264,26 @@ describe('M09 confirmation gate over the transport', () => {
       ),
     );
     expect(body.result.resultType).toBe('input_required');
+    expect(config(tenantId).license_number).toBe('DED-123');
+  });
+
+  it('re-issues the confirmation when the requestState carries no signature', async () => {
+    const minted = await rpc(base, token, call('configure_business', { license_number: 'CCC' }));
+    const [payload] = minted.body.result.requestState.split('.');
+    const { body } = await rpc(
+      base,
+      token,
+      call(
+        'configure_business',
+        { license_number: 'CCC' },
+        {
+          inputResponses: { confirm: { action: 'accept', content: { confirm: true } } },
+          requestState: payload,
+        },
+      ),
+    );
+    expect(body.result.resultType).toBe('input_required');
+    expect(body.result.requestState).toMatch(/^v1\./);
     expect(config(tenantId).license_number).toBe('DED-123');
   });
 

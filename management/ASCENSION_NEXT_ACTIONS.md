@@ -239,3 +239,20 @@ carry it.
 Nothing local remains on #193. Everything is owner-gated: **#193 → #189 → #191 → #192** and the
 SEC-001 IdP sign-off, then §7B DCR/CIMD, the discovery `iss`, F19's shim, step 6 wiring, §7G
 interop (needs a reachable deployment) and EXT-008 app review.
+
+## Cycle 212 — F13 closed (requestState signing, PR #192)
+
+F13 (Info, open since cycle 200) closed: `requestState` is now `v1.<payload>.<hmac>` and
+verified before the fingerprint is trusted, so a state minted for one argument set cannot be
+hand-edited into another. Unsigned/edited/other-key states are treated as stale and
+re-issued; no gate decision changed. 3 unit tests + 1 transport test. On this base the raw
+suite still SIGABRTs 4 workers (`better-sqlite3` 11.10) — the guarded suite at `276c6db`
+merged with #193 is 256/256, and #193 is first in the merge order for exactly that reason.
+
+`workflow_dispatch` is now on `ci.yml` in this branch too (`301b5e0`): the EXT-010
+`pull_request` delivery outage left pushes unverified and this is the escape hatch. It
+duplicates two lines #193 carries — trivial to reconcile on merge.
+
+Open Info items on #192: F17 (alias retention), F19 (initialize shim until the SDK ships
+2026-07-28), F22 (per-request config parse), F23 (no revocation check) and H1–H3 from the
+F13 record. None warrants code before SEC-001, which stays the owner decision.
