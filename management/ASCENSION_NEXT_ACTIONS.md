@@ -199,6 +199,47 @@ M09 next step is unchanged and still owner-gated: SEC-001 IdP sign-off, then §7
 discovery `iss`, F19's shim and step 6 vendor wiring; after that §7G interop (needs a reachable
 deployment) and the OpenAI app-review pass (EXT-008).
 
+## Cycle 209 — TECH-009 R2 closed (guarded suite runner; PR #193)
+
+R2 from `management/TECH009_REVIEW_RECORD.md` is fixed in `2907515`: `pnpm test` now runs
+`scripts/guard-suite.mjs`, which fails the run on a file that never reports, a file reporting zero
+assertions (verified: a worker killed pre-collection shows as `passed` with no results), any failed
+test or file, and a collected count under `tests/.test-floor.json`. CI needed no change, `test:raw`
+keeps the bare runner, `--bump` raises the floor, and a guard-suite test fails if the floor exceeds
+the files on disk. 23/23 files, 242/242, negative paths red both ways. Record:
+`management/TECH009_R2_REVIEW_RECORD.md`, verdict **ACCEPT**.
+
+R3 (lockfile re-prettify after every dep change) stays accepted/noted. Open on PR #193 after this
+cycle: none locally. Merge order unchanged and owner-gated: **#193 → #189 → #191 → #192**.
+M09 next step is still the SEC-001 sign-off, then §7B DCR/CIMD, the discovery `iss`, F19's shim and
+step 6 vendor wiring; then §7G interop (needs a reachable deployment) and EXT-008 app review.
+
+## Cycle 210 — R2 hardening + CI delivery incident (PR #193)
+
+`854697d` splits the guard's judgement into a unit-tested pure module
+(`scripts/lib/suite-integrity.mjs`, 13 tests) and adds `workflow_dispatch`. **EXT-010:** the
+`pull_request` event queued no run for five consecutive heads while `workflow_dispatch` worked
+immediately (run 45916816349 SUCCESS), so every head from now on needs an explicit dispatch
+and the queue must be verified with `gh run list` before a head is called green. Review record
+`management/TECH009_R2_HARDENING_REVIEW_RECORD.md`, verdict ACCEPT.
+
+Everything left on PR #193 is owner-gated: merge order #193 → #189 → #191 → #192, and the
+SEC-001 IdP sign-off (then §7B DCR/CIMD, the discovery `iss`, F19's shim, step 6 wiring, §7G
+interop, OpenAI app-review EXT-008).
+
+## Cycle 211 — PR #193 stack conflict resolved (docs-only merge)
+
+`4dc07fc` merges the base into #193 and keeps both ledger tails chronologically; PR is
+`MERGEABLE` again and `verify` is SUCCESS on the head (run 45920636504). EXT-010 (Actions event
+delivery) recovered as observed — a `pull_request` run queued again; workaround and `gh run
+list` verification stay in force. Review record `management/PR193_STACK_SYNC_REVIEW_RECORD.md`,
+verdict ACCEPT; if the owner prefers rebasing #193 onto `main`, drop this merge rather than
+carry it.
+
+Nothing local remains on #193. Everything is owner-gated: **#193 → #189 → #191 → #192** and the
+SEC-001 IdP sign-off, then §7B DCR/CIMD, the discovery `iss`, F19's shim, step 6 wiring, §7G
+interop (needs a reachable deployment) and EXT-008 app review.
+
 ## Cycle 212 — F13 closed (requestState signing, PR #192)
 
 F13 (Info, open since cycle 200) closed: `requestState` is now `v1.<payload>.<hmac>` and
@@ -215,3 +256,20 @@ duplicates two lines #193 carries — trivial to reconcile on merge.
 Open Info items on #192: F17 (alias retention), F19 (initialize shim until the SDK ships
 2026-07-28), F22 (per-request config parse), F23 (no revocation check) and H1–H3 from the
 F13 record. None warrants code before SEC-001, which stays the owner decision.
+
+## Cycle 219 — #193 conflict recurrence resolved (docs-only resync)
+
+#193 was `CONFLICTING` again at intake: the base gained the cycle-212 F13 code commit after
+the cycle-211 sync, so the ledger tails re-clashed. `6e2cfac` merges the base in, keeps both
+sides chronologically and raises the stale `tests/.test-floor.json` to 256 (the base's 4 new
+tests; the bump belongs with #193, which owns the guard). PR `MERGEABLE` again, `verify`
+SUCCESS (run 45981735111). Record `management/PR193_CYCLE219_RESYNC_REVIEW_RECORD.md`,
+ACCEPT. No local item remains on #193.
+
+Expected recurrence: every further base commit re-conflicts this stack. Two ways out, both
+owner-side — merge #193 first (it stops the bleeding), or rebase #193 onto `main` per
+`TECH009_REVIEW_RECORD.md` and drop the merge commits. Until then a cycle that finds the PR
+`CONFLICTING` should resync before doing anything else.
+
+Merge order unchanged: **#193 → #189 → #191 → #192**, then the SEC-001 IdP sign-off, then §7B
+DCR/CIMD, the discovery `iss`, F19's shim, step 6 wiring, §7G interop and EXT-008.

@@ -2,6 +2,7 @@ name: M01 quality gates
 
 on:
   pull_request:
+  # Manual re-run for a head whose queue never materialised.
   workflow_dispatch:
   push:
     branches:

@@ -1,13 +1,14 @@
 {
   "name": "callforge",
   "version": "0.2.0",
-  "description": "CALLFORGE AI — UAE Business Calling & AI Receptionist Platform (v0.2 Simulation Baseline)",
+  "description": "CALLFORGE AI \u2014 UAE Business Calling & AI Receptionist Platform (v0.2 Simulation Baseline)",
   "type": "module",
   "main": "core.mjs",
   "scripts": {
     "start": "node core.mjs",
     "dev": "node --watch core.mjs",
-    "test": "vitest run",
+    "test": "node scripts/guard-suite.mjs",
+    "test:raw": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "lint": "eslint . --ext .mjs,.js",
@@ -36,7 +37,7 @@
   "packageManager": "pnpm@12.18.0",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^12.11.1",
     "uuid": "^14.0.3",
     "zod": "^4.6.7"
   },

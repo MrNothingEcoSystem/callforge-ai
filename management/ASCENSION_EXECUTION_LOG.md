@@ -284,6 +284,81 @@
 - Telegram: no message — no milestone acceptance, critical finding, external blocker, failed gate or approval request, and the last digest (cycle 201, ~18:39 UTC) is inside the 6-hour window (next due ~00:39 UTC). The SEC-001 approval request went out in cycle 207.
 - Heads: code `852fcb9` (`verify` SUCCESS run 45908704389) and docs `c0ff8eb` (`verify` SUCCESS run 45908916305); both remote SHAs verified equal after push. PR #193 body carries the review record and follow-ups; PR #192 body carries the merge-order change.
 
+## 2026-11-26 — Cycle 209 (dispatcher, 23:40 UTC)
+
+- Sync: `git fetch`; local `m09-streamable-http` = `1c62a12`, 0 commits behind `origin/main` (`28c9040`), clean tree. Lease taken on `fix/tech-009-sqlite-worker-abort` (PR #193) for this cycle only; no writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, vitest 5.1.0.
+- Selected highest-priority unblocked task: **TECH-009 review follow-up R2** — nothing on M09 is locally open (SEC-001 sign-off is owner-gated), and R2 is the last risk that the suite silently loses tests again.
+- Verified the defect shape before fixing: a test file whose worker dies before collection is reported `status: "passed"` with an empty `assertionResults`, so `vitest run` alone stays green for it.
+- Change `2907515`: `scripts/guard-suite.mjs` runs vitest with the default + JSON reporters and fails on non-zero exit, a discovered file that never reports, a file with zero assertions, any failed test/file, or a count under `tests/.test-floor.json` (23 files / 242 tests). `pnpm test` points at the guard (CI unchanged, `test:raw` keeps bare vitest), `--bump` raises the floor, `tests/guard-suite.test.mjs` fails if the floor exceeds the files on disk. No application code touched, no test weakened.
+- Tests: 23/23 files, **242/242**, exit 0 (was 239 — the guard suite adds 3). Negative paths red: `process.abort()` probe → exit 1 + zero-assertion; deleted `tests/store.test.mjs` → exit 1 + `collected 230 tests, floor is 242`. eslint 0 errors (8 auto-curly fixes), prettier clean, tsc clean, `format:check` clean.
+- No live probe: the guard is report-parsing over the existing suite, no transport surface touched (assumption recorded).
+- No merge, no deploy, no live calls, no spend.
+- Independent read-only pass in a detached worktree at `2907515` (`pnpm install --frozen-lockfile`, 242/242 reproduced, negatives reproduced, diff read): record `management/TECH009_R2_REVIEW_RECORD.md`, verdict **ACCEPT**, R2a–R2c recorded (all Info/Low, accepted).
+- Telegram: no message — no milestone acceptance, critical finding, external blocker, failed gate or approval request. Digest window: last digest cycle 201 ~18:39 UTC ended; the SEC-001 approval request was already sent cycle 207, so this cycle is digest-only and the next is due by policy, recorded below.
+- Resource usage: ~19 min wall clock, 1 detached worktree (removed), no background server. Estimated remaining work on PR #193: **no local item** — R1/R3 accepted, R2 now closed. Merge order unchanged and owner-gated: #193 → #189 → #191 → #192. M09 remains blocked on the SEC-001 IdP sign-off. Assumption: the CI test count keeps rising only through real tests, and the floor is bumped in the same commit as any new test.
+
+### Cycle 209 addendum — CI queue state
+
+`fde6522` pushed at 23:43 UTC, remote branch SHA verified equal. **No Actions run was queued**
+for it (or for any branch, repo-wide) through 00:05 UTC, while the previous heads `852fcb9`,
+`c0ff8eb`, `1c62a12` had `verify` SUCCESS. `actions/permissions` reports `enabled/all` and the repo
+is not archived. So the local gate set was executed in full (typecheck, lint, format:check,
+242/242 with the guard, negative paths), but CI has **not** confirmed this head and no gate failed.
+Next action: confirm `verify` on `fde6522` next cycle; if the queue is still empty, re-run via the
+API and record whether a repository/workflow-level pause exists.
+
+## 2026-11-27 — Cycle 210 (dispatcher, 00:24 UTC)
+
+- Sync: `git fetch`; local `m09-streamable-http` = `origin/m09-streamable-http` = `1c62a12`, 0 commits behind `origin/main` (`28c9040`), clean tree. Lease taken on `fix/tech-009-sqlite-worker-abort` (PR #193) for this cycle; the M09 lease is untouched. No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, vitest 5.1.0.
+- Selected highest-priority unblocked task: the cycle 209 addendum's next action (confirm CI on the new head) plus the R2 hardening it left behind. Cycle 210 started on a redundant second guard (`scripts/assert-suite-integrity.mjs` + `test:ci`) before noticing cycle 209 had already shipped `guard-suite.mjs`; the duplicate was folded into the existing guard rather than shipped as a parallel one.
+- **Gate incident:** `gh run list` shows no Actions run for `2907515`, `f2d4284`, `fde6522` or `38bf40b` — four consecutive heads. `gh workflow list` = `active`, `actions/permissions` = `enabled`/`all`, repo public and not archived, `actions/runs?status=queued` = 0, githubstatus.com reported Actions operational. A plain push of `854697d` also queued nothing, but `gh workflow run` (after adding the trigger) queued run 45916816349 in under 20 s, so the runner itself is healthy and the `pull_request` event delivery for this branch is what is degraded. Recorded as **EXT-010 (external blocker, Actions event delivery)** — workaround is `workflow_dispatch`, now committed. Cycle 209's `verify` gap is closed: run 45916816349 is SUCCESS on `854697d`.
+- Change `854697d` (test infrastructure only): report evaluation extracted to `scripts/lib/suite-integrity.mjs` (pure, no I/O beyond discovery), `scripts/guard-suite.mjs` reduced to a runner over it, and two checks added — a worker-abort message even when assertions were collected, and a file named in the report but not on disk plus duplicate entries. `tests/guard-suite.test.mjs` 3 → 13 tests (9 new, both positive and negative); floor raised 23/242 → 23/252, matching the 10 net new tests. `ci.yml` gains `workflow_dispatch` (+2 lines, same `permissions: contents: read`). Tests were not weakened; no dependency or application change.
+- Tests: guarded suite 23/23 files, **252/252**, exit 0, local, in a second detached worktree, and in CI. Real-runner negative path re-verified: `tests/simple.test.mjs` moved aside → non-zero exit with `discovered 22 test files, floor is 23` (and the in-suite floor assertion red refuses the deletion, as designed). eslint 0, prettier clean, tsc clean, `format:check` clean. One self-inflicted bug found and fixed en route: the `tests/**/*.test.mjs` JSDoc line closed its own comment, so `node --check` failed — wording changed, not escaped.
+- No live probe: no transport surface touched (report parsing only) — assumption recorded.
+- No merge, no deploy, no live calls, no spend.
+- Independent read-only pass in a detached worktree at `854697d` (`pnpm install --frozen-lockfile`, 252/252 reproduced, real negative path, diff read): record `management/TECH009_R2_HARDENING_REVIEW_RECORD.md`, verdict **ACCEPT**, H1–H3 Info/Low.
+- Telegram: digest due (last digest cycle 209 ~23:47 UTC was superseded by the 6-hour window) — one digest carrying the EXT-010 blocker and the CI-closed status, receipt below.
+- Resource usage: ~40 min wall clock (over the 20-min target: 10 min lost to the abandoned duplicate-guard attempt and 6 min to the CI queue investigation), 2 detached worktrees (both removed), no background server. Estimated remaining work on PR #193: **no local item** — R1/R3 accepted, R2 and its hardening closed. Merge order unchanged and owner-gated: #193 → #189 → #191 → #192. Assumption: EXT-010 is delivery-side, not configuration, so no further repo change is warranted until GitHub or the owner reports otherwise; cycles must dispatch CI explicitly for every head from now on.
+- Telegram receipt: `sent` (CLI, `telegram:8400775109`) — EXT-010 blocker + cycle status, not a 6-hour digest (cycle 209's digest consumed that window at ~23:47 UTC). Docs head `9dc7156` CI SUCCESS (run 45917023506), remote SHA verified equal; PR #193 body updated via REST.
+- Housekeeping: the abandoned attempt left a local-only, unpushed branch `fix/tech-009-suite-integrity` (at `38bf40b`, no unique commit — its content is folded into `854697d`). Deleting a branch needs the force form, which the cron dangerous-command gate blocks, so it stays local; a future cycle may remove it. Final head `6002351` CI SUCCESS (run 45917229545), remote SHA verified equal; `m09-streamable-http` restored at `1c62a12`, clean tree.
+
+## 2026-11-27 — Cycle 211 (dispatcher, 01:05 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` (0 commits ahead of the branch base);
+  `m09-streamable-http` local = `origin` = `1c62a12`, clean tree. Lease taken on
+  `fix/tech-009-sqlite-worker-abort` (PR #193); M09 lease untouched. No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, vitest 5.1.0.
+- Selected highest-priority unblocked task: **PR #193 was `CONFLICTING`** against its base —
+  found at intake via `gh pr list`. #193 is first in the owner merge order, so its conflict
+  blocked #189/#191/#192 as well. No M09 item is locally open (SEC-001 is the owner decision).
+- Cause: the branch was cut at `363b4a6`, before the cycle 208 docs landed on the base, so the
+  append-only ledger tails conflicted. Change `4dc07fc` (merge commit, **docs only**): base
+  merged in, both sides kept in chronological order (208 from base, 209/210 from the branch).
+  `6793f57..4dc07fc` = 5 `management/` files, +69/−3; no code, test, workflow or dependency diff.
+- Tests: guarded suite 23/23 files, **252/252**, exit 0, floor 23/252; repeated 252/252 in a
+  detached worktree on the pushed head. typecheck, lint, format:check clean (the two ledger
+  files needed the known `prettier --write` before push).
+- `mergeable: MERGEABLE` after push; CI `verify` SUCCESS on the merge head (run 45920636504).
+  No live probe: no transport surface touched (assumption recorded).
+- No merge, no deploy, no live calls, no spend.
+- Independent read-only pass in a detached worktree at `4dc07fc` (`pnpm install
+--frozen-lockfile`, 252/252 reproduced, both diffs read for drift, ledger joint read): record
+  `management/PR193_STACK_SYNC_REVIEW_RECORD.md`, verdict **ACCEPT**, no defect, one residual
+  (drop this merge if the owner prefers rebasing #193 to `main`).
+- **EXT-010 status change:** the push queued a `pull_request` run for the first time since
+  `1c62a12`, so Actions event delivery has recovered as observed. EXT-010 moves to
+  recovered-observed; the `workflow_dispatch` workaround and the `gh run list` check stay.
+- Telegram: no message — no milestone acceptance, critical finding, external blocker, failed gate
+  or approval request. Last digest cycle 210 ~00:33 UTC, window closed until ~06:33 UTC.
+- Resource usage: ~12 min wall clock, 1 detached worktree (removed), no background server.
+  Estimated remaining work: **no local item on #193**; the program is owner-gated at
+  #193 → #189 → #191 → #192 merges, the SEC-001 IdP sign-off (then §7B DCR/CIMD, the discovery
+  `iss`, F19's shim, step 6 wiring, §7G interop), and EXT-008 app review. Assumption: the base
+  `m09-streamable-http` gains no further commits before the owner merges; if it does, sync again
+  rather than letting the PR drift back into conflict.
+
 ## 2026-11-27 — Cycle 212 (dispatcher, 01:39 UTC)
 
 - Sync: `git fetch`; `origin/main` = `28c9040` (unchanged, 0 commits from branch base);
@@ -324,3 +399,45 @@
   decision** — SEC-001 sign-off then §7B DCR/CIMD, the discovery `iss`, F19's shim, step 6
   wiring, §7G interop (deployment), EXT-008 app review. Assumption: the owner still takes
   every merge; #193 lands first, which also removes the 11.10 SIGABRT from this base.
+
+## 2026-11-27 — Cycle 219 (dispatcher, 10:22 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged, 0 commits behind local; local HEAD
+  `e17517a` on `tech-004-audit-seq-hedge` equalled the remote branch tip, clean tree. Wrote on
+  `fix/tech-009-sqlite-worker-abort` (PR #193) in a detached worktree — #196's in-place
+  checkout untouched, one lease per branch. No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, vitest 5.1.0.
+- Selection: no defect-class work was open; `gh pr list` showed **#193 `CONFLICTING`** against
+  its base. #193 is first in the owner merge order, so its conflict blocked #189/#191/#192 for
+  free — highest priority unblocked item. Time-checked over starting anything new.
+- Cause: the base added `276c6db`/`30ee1e3` (cycle 212, F13) after the cycle-211 sync, so the
+  append-only ledger tails conflicted again, plus one `ci.yml` comment line. Predicted residual
+  of carrying a merge instead of rebasing.
+- Change `6e2cfac` (merge, docs + floor only): base merged in, both sides kept chronologically
+  (branch 209–211, then base 212); `ci.yml` keeps the trigger and one comment. `git diff
+origin/m09-streamable-http 6e2cfac` is exactly the #193 payload with no base code lost —
+  `mcp-elicitation.mjs` and `tests/m09-elicitation.test.mjs` byte-identical to base, base cycle
+  212 text and F23 retained. Floor raised 252 → 256 with the guard's `--bump` (stale after the
+  base's 4 new tests; cycle 212 assigned the bump to #193).
+- Tests: guarded suite 23/23 files, **256/256**, exit 0, floor 23/256. `typecheck`, `lint`,
+  `format:check` clean. No live probe: no transport surface touched (assumption recorded).
+- `mergeable: MERGEABLE` after push; CI `verify` SUCCESS (run 45981735111, `pull_request` —
+  delivered first try, so EXT-010 stays recovered-observed). Remote SHA verified equal.
+- Independent read-only pass in a detached worktree at `6e2cfac` (`pnpm install
+--frozen-lockfile`, 256/256 reproduced, negative path red at exit 1 on `collected 255, floor
+is 256`, diffs and ledger joints read): record
+  `management/PR193_CYCLE219_RESYNC_REVIEW_RECORD.md`, verdict **ACCEPT**, no defect.
+- No merge, no deploy, no live calls, no spend. Telegram: no message — no milestone acceptance,
+  critical finding, external blocker, failed gate or approval request; last digest cycle 218
+  ~09:47 UTC, window closed until ~15:47 UTC.
+- Resource usage: ~34 min wall clock (over the 20-min target by the merge + two installs), 2
+  detached worktrees (reviewer one removed below), no background server. Estimated remaining
+  work: **no local item on #193**; expected recurrence is one resync per base commit until the
+  owner merges #193 or authorises the rebase. Assumption: the base gains no further commits
+  this cycle.
+
+- Docs head `d088ff0` CI SUCCESS (run 45982172956) — the `pull_request` event fired but ~50 s
+  late, so the dispatch (`45982175393`) was redundant; remote SHA verified equal. PR body
+  updated via REST (the CLI edit is silently dropped by the Projects-classic deprecation
+  warning). Reviewer worktree removed; four older cycle worktrees (`cf-m04`, `cf-t12`,
+  `wt-tech013`, `wt-tech014`) are left in place because their branches are still in flight.
