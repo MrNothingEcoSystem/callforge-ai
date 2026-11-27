@@ -573,7 +573,7 @@ the change is additive. `GET` now serves `version`; `readTenantPolicy` reports 0
   (`management/TECH014_VERSION_REVIEW_RECORD.md`). F1 open: `DELETE` has no fence, so
   put-then-revert is still last-write-wins. F2 open: version restarts at 1 after a revert and a
   409 body of `0` is a blunt retry hint.
-- Draft PR #209 against #208. No merge, deploy, live call or spend. Telegram: none — last
+- Draft PR #209 against #208. No merge, deploy, live call or spend. CI `verify` PASS on `f1dc40b` (run 46023468625). Telegram: none — last
   message was the cycle-232 critical-defect send at ~14:50Z, inside the 6-hour digest window,
   and this is a sub-task acceptance rather than a milestone one.
 - Resource usage: ~6 min wall, one worktree (removed), no background processes, no model spend
