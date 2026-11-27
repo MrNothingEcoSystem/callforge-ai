@@ -92,7 +92,7 @@ export function validatePolicyOptions(raw = {}) {
  *
  * @param {import('better-sqlite3').Database} db
  * @param {string} tenantId
- * @returns {{ options: object | null, source: 'tenant'|'default', violations: string[] }}
+ * @returns {{ options: object | null, source: 'tenant'|'default', version: number, violations: string[] }}
  */
 export function readTenantPolicy(db, tenantId) {
   if (!tenantId) {
@@ -102,7 +102,7 @@ export function readTenantPolicy(db, tenantId) {
     db.prepare('SELECT * FROM tenant_policies WHERE tenant_id = ?').get(tenantId)
   );
   if (!row) {
-    return { options: copyPolicyDefaults(), source: 'default', violations: [] };
+    return { options: copyPolicyDefaults(), source: 'default', version: 0, violations: [] };
   }
   const { options, violations } = validatePolicyOptions({
     timeZone: row.time_zone,
@@ -110,20 +110,68 @@ export function readTenantPolicy(db, tenantId) {
     retryLimits: { day: row.retry_limit_day, week: row.retry_limit_week },
     dncrMaxAgeHours: row.dncr_max_age_hours,
   });
-  return { options, source: 'tenant', violations };
+  return { options, source: 'tenant', version: row.version ?? 0, violations };
 }
 
-/** Upsert after validation; throws on an unusable record. */
-export function writeTenantPolicy(db, tenantId, raw) {
+/**
+ * Normalise a caller-supplied version fence. `undefined`/`null` means "no
+ * fence" (blind last-write-wins); anything else must be a positive integer.
+ *
+ * @param {unknown} value
+ */
+export function parsePolicyVersion(value) {
+  if (value === undefined || value === null || value === '') {
+    return null;
+  }
+  const parsed = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return null;
+  }
+  return parsed;
+}
+
+/**
+ * Upsert after validation; throws on an unusable record.
+ *
+ * Two concurrent writers both read version 3 and both PUT: without a fence the
+ * second one silently erases the first. When the caller passes the version it
+ * read, the update is conditional on that version and a superseded write
+ * returns `{ conflict: true, version: <current> }` having changed nothing — the
+ * caller can re-read and retry instead of believing its edit stuck. The check
+ * and the write are one statement, so the decision cannot straddle a competing
+ * commit. `parsePolicyVersion` is used so a `0` or junk fence degrades to the
+ * blind path rather than reading as a guaranteed conflict.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} tenantId
+ * @param {Record<string, any>} raw
+ * @param {unknown} [expectedVersion]
+ * @returns {{ options: object | null, version: number | null, conflict: boolean }}
+ */
+export function writeTenantPolicy(db, tenantId, raw, expectedVersion) {
   const { options, violations } = validatePolicyOptions(raw);
   if (!options) {
     throw new RangeError(`invalid tenant policy: ${violations.join('; ')}`);
   }
-  db.prepare(
+  const expect = parsePolicyVersion(expectedVersion);
+  if (expect !== null) {
+    const current = /** @type {any} */ (
+      db.prepare('SELECT version FROM tenant_policies WHERE tenant_id = ?').get(tenantId)
+    );
+    // A missing row means no override exists; only a fence of 1 (the version a
+    // fresh insert carries) can be satisfied by creating it.
+    if (!current && expect !== 1) {
+      return { options: null, version: null, conflict: true };
+    }
+    if (current && current.version !== expect) {
+      return { options: null, version: current.version, conflict: true };
+    }
+  }
+  const statement = db.prepare(
     `INSERT INTO tenant_policies
        (tenant_id, time_zone, window_start_hour, window_end_hour,
-        retry_limit_day, retry_limit_week, dncr_max_age_hours, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
+        retry_limit_day, retry_limit_week, dncr_max_age_hours, version, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 1, datetime('now'))
      ON CONFLICT (tenant_id) DO UPDATE SET
        time_zone = excluded.time_zone,
        window_start_hour = excluded.window_start_hour,
@@ -131,8 +179,10 @@ export function writeTenantPolicy(db, tenantId, raw) {
        retry_limit_day = excluded.retry_limit_day,
        retry_limit_week = excluded.retry_limit_week,
        dncr_max_age_hours = excluded.dncr_max_age_hours,
-       updated_at = datetime('now')`,
-  ).run(
+       version = tenant_policies.version + 1,
+       updated_at = datetime('now')${expect !== null ? '\n     WHERE tenant_policies.version = ?' : ''}`,
+  );
+  const args = [
     tenantId,
     options.timeZone,
     options.callingWindow.startHour,
@@ -140,8 +190,20 @@ export function writeTenantPolicy(db, tenantId, raw) {
     options.retryLimits.day,
     options.retryLimits.week,
     options.dncrMaxAgeHours,
+  ];
+  if (expect !== null) {
+    args.push(expect);
+  }
+  const result = statement.run(...args);
+  const after = /** @type {any} */ (
+    db.prepare('SELECT version FROM tenant_policies WHERE tenant_id = ?').get(tenantId)
   );
-  return options;
+  // `changes === 0` on a fenced update means a competing commit moved the
+  // version between the read above and the statement; report, don't retry.
+  if (expect !== null && result.changes === 0) {
+    return { options: null, version: after?.version ?? null, conflict: true };
+  }
+  return { options, version: after?.version ?? 1, conflict: false };
 }
 
 /**
