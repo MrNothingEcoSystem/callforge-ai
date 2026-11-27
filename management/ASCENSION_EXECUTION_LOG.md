@@ -160,7 +160,9 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   after resolution, wasting a provider call on a typo'd id). F3 (provider id missing from the
   cache key), F4 (resolution outside the insert transaction) and F5 (no re-query action after
   a terminal denial) recorded; none blocking.
-- Post-remediation gates: 179/179, eslint 0, tsc 0, prettier clean. No merge, deploy, live
+- Post-remediation gates: 179/179, eslint 0, tsc 0, prettier clean. CI `verify` SUCCESS at
+  head `c356d5e` (45950055364); PR #199 opened as draft, base `tech-011-dial-gate-wiring`,
+  review head `c356d5e` and remote branch SHA verified equal. No merge, deploy, live
   call or spend. Telegram: none — the 6-hour digest window since cycle 210 (~00:33 UTC) has
   not elapsed and this is not a milestone acceptance (M04 closure needs EXT-002).
 - Resource usage: ~5 min wall clock, 2 worktrees, no background processes. Remaining work
