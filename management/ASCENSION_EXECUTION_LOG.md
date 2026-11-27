@@ -683,3 +683,7 @@ broken set instead of falling back to self-asserted identity. Fully opt-in.
   background processes, no model spend beyond this session. Remaining: SEC-001 issuance side
   (IdP choice from the 2026-11-09 dossier needs the owner) and the EXT-002/EXT-003/EXT-005
   gates; the #197→#211 stack is now 15 drafts with #201–#207 unmergeable alone.
+- CI `verify` PASS on the code head `f70d839` (run 46039079780) and on the docs head `6bc3155`
+  (run 46039165423). Telegram: none this cycle — the previous cycle sent an approval request at
+  16:44Z, so this one stays inside the no-duplicate-digest window; the IdP decision it asks for
+  is still the open item. Remote head verified at `6bc3155`.
