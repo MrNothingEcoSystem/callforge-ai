@@ -10,6 +10,7 @@ import { createHash } from 'node:crypto';
 import { generateId } from '../store.mjs';
 import { enqueue } from './outbox.mjs';
 import { transition, InvalidTransitionError } from './stateMachine.mjs';
+import { recordAttemptOutcome } from './attemptOutcomes.mjs';
 
 export function receiveWebhook(db, { provider, dedupKey, rawBody, signature = null }) {
   const key = dedupKey || createHash('sha256').update(`${provider}:${rawBody}`).digest('hex');
@@ -47,8 +48,28 @@ const PROVIDER_EVENT_MAP = {
 
 export function reconcileProviderEvent(
   db,
-  { provider, providerEventId, callIntentId, eventType, payload = {} },
+  { provider, providerEventId, callIntentId, eventType, payload = {}, providerRef = null },
 ) {
+  // TECH-016: a provider event may also carry the call result. Outcome capture
+  // is independent of the intent transition — a late `call.completed` can still
+  // be stale for the state machine yet authoritative for the attempt.
+  // Callers pass an object, but a raw inbox replay hands back the stored JSON
+  // string; parse rather than silently dropping the outcome.
+  const p = /** @type {any} */ (typeof payload === 'string' ? JSON.parse(payload) : payload);
+  const attempted = p?.providerRef ?? p?.provider_ref ?? providerRef;
+  const noteOutcome = () => {
+    if (!p?.outcome || !attempted) {
+      return null;
+    }
+    return recordAttemptOutcome(db, {
+      provider,
+      providerRef: attempted,
+      outcome: p.outcome,
+      durationSeconds: p.durationSeconds ?? p.duration_seconds ?? null,
+      at: p.occurredAt ?? p.occurred_at ?? null,
+    });
+  };
+
   const target = PROVIDER_EVENT_MAP[eventType];
   const already = db
     .prepare('SELECT id FROM provider_events WHERE provider = ? AND provider_event_id = ?')
@@ -78,12 +99,14 @@ export function reconcileProviderEvent(
       );
 
   if (!target || !intent) {
+    const outcome = noteOutcome();
     recordEvent();
     return {
       applied: false,
       ignored_duplicate: false,
       ignored_stale: true,
       reason: !target ? 'unmapped event' : 'unknown call intent',
+      ...(outcome ? { outcome } : {}),
     };
   }
   try {
@@ -93,16 +116,25 @@ export function reconcileProviderEvent(
       actor: 'provider',
       payload: { provider, providerEventId },
     });
+    const outcome = noteOutcome();
     recordEvent();
-    return { applied: true, ignored_duplicate: false, ignored_stale: false, ...result };
+    return {
+      applied: true,
+      ignored_duplicate: false,
+      ignored_stale: false,
+      ...result,
+      ...(outcome ? { outcome } : {}),
+    };
   } catch (error) {
     if (error instanceof InvalidTransitionError) {
+      const outcome = noteOutcome();
       recordEvent();
       return {
         applied: false,
         ignored_duplicate: false,
         ignored_stale: true,
         reason: error.message,
+        ...(outcome ? { outcome } : {}),
       };
     }
     // StaleStateError and other transient failures: do NOT record the

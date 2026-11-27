@@ -40,9 +40,11 @@ const ATTEMPT_WINDOW_MS = 7 * 86_400_000;
 export function readAttempts(db, { tenantId, phone, now = new Date() }) {
   const rows = db
     .prepare(
-      `SELECT created_at FROM dial_requests
-       WHERE tenant_id = ? AND phone = ? AND status = 'allowed'
-         AND created_at >= datetime(?, ?) AND created_at <= datetime(?)`,
+      `SELECT d.created_at, a.outcome
+         FROM dial_requests d
+         LEFT JOIN call_attempts a ON a.dial_request_id = d.id
+        WHERE d.tenant_id = ? AND d.phone = ? AND d.status = 'allowed'
+          AND d.created_at >= datetime(?, ?) AND d.created_at <= datetime(?)`,
     )
     .all(
       tenantId,
@@ -51,11 +53,12 @@ export function readAttempts(db, { tenantId, phone, now = new Date() }) {
       `-${ATTEMPT_WINDOW_MS / 86_400_000} days`,
       now.toISOString(),
     );
-  // Until M05 reports outcomes, an allowed dial is counted as unanswered —
-  // the conservative reading of the R10 ceiling.
+  // No reported outcome (never dialled, or the carrier has not told us yet)
+  // keeps the conservative reading of the R10 ceiling — TECH-016 reports
+  // outcomes, it does not assume them.
   return rows.map(row => ({
     at: new Date(`${row.created_at.replace(' ', 'T')}Z`),
-    outcome: 'no_answer',
+    outcome: row.outcome ?? 'no_answer',
   }));
 }
 
