@@ -193,8 +193,9 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   recorded in `management/TECH013_REVIEW_RECORD.md`, verdict **ACCEPT WITH FOLLOW-UPS**;
   F1 (legacy `requestDial` producer still default-only), F2 (whole-hour windows), F3 (no
   write surface) recorded, none blocking. Design/limits: `management/M04_TECH013_TENANT_POLICY.md`.
-- CI `verify` at head `1ad7f4e`; draft PR #200 opened, base `tech-012-fact-sources` (retarget
-  down the stack after merges). No merge, deploy, live call or spend.
+- CI `verify` PASS at `ad9cfbf` (run 45953992828) after a prettier pass on two records; draft
+  PR #200 opened, base `tech-012-fact-sources` (retarget down the stack after merges). No
+  merge, deploy, live call or spend.
 - Telegram: digest due (window since cycle 210 ~00:33 UTC closed at ~06:33) — one digest sent.
 - Resource usage: ~7 min wall clock, 1 worktree, no background processes. Remaining work
   estimate: dashboard write surface, half-hour windows, legacy producer fold-in, EXT-003 DNCR
