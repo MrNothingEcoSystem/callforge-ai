@@ -536,7 +536,9 @@ answered **500** against a real database — the audit entry used `actor_type: '
 broken write surface since PR #201. Now `'user'`, with a test asserting the schema vocabulary.
 The break still exists on #201…#207; merging those without #208 ships it.
 
-- Gates: 13 new tests (file 13), **255/255**, tsc 0, eslint 0, prettier clean.
+- Gates: 13 new tests (file 13), **255/255**, tsc 0, eslint 0, prettier clean; CI `verify` PASS
+  on `66d5012` (run 46017743802). Two earlier docs commits failed `format:check` on the ledger
+  files and were fixed by a formatter-only commit before this record was finalised.
 - Read-only probe in detached worktrees at `10ccbaf` (control) and `ef3047c`: control answers
   500 on PUT/DELETE and 404 on history; fixed answers 200/200 and lists `reverted` then
   `updated` after the row is gone, POST 404, unauth 401. Verdict **ACCEPT**, findings F2–F6
