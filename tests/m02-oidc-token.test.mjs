@@ -160,6 +160,12 @@ describe('oidc: external token verification', () => {
     expect(verifyExternalToken(token({ role: undefined }), NOW).error).toMatch(/role/);
   });
 
+  it('rejects prototype-inherited role names instead of throwing', () => {
+    for (const role of ['toString', 'constructor', '__proto__', 'hasOwnProperty']) {
+      expect(verifyExternalToken(token({ role }), NOW).error).toMatch(/role/);
+    }
+  });
+
   it('rejects alg none and unsupported algorithms', () => {
     const none = `${Buffer.from(JSON.stringify({ alg: 'none' })).toString('base64url')}.${Buffer.from(
       JSON.stringify({ tenant_id: 't' }),

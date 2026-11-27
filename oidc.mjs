@@ -234,7 +234,9 @@ export function verifyExternalToken(token, nowSeconds = Math.floor(Date.now() / 
     return { valid: false, error: 'Token has no tenant binding' };
   }
   const role = claims[state.roleClaim];
-  if (typeof role !== 'string' || !(role in state.roleScopes)) {
+  // `in` would accept prototype names ('toString', 'constructor') that are not
+  // scope lists and make the spread throw.
+  if (typeof role !== 'string' || !Object.hasOwn(state.roleScopes, role)) {
     return { valid: false, error: 'Token has no known role' };
   }
   return {
