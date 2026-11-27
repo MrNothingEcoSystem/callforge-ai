@@ -300,3 +300,42 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   Assumption: EXT-002 is still outstanding, so the gate surface — not the approval workflow — is
   the correct spend of cycles.
 - Final head record: docs commit `213f6bf`; CI verify PASS (run 45966733773); remote branch SHA verified equal.
+
+## 2026-11-27 — Cycle 225 (dispatcher, 09:07 UTC)
+
+- Sync: `git fetch --all`; `origin/main` = `28c9040` unchanged. Local checkout `b18e315` was on the
+  merged-out `tech-004-audit-seq-hedge` branch while the live stack is M04 (#197→#201), so the cycle
+  worked from a fresh worktree on `origin/tech-014-tenant-policy-api` (`60703a8`, clean, remote SHA
+  equal) — the #201 lease was already released. New lease: `tech-015-dial-sink`. No writes to the
+  legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.22.1 (scratch node24), pnpm 12.18.0, `pnpm install --offline` in the worktree.
+- Task selection: cycle 224's handoff named the M05 `call.dial` sink as the next item; it is the only
+  unblocked engineering gap left on the M04/M05 track (everything else is an owner decision, EXT-002,
+  or polish). `dispatchOnce()` logged `no handler for call.dial (noop)` and acked, so every allowed
+  dial was authorised and dropped.
+- Change: `telephony/provider.mjs` port with fail-closed resolution (unknown provider throws → outbox
+  retries), `telephony/simulatedProvider.mjs` inert default (no network, no spend),
+  `telephony/dialSink.mjs` (attempt row written before the provider call, `UNIQUE(dial_request_id)` +
+  `already_accepted` short-circuit, allow-only guard, handle-less resolution fails,
+  approved→dispatched only on acceptance, cancelled not resurrected), migration
+  `0008_call_attempts.sql`, dispatcher registers the sink. Gate is deliberately not re-evaluated.
+- Review (read-only against the head, two in-cycle fixes): **ACCEPT WITH FOLLOW-UPS** on
+  `management/TECH015_REVIEW_RECORD.md`. F1 was real: no `dial_requests.status` check, so a stale
+  `call.dial` on a denied row would dial — fixed, test red before the fix. F2 (resolution ordering)
+  verified. F3 concurrency CAS, F4 retention/outcome correlation, F5 aggregate cross-check and F6
+  unbounded simulated call log recorded as non-blocking follow-ups.
+- Gates: 211/211 vitest (`--pool=threads`), 10 new sink tests, eslint 0, tsc 0, prettier clean.
+  CI verify PASS (run 45971475727) at head `81a695388e6e4b2831b1981968b06a9e4e6462d5`; remote branch
+  SHA verified equal. Draft PR **#202** (base `tech-014-tenant-policy-api`; retarget to `main` after
+  the stack merges).
+- Docs: `management/M05_TECH015_DIAL_SINK.md` (shape, boundaries, adapter contract for EXT-003).
+  Ledger: blocker row TECH-015 added, next-actions and progress blocks. No milestone accepted; M04
+  stays `increment-1`, M05 stays pending.
+- No merge, deploy, live call or spend. Telegram: none — a stacked increment is not a milestone
+  acceptance and the digest window since cycle 221 (~06:45 UTC) has not elapsed (due ~12:45);
+  that digest should summarise the M04/M05 stack.
+- Resource usage: ~16 min wall clock, 1 worktree, 1 CI run, no persistent processes.
+  Remaining work estimate: F6 import split (next), then webhook→intent outcome mapping; then owner
+  merge chain #193 → #194 → #189 → #196 → #191 → #192 → #195 → #197 → … → #202, EXT-002 for M04
+  closure, EXT-003 for a real carrier. Assumption: EXT-002/EXT-003 stay outstanding, so closing the
+  provider-neutral half (not a carrier integration) is the right spend of a cycle.

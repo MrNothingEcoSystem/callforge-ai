@@ -113,3 +113,21 @@ Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 �
 #197 → #198 → #199 → #200 → this. M04 closure still needs EXT-002.
 Next engineering: the M05 `call.dial` sink (TECH-011 left it as the missing consumer), then the
 F6 import split.
+
+## Cycle 225 — TECH-015 `call.dial` sink
+
+The M05 sink #201's handoff named is landed on PR #202 (stacked on #201). `call.dial` had no handler,
+so the gate's allow was acked as a noop: an authorised dial went nowhere. Now a provider-neutral port,
+fail-closed resolution, an inert network-free simulated default, `call_attempts` evidence written
+before the provider call, `UNIQUE(dial_request_id)` + `already_accepted` short-circuit for redelivery,
+and an allow-only guard (review F1, fixed in-cycle). 10 tests, 211/211, tsc/eslint/prettier clean,
+CI PASS at `81a6953`.
+Review verdict ACCEPT WITH FOLLOW-UPS: F3 (concurrency CAS), F4 (retention + outcome correlation
+once webhooks map to intents), F5 (aggregate cross-check), F6 (unbounded simulated call log).
+Remaining on the M04/M05 track, all non-blocking: F2 half-hour windows and the territory/penalty
+sign-off (EXT-002), F6 dialEligibility⇄tenantPolicy import cycle, F7 shallow-frozen defaults,
+list/delete policy routes, a real DNCR provider (EXT-003). Nothing here places a live call.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → this. M04 closure still needs EXT-002.
+Next engineering: the F6 import cycle split (small, purely internal), then webhook→intent outcome
+mapping so `readAttempts()` stops assuming `no_answer`.

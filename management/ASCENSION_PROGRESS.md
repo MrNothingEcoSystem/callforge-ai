@@ -14,3 +14,9 @@ No completion percentages are claimed. Remote main at last sync: 75b191acff9cde5
 
 - M04 moved from prose register to first executable control: pre-dial gate core, fail-closed, 43 tests, draft PR #197. Wiring and data sources outstanding (TECH-011/TECH-012); EXT-002 still gates closure.
 - No milestone accepted this cycle; M04 stays open by design.
+
+## Cycle 225 (2026-11-27)
+
+- M05 increment 1: `call.dial` now has a consumer. Provider-neutral port with an inert simulated
+  adapter, attempt evidence, redelivery-safe sink on the M03 dispatch path (draft PR #202, 211/211).
+  No live carrier yet — EXT-003/EXT-005 unchanged. M05 stays open; no milestone accepted.
