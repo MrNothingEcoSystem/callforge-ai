@@ -544,7 +544,7 @@ The break still exists on #201…#207; merging those without #208 ships it.
   auditor, labelled as such. Mutation-checked: disabling the revision insert fails 6 of 13.
 - Draft PR #208 opened against #207. No merge, deploy, live call or spend.
 - Telegram: one message sent (live 500 on the policy write surface, fixed in-cycle) — a
-  critical-defect trigger outside the 6-hour digest window.
+  critical-defect trigger outside the 6-hour digest window; receipt `sent`.
 - Resource usage: ~14 min wall, two worktrees (removed), no background processes. Remaining:
   last-write-wins on concurrent PUTs ≈ 1 cycle, retention/pruning for revisions ≈ small, then
   the track is EXT-gated (EXT-002 legal, EXT-003 carrier). Assumption: D-008 holds.
