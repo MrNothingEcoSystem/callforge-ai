@@ -58,3 +58,15 @@ Remaining on the M04 track: a real DNCR provider/portal (EXT-003), a "re-query n
 dashboard action (#198 F4), and tenant policy records (#197 F4). Then EXT-002 for closure.
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → this branch.
+
+## Cycle 221 — TECH-013 tenant policy record (stacked PR)
+
+Review F4 on #197 is closed: `tenant_policies` (migration 0007) replaces the hard-coded
+window/ceilings/DNCR ceiling with a per-tenant record; absent row = statutory defaults, a
+corrupted row denies (`invalid_policy`) rather than widening the gate, and the values are
+snapshotted into the request so the decision is reproducible. 186/186, tsc/eslint/prettier
+clean, draft PR #200 (stacks on #199 → #198 → #197). Remaining on the M04 track: writing a
+policy (dashboard), half-hour windows, folding the record into the legacy `requestDial`
+producer, a real DNCR provider (EXT-003), then EXT-002 for closure.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → this branch.

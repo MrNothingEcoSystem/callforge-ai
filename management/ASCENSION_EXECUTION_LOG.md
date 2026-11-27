@@ -170,3 +170,33 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   policy records (#197 F4), then EXT-002 for M04 closure. Assumption: wiring the sources
   before the dialer exists is cheaper than retrofitting callers, and the register's 24h
   freshness rule is the right cache ceiling.
+
+## 2026-11-27 — Cycle 221 (dispatcher, 06:42 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged. Local `/root/callforge-ai` sat on
+  `tech-004-audit-seq-hedge` at `b18e315` = its remote, clean, 25 ahead / 0 behind. New
+  linked worktree off `origin/tech-012-fact-sources` so no lease was shared. Nothing written
+  to the legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0, pnpm 12.18.0 (`--offline` install from the local store).
+- Task selection: queue is all draft PRs + SEC-001 IdP-gated. Highest unblocked engineering
+  item was the open review follow-up F4 on PR #197 ("constants should become a tenant policy
+  record") — the one finding on the M04 track that changes product behaviour.
+- Built: migration `0007_tenant_policy.sql` (`tenant_policies`, one row per tenant, defaults =
+  statutory set, CHECK ranges); `policies/tenantPolicy.mjs` (`validatePolicyOptions`,
+  `readTenantPolicy`, `writeTenantPolicy`); `evaluateDial` takes optional `options`,
+  re-validates and returns a single `invalid_policy` denial instead of falling back;
+  `requestDialResolved` snapshots the record's options so dispatch is reproducible.
+- Fail-closed matrix: absent row → defaults; inverted/empty window, hour >24, day>week,
+  DNCR age outside 1–168h, empty zone → unusable → deny. Week/day bounds keep the Res.57
+  callback shape (2/day, 3/7d) as the default.
+- Gates: 17 files **186/186** (`--pool=threads`), eslint 0, tsc 0, prettier clean. Self-review
+  recorded in `management/TECH013_REVIEW_RECORD.md`, verdict **ACCEPT WITH FOLLOW-UPS**;
+  F1 (legacy `requestDial` producer still default-only), F2 (whole-hour windows), F3 (no
+  write surface) recorded, none blocking. Design/limits: `management/M04_TECH013_TENANT_POLICY.md`.
+- CI `verify` at head `1ad7f4e`; draft PR #200 opened, base `tech-012-fact-sources` (retarget
+  down the stack after merges). No merge, deploy, live call or spend.
+- Telegram: digest due (window since cycle 210 ~00:33 UTC closed at ~06:33) — one digest sent.
+- Resource usage: ~7 min wall clock, 1 worktree, no background processes. Remaining work
+  estimate: dashboard write surface, half-hour windows, legacy producer fold-in, EXT-003 DNCR
+  provider, EXT-002 for M04 closure, then the owner merge chain. Assumption: F4 is
+  behaviour-changing enough to prefer over the two UI-shaped follow-ups.
