@@ -227,6 +227,24 @@ describe('M02 OAuth/PKCE and tenant isolation', () => {
     expect(token.scope).toBe('read');
   });
 
+  it('accepts the published callforge: scope alias and mints the enforced scope', async () => {
+    const verifier = generateCodeVerifier();
+    const auth = server.oauth.authorize({
+      tenant_id: tenantA,
+      role: 'tenant_admin',
+      scope: ['callforge:read', 'callforge:simulate'],
+      code_challenge: pkceS256(verifier),
+      code_challenge_method: 'S256',
+    });
+    expect(auth.error).toBeUndefined();
+    const token = server.oauth.exchange({ code: auth.code, code_verifier: verifier });
+    expect(token.scope.split(' ').sort()).toEqual(['read', 'simulate']);
+    const verified = server.oauth.authenticate({
+      headers: { authorization: `Bearer ${token.access_token}` },
+    });
+    expect(verified.context.scopes.sort()).toEqual(['read', 'simulate']);
+  });
+
   it('invalidates the code after a failed PKCE exchange (F5)', async () => {
     const verifier = generateCodeVerifier();
     const auth = server.oauth.authorize({

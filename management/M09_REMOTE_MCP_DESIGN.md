@@ -51,33 +51,52 @@ Server instructions ≤512 chars first (workflows + rate limits).
 ## 4. Tool mapping (11 → owner-facing families)
 
 Confirmation levels: C0 auto (read-only), C1 confirm (additive write), C2 explicit confirm+elicitation (destructive/external), C3 never exposed.
-Scopes (align M02 ROLES): callforge:read, callforge:simulate, callforge:config, callforge:report, callforge:audit, callforge:compliance.
+Scopes: the enforced vocabulary of M02 `ROLES` — `read`, `simulate`, `audit`, `admin`. Published `securitySchemes`/discovery and the authorize endpoint use the same bare names; `callforge:<scope>` is accepted as an alias at /authorize (stripped before the token is signed), so a scoped `callforge:` prefix can be restored later without breaking clients. `TOOL_SCOPES` (tools/index.mjs) is the single source of truth and a test asserts published == enforced.
 
-| #   | Tool                  | Family           | Disposition                                                                                | Confirm                              | Annotations RO/Destr/Idemp/OpenWorld | securitySchemes                                      |
-| --- | --------------------- | ---------------- | ------------------------------------------------------------------------------------------ | ------------------------------------ | ------------------------------------ | ---------------------------------------------------- |
-| 1   | onboard_tenant        | Onboarding       | EXPOSE as request_onboarding (no tenant creation by agent; creates pending request)        | C1                                   | F/F/F/F                              | oauth2 callforge:config                              |
-| 2   | configure_business    | Business Config  | EXPOSE (own tenant only)                                                                   | C1 (C2 if license/dncr flags change) | F/F/T/F                              | oauth2 callforge:config                              |
-| 3   | simulate_call         | Calls            | EXPOSE (sim-only until live provider; idempotency_key mandatory)                           | C1                                   | F/F/T/F* (*sim; T if live outbound)  | oauth2 callforge:simulate                            |
-| 4   | simulate_conversation | Calls (fixtures) | EXPOSE read-only preview                                                                   | C0                                   | T/F/T/F                              | oauth2 callforge:read (or noauth if public fixtures) |
-| 5   | check_readiness       | Readiness        | EXPOSE                                                                                     | C0                                   | T/F/T/F                              | oauth2 callforge:read                                |
-| 6   | get_call_status       | Calls            | EXPOSE                                                                                     | C0                                   | T/F/T/F                              | oauth2 callforge:read                                |
-| 7   | list_call_history     | Calls            | EXPOSE (paginated, PII-masked numbers)                                                     | C0                                   | T/F/T/F                              | oauth2 callforge:read                                |
-| 8   | generate_report       | Reports          | EXPOSE                                                                                     | C0/C1 if exported                    | T/F/T/F                              | oauth2 callforge:report                              |
-| 9   | access_audit_log      | Audit            | EXPOSE restricted (own tenant, auditor/tenant_admin only; NEVER verify_chain cross-tenant) | C0                                   | T/F/T/F                              | oauth2 callforge:audit                               |
-| 10  | create_dev_token      | —                | DO NOT EXPOSE (C3) — dev/local only; prod rotation via IdP/admin console                   | —                                    | —                                    | —                                                    |
-| 11  | validate_compliance   | Compliance       | EXPOSE (records evidence; gates dispatch)                                                  | C1                                   | F/F/T/F                              | oauth2 callforge:compliance                          |
+| #   | Tool                  | Family           | Disposition                                                                                | Confirm                              | Annotations RO/Destr/Idemp/OpenWorld | securitySchemes                                |
+| --- | --------------------- | ---------------- | ------------------------------------------------------------------------------------------ | ------------------------------------ | ------------------------------------ | ---------------------------------------------- |
+| 1   | onboard_tenant        | Onboarding       | EXPOSE as request_onboarding (no tenant creation by agent; creates pending request)        | C1                                   | F/F/F/F                              | oauth2 admin                                   |
+| 2   | configure_business    | Business Config  | EXPOSE (own tenant only)                                                                   | C1 (C2 if license/dncr flags change) | F/F/T/F                              | oauth2 admin                                   |
+| 3   | simulate_call         | Calls            | EXPOSE (sim-only until live provider; idempotency_key mandatory)                           | C1                                   | F/F/T/F* (*sim; T if live outbound)  | oauth2 simulate                                |
+| 4   | simulate_conversation | Calls (fixtures) | EXPOSE read-only preview                                                                   | C0                                   | T/F/T/F                              | oauth2 simulate (or noauth if public fixtures) |
+| 5   | check_readiness       | Readiness        | EXPOSE                                                                                     | C0                                   | T/F/T/F                              | oauth2 read                                    |
+| 6   | get_call_status       | Calls            | EXPOSE                                                                                     | C0                                   | T/F/T/F                              | oauth2 read                                    |
+| 7   | list_call_history     | Calls            | EXPOSE (paginated, PII-masked numbers)                                                     | C0                                   | T/F/T/F                              | oauth2 read                                    |
+| 8   | generate_report       | Reports          | EXPOSE                                                                                     | C0/C1 if exported                    | T/F/T/F                              | oauth2 read                                    |
+| 9   | access_audit_log      | Audit            | EXPOSE restricted (own tenant, auditor/tenant_admin only; NEVER verify_chain cross-tenant) | C0                                   | T/F/T/F                              | oauth2 audit                                   |
+| 10  | create_dev_token      | —                | DO NOT EXPOSE (C3) — dev/local only; prod rotation via IdP/admin console                   | —                                    | —                                    | —                                              |
+| 11  | validate_compliance   | Compliance       | EXPOSE (records evidence; gates dispatch)                                                  | C1                                   | F/F/T/F                              | oauth2 read                                    |
 
 New owner-facing wrappers to add (not in 11): get_my_profile (stable opaque id — OpenAI profile tool), request_live_call (C2, elicitation confirm, only post-M05), export_report (C1). Split validate_compliance evidence inputs from agent self-attestation: require source refs.
 Every tool: explicit annotations (defaults are worst-case: destructive=true, openWorld=true — set false only if true), title, inputSchema/outputSchema (structuredContent), no tenant_id param (from token), pagination caps, PII redaction in logs.
+
+Implementation (cycle 199, `mcp-tool-metadata.mjs`): the table above is the code
+— `REMOTE_TOOL_METADATA` is the single source for exposure, title, annotations
+and the `securitySchemes` `_meta` entry, and the remote registration seam skips
+C3 tools, strips `access_token`/`tenant_id` from the published schema when bearer
+auth is on, and keeps the legacy schema when `MCP_HTTP_ALLOW_ANONYMOUS=1`. The
+remote input schema is a passthrough object, so a stray `tenant_id` still trips
+the 403 mismatch check in `tools/toolAuth.mjs` even though it is no longer
+advertised (`additionalProperties: {}` is the visible consequence). An unadvertised `access_token` passed explicitly still wins over the transport
+bearer in `toolAuth`, which is what keeps the onboarding credential hand-off
+usable. Annotations
+follow the table: read-only for the six read families, `idempotentHint:false`
+plus `readOnlyHint:false` for `onboard_tenant`. Cycle 200 (`cd4603f`) closes `outputSchema`/structuredContent for every exposed tool and turns
+C2 from an annotation into a gate: `mcp-elicitation.mjs` answers `input_required` with a typed
+confirmation for `configure_business` on licensed/externally-binding flags, resumes on
+`inputResponses`, and mutates nothing on decline/cancel. Still open here: tool-level 401
+`_meta["mcp/www_authenticate"]`, and C1 confirmation coverage (only C2 is gated today).
 Elicitation (2025-06-18; 2026-07-28 input_required+inputResponses): C2 tools return input_required with typed schema + requestState, resume on re-call; headless/no-elicitation clients get decline/cancel → no side effect. Annotations are hints only — server-side scope+tenant+confirmation enforcement is authoritative.
 
 ## 5. MUST NOT expose
 
-create_dev_token, any secret/API-key creation or disclosure, tenant admin (other-tenant access, role grants, user provisioning, api_keys table), cross-tenant audit/verify_chain, raw auth.mjs dev tokens, provider secrets/webhooks (server.mjs /webhook/* stays disabled), debug endpoints. Also strip tenant_id from all tool schemas; reject mismatched tenant_id with 403.
+create_dev_token (delisted remotely, cycle 199), any secret/API-key creation or disclosure, tenant admin (other-tenant access, role grants, user provisioning, api_keys table), cross-tenant audit/verify_chain, raw auth.mjs dev tokens, provider secrets/webhooks (server.mjs /webhook/* stays disabled), debug endpoints. Also strip tenant_id from all tool schemas; reject mismatched tenant_id with 403.
 
 ## 6. Rate limiting & abuse
 
 Edge: per-tenant + per-tool + per-IP token bucket; handshake/discovery endpoints separate generous bucket (avoid 429-on-connect loops). 429 + Retry-After + problem+json; document limits in server instructions (512-char lead). Expensive tools (generate_report, list_history, simulate_call) low quotas; idempotency keys dedupe retries. Origin validation, max body, timeouts, SSE keep-alive comments.
+
+Implementation (cycle 198, `mcp-rate-limit.mjs`): in-process token buckets, restart-volatile, keyed by authenticated tenant (`<tenant>` and `<tenant>:<tool>`), falling back to the socket address only when the endpoint runs anonymous. Two layers — a coarse `MCP_RATE_LIMIT_PER_MINUTE` bucket on every POST, and a tight `MCP_RATE_LIMIT_TOOL_PER_MINUTE` bucket for `simulate_call` / `list_history` / `generate_report`. Both `0`/unset = disabled. 429 carries `Retry-After`, `X-RateLimit-Limit/Remaining` and an `application/problem+json` body; an unread request body is drained so the 429 is delivered. Discovery, preflight and `/health` never touch the buckets, so a throttled client can always re-read metadata. Edge/KV buckets remain the production path — this is single-process protection only.
 
 ## 7. Conformance test plan
 
@@ -89,10 +108,20 @@ E. Confirmation: C1/C2 tools require elicitation accept; decline/cancel → no m
 F. Rate limit/robustness: burst →429+Retry-After, Origin spoof →403, oversized body →413/400, OpenAI review checklist (annotations match behavior, destructive justification, no debug/PII in logs, test creds unexpired).
 G. Interop: MCP Inspector + ChatGPT custom connector + Codex, both protocol versions.
 
+Status (cycle 205): `tests/m09-conformance.test.mjs` mechanises A, C, D (registry fidelity,
+read-only effects, pagination cap), E and F. Writing A found F18 — the gate listed
+`2026-07-28` (rejected by SDK 1.32.2 with `-32000`) and withheld three versions the SDK
+accepts. The SDK half is now imported from the SDK and an unknown-but-served version is
+normalised to its latest on `req.headers` and `req.rawHeaders`; a 2026 client is therefore
+served by our own elicitation path (F19: `initialize` still negotiates down to 2025-11-25 —
+remove the shim when the SDK ships 2026-07-28). Still unmechanised: B issuer/DCR/CIMD
+(gated on SEC-001) and G interop (needs external clients); D replay equality and the F
+OpenAI checklist numbers were mechanised in cycle 206 (`8427460`).
+
 ## 8. Migration steps (M09 build order)
 
 1. Upgrade SDK, add Streamable HTTP transport alongside stdio (keep stdio for local dev).
 2. Swap M02 HS256 self-IdP → real IdP (or keep oauth.mjs behind flag for tests); add discovery docs, RFC8707 aud, DCR/CIMD.
 3. Remove tenant_id params; enforce token-derived context; delete create_dev_token from remote registry.
-4. Add annotations/securitySchemes/structured outputs; implement elicitation for C2.
+4. Add annotations/securitySchemes/structured outputs; implement elicitation for C2. — annotations/securitySchemes + credential-param removal **done**, cycle 199 (`2d79fc2`); structured outputs + C2 elicitation **done**, cycle 200 (`cd4603f`, `MCP_ELICITATION_GATE=0` opts out).
 5. Edge rate limiting + Origin + header validation; conformance suite (§7) in CI; OpenAI app-review pass.
