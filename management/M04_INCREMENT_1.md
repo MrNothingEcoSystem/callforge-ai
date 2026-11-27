@@ -16,16 +16,16 @@ Contract: `evaluateDial({ now, campaign, contact, policy, attempts, timeZone })`
 
 ## Fail-closed positions
 
-| Situation | Position |
-| --- | --- |
-| context missing / `now` unparsable | `invalid_context`, deny |
-| campaign kind absent or unknown | `r05_kind_unknown`, deny |
-| DNCR status absent or unknown | `r06_dncr_unknown`, deny |
-| DNCR check older than 24h or undated | `r06_dncr_stale`, deny |
-| approval expiry unparsable | `r01_approval_expiry_unknown`, deny |
-| time zone unusable | `r08_time_zone_unknown`, deny |
-| marketing campaign without a purpose | `r05_purpose_missing`, deny |
-| consent without a matching purpose | `r05_consent_purpose_mismatch`, deny |
+| Situation                            | Position                             |
+| ------------------------------------ | ------------------------------------ |
+| context missing / `now` unparsable   | `invalid_context`, deny              |
+| campaign kind absent or unknown      | `r05_kind_unknown`, deny             |
+| DNCR status absent or unknown        | `r06_dncr_unknown`, deny             |
+| DNCR check older than 24h or undated | `r06_dncr_stale`, deny               |
+| approval expiry unparsable           | `r01_approval_expiry_unknown`, deny  |
+| time zone unusable                   | `r08_time_zone_unknown`, deny        |
+| marketing campaign without a purpose | `r05_purpose_missing`, deny          |
+| consent without a matching purpose   | `r05_consent_purpose_mismatch`, deny |
 
 Window is `[09:00, 18:00)` Asia/Dubai — an 18:00:00 start is refused. Ceilings count
 calls (2/day, 3/7d = the initial attempt plus Art.5(5)'s 1 callback/day, 2/week).

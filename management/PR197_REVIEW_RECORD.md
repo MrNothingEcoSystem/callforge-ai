@@ -16,7 +16,7 @@ Read-only pass in a detached worktree; the only writes were the fixes themselves
 ## Findings
 
 - **F1 (Medium, fixed at `5cb930c`)** — `checkConsent` only compared purposes when both
-  were present, and a purpose-less marketing campaign was a *warning*. So an opener
+  were present, and a purpose-less marketing campaign was a _warning_. So an opener
   could dial with a purpose-bound consent record never checked (R07/R11). Now
   `r05_purpose_missing` blocks and a consent record without a purpose is a mismatch.
 - **F2 (Low, open)** — attempts with an `at` in the future are dropped by
