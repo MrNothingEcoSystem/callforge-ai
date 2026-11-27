@@ -212,3 +212,21 @@ last-write-wins on concurrent PUTs. Then the track is EXT-gated — EXT-002 (leg
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → this.
 Next engineering: the policy history route (revisions table + `GET /tenant/policy/history`).
+
+## Cycle 232 — policy history route (PR #208)
+
+The write surface's last blind spot: `GET /tenant/policy/history` over append-only
+`tenant_policy_revisions` (migration 0011), one row per accepted write and per effective
+revert, committed in the same transaction as the change. `ef3047c` is the code; 13 tests,
+255/255, tsc/eslint/prettier clean; worktree probe ACCEPT
+(`management/TECH014_HISTORY_REVIEW_RECORD.md`).
+
+The probe also caught a **live 500 on every PUT and DELETE /tenant/policy**: the audit entry
+used `actor_type: 'client'`, which the `audit_events` CHECK rejects; tests stubbed the logger
+and never saw it. Fixed on #208. **#201…#207 are broken against a real database on their own
+— do not merge that range without #208.**
+
+Remaining M04/M05 engineering: last-write-wins on concurrent PUTs, revision retention/pruning.
+Then the track is EXT-gated (EXT-002 legal, EXT-003 carrier). Owner merge chain: #193 → … →
+#206 → #207 → this (#208).
+Next engineering: last-write-wins on concurrent PUTs.

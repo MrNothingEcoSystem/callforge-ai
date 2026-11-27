@@ -517,3 +517,34 @@ only, idempotent no-op (200 `reverted:false`, no audit entry) when there is no r
   (removed), no background processes. Remaining estimate: history route ≈ 1 cycle (needs migration
   0011 + revisions table), last-write-wins ≈ 1 cycle, then the track is EXT-gated. Assumption: D-008
   holds, so internal hardening remains the right use of cycles until the carrier and counsel land.
+
+## Cycle 232 — policy history route (+ a live 500 on the whole write surface)
+
+Cycle 231's named next action, second half. `tenant_policies` could be written and reverted
+but the change trail lived only in `audit_events`, unreachable from the policy surface, so an
+operator could not see what window a tenant was on before a change. Migration 0011 adds an
+append-only `tenant_policy_revisions` table; every accepted PUT and every effective revert
+appends one row **in the same transaction as the change it describes**, so a change and its
+history entry are atomic. A revert records the removed policy (and violations when the row was
+corrupt) and survives the row deletion. `GET /tenant/policy/history` is `read`-scoped, tenant
+from the token only, newest-first, limit 50 default / 200 max, clamped, and re-parses each
+snapshot so a hand-edited blob reports a violation instead of breaking the page.
+
+**Bug found by the real-HTTP probe, fixed in-cycle:** `PUT` and `DELETE /tenant/policy`
+answered **500** against a real database — the audit entry used `actor_type: 'client'`, which
+`audit_events` CHECK-rejects. Handler tests stub `auditLogger`, so CI has been green on a
+broken write surface since PR #201. Now `'user'`, with a test asserting the schema vocabulary.
+The break still exists on #201…#207; merging those without #208 ships it.
+
+- Gates: 13 new tests (file 13), **255/255**, tsc 0, eslint 0, prettier clean.
+- Read-only probe in detached worktrees at `10ccbaf` (control) and `ef3047c`: control answers
+  500 on PUT/DELETE and 404 on history; fixed answers 200/200 and lists `reverted` then
+  `updated` after the row is gone, POST 404, unauth 401. Verdict **ACCEPT**, findings F2–F6
+  recorded — `management/TECH014_HISTORY_REVIEW_RECORD.md`. Cycle-run probe, not a delegated
+  auditor, labelled as such. Mutation-checked: disabling the revision insert fails 6 of 13.
+- Draft PR #208 opened against #207. No merge, deploy, live call or spend.
+- Telegram: one message sent (live 500 on the policy write surface, fixed in-cycle) — a
+  critical-defect trigger outside the 6-hour digest window.
+- Resource usage: ~14 min wall, two worktrees (removed), no background processes. Remaining:
+  last-write-wins on concurrent PUTs ≈ 1 cycle, retention/pruning for revisions ≈ small, then
+  the track is EXT-gated (EXT-002 legal, EXT-003 carrier). Assumption: D-008 holds.
