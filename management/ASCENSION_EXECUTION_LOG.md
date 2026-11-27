@@ -73,9 +73,10 @@
 - Telegram: none — no milestone acceptance (M04 stays open), no critical finding, no new
   external blocker (TECH-011/012 are internal), no failed gate, no approval request. The
   6-hour digest window since cycle 210 (~00:33 UTC) is still open; next digest due ~06:33 UTC.
-- Resource usage: ~70 min wall clock (over the 20-min target — pnpm-free worktree but two
-  self-inflicted fixture bugs and one abort re-run), 1 worktree (the cycle's own lease),
-  no attached review worktree, no background processes. Remaining work estimate: TECH-011
+- Resource usage: ~11 min wall clock, inside budget (symlinked `node_modules` avoided the
+  ~2 min install; cost was two self-inflicted fixture bugs, one abort re-run, and one
+  format:check CI failure from unformatted docs), 1 worktree (the cycle's own lease), no
+  attached review worktree, no background processes. Remaining work estimate: TECH-011
   wiring ~1 session once M03 lands; TECH-012 needs owner/carrier portal access
   (EXT-003-adjacent); M04 closure needs EXT-002. Assumption: the register's conservative
   readings are the right engineering defaults, and gating dials is worth doing before the
