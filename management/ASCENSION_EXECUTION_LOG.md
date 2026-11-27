@@ -227,3 +227,36 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   estimate: F1/F3 (or the dashboard), M05 `call.dial` sink, EXT-003 DNCR provider, EXT-002 for
   M04 closure, then the owner merge chain. Assumption: closing the review finding is worth
   more than opening another stacked increment while four PRs await merge.
+
+## 2026-11-27 — Cycle 223 (dispatcher, 07:56 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged; primary checkout still on
+  `tech-004-audit-seq-hedge` at `b18e315` (25 ahead / 0 behind, clean). Reused the existing
+  `tech-013-tenant-policy` worktree (`wt-tech013`) rather than cutting a fifth stack branch —
+  the item is a review follow-up on that PR and cycle 222's F5 fix set the in-PR precedent.
+  Nothing written to the legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0, pnpm 12.18.0.
+- Task selection: every other queue item is a draft PR awaiting owner merge or IdP/EXT-gated;
+  the highest-priority unblocked item was #200's review F1 (`requestDial`, the non-resolving
+  producer, was still gated against the statutory defaults while the record was only read by
+  `requestDialResolved`) — a real correctness hole: any caller on the older path silently
+  escaped the tenant's approved window and ceilings.
+- Change: `requestDial` resolves `readTenantPolicy(db, tenantId)` unless the caller supplied an
+  `options` snapshot (so `requestDialResolved` is unchanged and a caller snapshot still wins),
+  snapshots `options`/`policyViolations`/`timeZone` from the record, and carries an unusable
+  row through as `options: null` so dispatch denies `invalid_policy` instead of widening.
+- Proof: 3 tests — narrowed tenant window (09:00–10:00) denies a 12:00 dial the defaults allow,
+  corrupt 18–9 row denies end-to-end, explicit snapshot still honoured. Reverting only
+  `workflow/dialGate.mjs` fails exactly the first two (10 passed / 2 failed), so the tests bite.
+- Gates: 17 files **191/191** (`--pool=threads`), eslint 0, tsc 0, prettier clean. CI `verify`
+  PASS at `f8da2c3` (run 45962081786), remote branch SHA verified equal. PR #200 body updated
+  with the remediation; still draft, still based on `tech-012-fact-sources`.
+- Record: F1 struck through in `management/TECH013_REVIEW_RECORD.md` with a remediation
+  section; F2/F3/F6/F7 remain open and non-blocking. No merge, deploy, live call or spend.
+- Telegram: none — a follow-up fix is not a milestone acceptance and the 6-hour digest window
+  since cycle 221 (~06:47 UTC) has not elapsed (due ~12:47).
+- Resource usage: ~6 min wall clock, 1 worktree, no background processes, 1 CI run polled.
+  Remaining work estimate: F3 dashboard/API write surface (next), F2 (EXT-002), F6/F7 cleanups,
+  EXT-003 DNCR provider, then the owner merge chain and EXT-002. Assumption: an unguarded legacy
+  path is worth closing before starting the write surface, since the dashboard will lean on the
+  same producer.

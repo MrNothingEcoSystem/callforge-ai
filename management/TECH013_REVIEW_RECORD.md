@@ -60,12 +60,12 @@ path; both fail on the pre-fix evaluator (verified by reverting the one conditio
 - Absent row still means defaults (no behaviour change for tenants without a record).
 - `retry_limit_day > retry_limit_week`, hour > 24, DNCR age outside 1–168h and an empty
   `time_zone` all deny; the migration CHECKs agree with the validator bounds.
-- Snapshotted options mean a mid-flight edit cannot re-gate a pending dial; the legacy
-  `requestDial` producer passes no `options` and stays on defaults (F1 stands, now explicit).
+- Snapshotted options mean a mid-flight edit cannot re-gate a pending dial; the resolved
+  producer passes the record it just read as the snapshot.
 
 ### Remaining, non-blocking
 
-- F1 (unchanged): legacy `requestDial` producer ignores the record.
+- F1: ~~legacy `requestDial` producer ignores the record~~ — **fixed in cycle 223** (below).
 - F2 (unchanged): whole-hour windows; Res.57 half-hour windows need EXT-002 before widening.
 - F3 (unchanged): no write surface (dashboard/API).
 - F6 (new, Low): `dialEligibility.mjs` ⇄ `tenantPolicy.mjs` are mutually importing; it works
@@ -76,4 +76,16 @@ path; both fail on the pre-fix evaluator (verified by reverting the one conditio
 
 Gates after the fix: 188/188 (`--pool=threads`), tsc 0, eslint 0, prettier clean.
 
-## Verdict (independent pass): ACCEPT WITH FOLLOW-UPS — F5 fixed in-cycle, F1/F2/F3/F6/F7 open
+## F1 remediation (cycle 223, 2026-11-27)
+
+`requestDial` now resolves `readTenantPolicy` itself when the caller supplies no `options`
+and snapshots the record (a caller-supplied snapshot still wins, so `requestDialResolved` is
+unchanged). An unusable row is carried through as `options: null` plus its violations, so
+dispatch denies `invalid_policy` rather than widening. Tests: a narrowed tenant window denies
+a 12:00 dial the defaults would allow, and a corrupt row denies end-to-end — both red with the
+fix reverted — plus a guard that an explicit snapshot is still honoured. Gates 191/191
+(`--pool=threads`), tsc 0, eslint 0, prettier clean, CI `verify` PASS (run 45962081786).
+Residual: the legacy producer still takes caller-supplied contact facts (no consent/DNCR
+resolution), which is TECH-012's `requestDialResolved` job by design.
+
+## Verdict (independent pass): ACCEPT WITH FOLLOW-UPS — F5 and F1 fixed in-cycle, F2/F3/F6/F7 open

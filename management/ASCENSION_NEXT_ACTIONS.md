@@ -86,5 +86,14 @@ F2 whole-hour windows (Res.57 half-hours need EXT-002), F3 no write surface/dash
 F6 `dialEligibility` ⇄ `tenantPolicy` import cycle, F7 shallow-frozen defaults.
 
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
-#197 → #198 → #199 → #200. M04 closure still needs EXT-002; the M05 `call.dial` sink is the
-next engineering item after F1/F3 or the dashboard, whichever the owner prefers.
+#197 → #198 → #199 → #200. M04 closure still needs EXT-002.
+
+## Cycle 223 — review F1 closed (legacy producer)
+
+`requestDial` now reads the tenant policy record itself when no snapshot is supplied and
+carries an unusable row through so dispatch denies `invalid_policy`; 3 tests, 2 red pre-fix,
+191/191, CI PASS (run 45962081786). Remaining on the M04 track, all non-blocking: F3 write
+surface (dashboard/API), F2 half-hour windows (EXT-002), F6 import cycle, F7 shallow-frozen
+defaults, a real DNCR provider (EXT-003), then EXT-002 for territory/penalty sign-off.
+Next engineering: the dashboard/API write surface for tenant policy (F3) — the only M04 item
+that is neither an owner decision nor external — then the M05 `call.dial` sink.
