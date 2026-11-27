@@ -197,14 +197,14 @@ function checkWindow(now, timeZone, reasons) {
  *
  * @param {object} ctx
  * @param {Date} ctx.now
- * @param {object} ctx.campaign  { kind: 'marketing'|'consumer_requested'|'transactional', cli, purpose }
- * @param {object} ctx.contact   { phone, consent?, dncrStatus?, dncrCheckedAt?, optedOut?, optOutGlobal? }
- * @param {object} ctx.policy    { licensed, approvalRef, approvalExpiresAt, cliInventory }
+ * @param {Record<string, any>} ctx.campaign  { kind: 'marketing'|'consumer_requested'|'transactional', cli, purpose }
+ * @param {Record<string, any>} ctx.contact   { phone, consent?, dncrStatus?, dncrCheckedAt?, optedOut?, optOutGlobal? }
+ * @param {Record<string, any>} ctx.policy    { licensed, approvalRef, approvalExpiresAt, cliInventory }
  * @param {Array<{at: Date, outcome: string}>} [ctx.attempts]
  * @param {string} [ctx.timeZone='Asia/Dubai']
  * @returns {{ allowed: boolean, reasons: Array<object>, warnings: string[] }}
  */
-export function evaluateDial(ctx = {}) {
+export function evaluateDial(ctx = /** @type {any} */ ({})) {
   const reasons = [];
   const warnings = [];
   const { now, campaign, contact, policy } = ctx;

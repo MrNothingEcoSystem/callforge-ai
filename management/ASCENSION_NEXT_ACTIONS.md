@@ -35,3 +35,13 @@ dispatch path, then TECH-012 DNCR/consent sources. M04 closure still needs EXT-0
 
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195. #197 is
 independent of that chain and can be reviewed or parked without touching it.
+
+## Cycle 219 — TECH-011 dial gate wired (stacked PR)
+
+`requestDial()` now snapshots the decision inputs into `dial_requests` and the outbox
+dispatcher owns a `dial.requested` handler, so the M04 evaluator is on the M03 path
+instead of being an optional call. Allow enqueues one `call.dial`; deny is recorded and
+acked (a decision, not a failure). 162/162, tsc/eslint/prettier clean. Needs independent
+review; retarget to `main` after #197. Remaining on this track: TECH-012 (DNCR/consent
+sources), the M05 `call.dial` sink, and F4 (tenant policy records). Owner merge chain
+unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then #197 → this branch.
