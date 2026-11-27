@@ -329,4 +329,30 @@ describe('Audit Logger', () => {
       true,
     );
   });
+  it('should assign a gap-free monotonic seq and order reads by it, not rowid (TECH-004)', async () => {
+    const e1 = await auditLogger.log({ event_type: 'seq_1', actor_type: 'system', action: 'test' });
+    const e2 = await auditLogger.log({ event_type: 'seq_2', actor_type: 'system', action: 'test' });
+    const e3 = await auditLogger.log({ event_type: 'seq_3', actor_type: 'system', action: 'test' });
+
+    const db = getDatabase();
+    const seqs = db
+      .prepare('SELECT seq FROM audit_events ORDER BY seq ASC')
+      .all()
+      .map(r => r.seq);
+    expect(seqs).toEqual([1, 2, 3]);
+
+    // Invert the sequence while leaving rowid untouched: rowid still points the old
+    // way, so any reader still ordering by rowid returns the wrong direction.
+    db.prepare('UPDATE audit_events SET seq = seq + 10').run();
+    db.prepare('UPDATE audit_events SET seq = ? WHERE id = ?').run(3, e1.id);
+    db.prepare('UPDATE audit_events SET seq = ? WHERE id = ?').run(2, e2.id);
+    db.prepare('UPDATE audit_events SET seq = ? WHERE id = ?').run(1, e3.id);
+
+    const events = await auditLogger.getEvents({});
+    expect(events.map(e => e.id)).toEqual([e1.id, e2.id, e3.id]);
+
+    // Chain verification must follow the same ordering key end to end.
+    const result = await auditLogger.verifyChain(e3.id);
+    expect(result.events_checked).toBe(3);
+  });
 });

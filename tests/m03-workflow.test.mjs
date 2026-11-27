@@ -1,8 +1,9 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { join } from 'node:path';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import Database from 'better-sqlite3';
 import { tmpdir } from 'node:os';
-import { runMigrations } from '../db/migrate.mjs';
+import { runMigrations, listMigrations } from '../db/migrate.mjs';
 import { transition, canTransition, InvalidTransitionError } from '../workflow/stateMachine.mjs';
 import { enqueue, claimBatch, ack, fail } from '../workflow/outbox.mjs';
 import { receiveWebhook, reconcileProviderEvent } from '../workflow/webhookInbox.mjs';
@@ -37,11 +38,102 @@ describe('M03 durable workflow', () => {
 
   it('records migrations and re-run is a no-op', () => {
     const db = getDatabase();
+    // Derive the expected set so a new migration does not need this test edited.
+    const expected = listMigrations().map(m => m.version);
+    // Guard against a silently empty scan making the assertion below vacuous.
+    expect(expected.length).toBeGreaterThanOrEqual(5);
+    expect(expected).toContain('0004');
+    expect(expected).toContain('0005');
     const versions = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all();
-    expect(versions.map(v => v.version)).toEqual(['0001', '0002', '0003']);
+    expect(versions.map(v => v.version)).toEqual(expected);
     const again = runMigrations(db);
     expect(again.applied).toEqual([]);
-    expect(again.skipped).toEqual(['0001', '0002', '0003']);
+    expect(again.skipped).toEqual(expected);
+  });
+
+  it('rebuilds audit_events with a dense non-null seq (review F3/F5)', () => {
+    const db = getDatabase();
+    const seq = db
+      .prepare('PRAGMA table_info(audit_events)')
+      .all()
+      .find(c => c.name === 'seq');
+    expect(seq).toBeDefined();
+    expect(seq.notnull).toBe(1);
+    const ddl = db
+      .prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'audit_events'")
+      .get().sql;
+    expect(ddl).toMatch(/seq INTEGER NOT NULL/);
+
+    // The AFTER INSERT trigger could never satisfy NOT NULL, so allocation moved into
+    // the INSERT itself and the trigger is gone.
+    const triggers = db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'audit_events'",
+      )
+      .all();
+    expect(triggers).toEqual([]);
+    expect(() =>
+      db
+        .prepare(
+          `INSERT INTO audit_events (id, tenant_id, event_type, actor_type, action, event_hash)
+           VALUES ('no-seq', NULL, 't', 'system', 'a', 'h')`,
+        )
+        .run(),
+    ).toThrow(/NOT NULL/);
+
+    // Every insert site allocates instead: the state machine included.
+    const before = db.prepare('SELECT COALESCE(MAX(seq), 0) AS m FROM audit_events').get().m;
+    const { intentId } = seedTenantAndIntent(db);
+    transition(db, { intentId, to: 'approved' });
+    const latest = db.prepare('SELECT seq FROM audit_events ORDER BY seq DESC LIMIT 1').get();
+    expect(latest.seq).toBe(before + 1);
+  });
+
+  it('upgrades a 0004 database to dense non-null seq (review F3/F5)', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'callforge-mig-'));
+    const migDir = join(dir, 'migrations');
+    mkdirSync(migDir);
+    const migrations = listMigrations();
+    const stage = versions =>
+      migrations
+        .filter(m => versions.includes(m.version))
+        .forEach(m => copyFileSync(join('db/migrations', m.name), join(migDir, m.name)));
+
+    const upgrade = new Database(join(dir, 'upgrade.db'));
+    upgrade.pragma('foreign_keys = ON');
+    stage(['0001', '0002', '0003']);
+    runMigrations(upgrade, migDir);
+    const legacy = upgrade.prepare(
+      `INSERT INTO audit_events (id, tenant_id, event_type, actor_type, action, event_hash)
+       VALUES (?, NULL, 'legacy', 'system', 'a', ?)`,
+    );
+    ['l1', 'l2', 'l3', 'l4'].forEach(id => legacy.run(id, `h-${id}`));
+
+    // 0004 backfills in rowid order, then the chain head is reordered so 0005's
+    // backfill has to follow seq, not rowid.
+    stage(['0004']);
+    runMigrations(upgrade, migDir);
+    upgrade.prepare('UPDATE audit_events SET seq = seq + 10').run();
+    upgrade.prepare("UPDATE audit_events SET seq = 1 WHERE id = 'l1'").run();
+    upgrade.prepare("UPDATE audit_events SET seq = 2 WHERE id = 'l4'").run();
+
+    stage(['0005']);
+    const { applied } = runMigrations(upgrade, migDir);
+    expect(applied).toEqual(['0005']);
+    const rows = upgrade.prepare('SELECT id, seq FROM audit_events ORDER BY seq ASC').all();
+    expect(rows).toEqual([
+      { id: 'l1', seq: 1 },
+      { id: 'l4', seq: 2 },
+      { id: 'l2', seq: 3 },
+      { id: 'l3', seq: 4 },
+    ]);
+    const notnull = upgrade
+      .prepare('PRAGMA table_info(audit_events)')
+      .all()
+      .find(c => c.name === 'seq').notnull;
+    expect(notnull).toBe(1);
+    upgrade.close();
+    rmSync(dir, { recursive: true, force: true });
   });
 
   it('enforces the state machine transitions', () => {
@@ -224,6 +316,31 @@ describe('M03 durable workflow', () => {
     await logger.initialize();
     const verification = await logger.verifyChain();
     expect(verification.valid).toBe(true);
+  });
+
+  it('links transition audit events to the seq head, not the rowid head (TECH-004)', async () => {
+    const db = getDatabase();
+    const { intentId } = seedTenantAndIntent(db);
+    const { createAuditLogger } = await import('../audit.mjs');
+    const logger = createAuditLogger();
+    await logger.initialize();
+    await logger.log({ event_type: 'seq_a', actor_type: 'system', action: 'seed' });
+    const b = await logger.log({ event_type: 'seq_b', actor_type: 'system', action: 'seed' });
+    const c = await logger.log({ event_type: 'seq_c', actor_type: 'system', action: 'seed' });
+
+    // Force seq and rowid to disagree: c is the newest rowid but now the lowest seq,
+    // so the seq head is b. A rowid-ordered reader would link the transition to c.
+    db.prepare('UPDATE audit_events SET seq = 0 WHERE id = ?').run(c.id);
+
+    transition(db, { intentId, to: 'approved', actor: 'test' });
+
+    const transitionEvent = db
+      .prepare(
+        "SELECT * FROM audit_events WHERE event_type = 'call_state_transition' AND resource_id = ? ORDER BY rowid DESC LIMIT 1",
+      )
+      .get(intentId);
+    expect(transitionEvent).toBeDefined();
+    expect(transitionEvent.previous_hash).toBe(b.event_hash);
   });
 
   it('backup and restore round-trip', () => {
