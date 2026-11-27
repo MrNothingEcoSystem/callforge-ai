@@ -4,7 +4,9 @@
  *
  * - Resource endpoints derive tenant context ONLY from a verified access
  *   token. Client-supplied tenant_id is never trusted (M02 critical gate).
- * - Access tokens are HS256-signed JWTs (iss/aud/exp enforced).
+ * - Access tokens are HS256-signed JWTs (iss/aud/exp enforced) or, when an
+ *   external IdP is configured, RS*-signed tokens verified against its JWKS
+ *   (`oidc.mjs`; tenant claim bound, scopes re-derived from the role).
  * - Authorization codes are single-use, short-lived (10 min), and bound to
  *   a PKCE S256 code_challenge.
  * - Codes are held in memory; durable storage is an M03 concern.
@@ -14,6 +16,7 @@
  */
 
 import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { verifyExternalToken } from './oidc.mjs';
 
 export const ISSUER = 'callforge';
 export const AUDIENCE = 'callforge-api';
@@ -80,9 +83,24 @@ function verifySignature(token) {
   }
 }
 
+function tokenAlgorithm(token) {
+  const [header] = token.split('.');
+  try {
+    return JSON.parse(Buffer.from(header, 'base64url').toString('utf8'))?.alg ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function validateAccessToken(token, nowSeconds = Math.floor(Date.now() / 1000)) {
   if (!token || typeof token !== 'string') {
     return { valid: false, error: 'Missing access token' };
+  }
+  // Anything not minted by this server (HS256) goes down the external path, so
+  // an `alg` swap can never reuse the internal HMAC key or skip verification.
+  const algorithm = tokenAlgorithm(token);
+  if (algorithm !== null && algorithm !== 'HS256') {
+    return verifyExternalToken(token, nowSeconds);
   }
   const claims = verifySignature(token);
   if (!claims) {
