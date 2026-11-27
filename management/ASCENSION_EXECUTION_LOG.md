@@ -716,3 +716,8 @@ key` → accepted after the 1 s timer → old kid still accepted → explicit re
 - Resource usage: ~16 min wall, one branch, one probe script (scratch, removed), no background
   processes, no model spend beyond this session. Next engineering: an M03 durability increment,
   or stop and queue for owner merge/IdP decision.
+
+Cycle 237 gates on the remote: CI `verify` PASS on `427492b` (run 46043904466) and on `57b2fd2`
+(run 46043960756); remote head matches. Telegram: none — last digest 13:07Z (cycle 229) is under
+six hours old and cycle 235 already carried the approval request; no milestone, gate change or
+blocker this cycle.
