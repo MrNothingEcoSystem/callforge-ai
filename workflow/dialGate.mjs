@@ -17,7 +17,11 @@
  * DNCR answer from the sources of record instead of trusting the caller.
  *
  * The tenant's own calling window / ceilings / DNCR freshness (TECH-013) are
- * snapshotted alongside, so the decision stays reproducible at dispatch time.
+ * read from the tenant policy record on both producers and snapshotted, so the
+ * decision stays reproducible at dispatch time. A caller-supplied `options`
+ * snapshot wins (the resolved producer passes the record it just read); without
+ * one the record is read here, and an unusable record is carried as `null` so
+ * dispatch denies (`invalid_policy`) instead of widening to the defaults.
  *
  * Still unwired by design: the M05 sink behind `call.dial`.
  */
@@ -121,6 +125,22 @@ export function requestDial(
   if (existing) {
     return { request: existing, outboxRow: null, inserted: false };
   }
+  // Review F1 (TECH-013): the legacy producer used to be gated against the
+  // statutory defaults only, so whoever called it silently avoided the tenant
+  // record. Resolve the record unless the caller already snapshotted options.
+  let options = policy.options;
+  let policyViolations = policy.policyViolations;
+  let effectiveTimeZone = policy.timeZone ?? timeZone;
+  if (options === undefined) {
+    const record = /** @type {{options: any, violations: string[]}} */ (
+      readTenantPolicy(db, tenantId)
+    );
+    options = record.options;
+    policyViolations = record.violations;
+    if (effectiveTimeZone === undefined) {
+      effectiveTimeZone = record.options?.timeZone;
+    }
+  }
   const request = {
     id: generateId(),
     tenant_id: tenantId,
@@ -130,7 +150,12 @@ export function requestDial(
     cli: campaign.cli ?? null,
     purpose: campaign.purpose ?? null,
     phone: contact.phone,
-    policy_json: JSON.stringify({ ...policy, timeZone: policy.timeZone ?? timeZone }),
+    policy_json: JSON.stringify({
+      ...policy,
+      options,
+      policyViolations,
+      timeZone: effectiveTimeZone,
+    }),
     contact_json: JSON.stringify(contact),
     created_at: now.toISOString().slice(0, 19).replace('T', ' '),
   };

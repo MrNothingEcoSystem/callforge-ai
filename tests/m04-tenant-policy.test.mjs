@@ -8,7 +8,7 @@ import {
   writeTenantPolicy,
 } from '../policies/tenantPolicy.mjs';
 import { evaluateDial, POLICY_DEFAULTS } from '../policies/dialEligibility.mjs';
-import { requestDialResolved, dispatchDialRequest } from '../workflow/dialGate.mjs';
+import { requestDial, requestDialResolved, dispatchDialRequest } from '../workflow/dialGate.mjs';
 import { closeStore, generateId, getDatabase, setTestDatabasePath } from '../store.mjs';
 
 const TEST_DIR = mkdtempSync(join(tmpdir(), 'callforge-m04p-'));
@@ -224,6 +224,87 @@ describe('tenant policy options (review #197 F4)', () => {
     // The earlier snapshot was taken while the row was still valid and allows.
     const ok = dispatchDialRequest(db, { aggregate_id: request.id }, { now: NOON });
     expect(ok.allowed).toBe(true);
+  });
+
+  describe('legacy requestDial producer (review TECH-013 F1)', () => {
+    const intentFor = id => {
+      const intentId = generateId();
+      db.prepare(
+        'INSERT INTO call_intents (id, tenant_id, idempotency_key, direction, status) VALUES (?, ?, ?, ?, ?)',
+      ).run(intentId, id, `intent-${intentId}`, 'outbound', 'approved');
+      return intentId;
+    };
+
+    it('snapshots the tenant record instead of the wider statutory defaults', () => {
+      const id = tenant();
+      writeTenantPolicy(db, id, { ...VALID, callingWindow: { startHour: 9, endHour: 10 } });
+      const intentId = intentFor(id);
+      seq += 1;
+      const { request } = requestDial(db, {
+        tenantId: id,
+        callIntentId: intentId,
+        idempotencyKey: `dial-legacy-${seq}`,
+        campaign: CAMPAIGN,
+        contact: { ...CLEAN, phone: CAMPAIGN.phone },
+        policy: POLICY,
+        now: NOON,
+      });
+      // 12:00 local is inside the statutory 09:00–18:00 window but outside this
+      // tenant's 09:00–10:00 approval, so only the record can deny it.
+      expect(JSON.parse(request.policy_json).options.callingWindow).toEqual({
+        startHour: 9,
+        endHour: 10,
+      });
+      const outcome = dispatchDialRequest(db, { aggregate_id: request.id }, { now: NOON });
+      expect(outcome.allowed).toBe(false);
+      expect(outcome.reasons.map(r => r.code)).toEqual(['r08_outside_window']);
+    });
+
+    it('carries an unusable record through so dispatch denies invalid_policy', () => {
+      const id = tenant();
+      db.prepare(
+        'INSERT INTO tenant_policies (tenant_id, window_start_hour, window_end_hour) VALUES (?, 18, 9)',
+      ).run(id);
+      const intentId = intentFor(id);
+      seq += 1;
+      const { request } = requestDial(db, {
+        tenantId: id,
+        callIntentId: intentId,
+        idempotencyKey: `dial-legacy-broken-${seq}`,
+        campaign: CAMPAIGN,
+        contact: { ...CLEAN, phone: CAMPAIGN.phone },
+        policy: POLICY,
+        now: NOON,
+      });
+      const snapshot = JSON.parse(request.policy_json);
+      expect(snapshot.options).toBeNull();
+      expect(snapshot.policyViolations.length).toBeGreaterThan(0);
+      const outcome = dispatchDialRequest(db, { aggregate_id: request.id }, { now: NOON });
+      expect(outcome.allowed).toBe(false);
+      expect(outcome.reasons.map(r => r.code)).toEqual(['invalid_policy']);
+    });
+
+    it('still honours a caller-supplied options snapshot', () => {
+      const id = tenant();
+      writeTenantPolicy(db, id, { ...VALID, callingWindow: { startHour: 9, endHour: 10 } });
+      const intentId = intentFor(id);
+      seq += 1;
+      const { request } = requestDial(db, {
+        tenantId: id,
+        callIntentId: intentId,
+        idempotencyKey: `dial-legacy-explicit-${seq}`,
+        campaign: CAMPAIGN,
+        contact: { ...CLEAN, phone: CAMPAIGN.phone },
+        policy: { ...POLICY, options: { ...VALID, callingWindow: { startHour: 7, endHour: 18 } } },
+        now: NOON,
+      });
+      expect(JSON.parse(request.policy_json).options.callingWindow).toEqual({
+        startHour: 7,
+        endHour: 18,
+      });
+      const outcome = dispatchDialRequest(db, { aggregate_id: request.id }, { now: NOON });
+      expect(outcome.allowed).toBe(true);
+    });
   });
 
   it('snapshots the tenant policy with the resolved request', async () => {
