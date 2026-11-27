@@ -5,7 +5,14 @@ import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import http from 'node:http';
 import { CallforgeHttpServer } from '../server.mjs';
-import { pkceS256, generateCodeVerifier, validateAccessToken } from '../oauth.mjs';
+import {
+  pkceS256,
+  generateCodeVerifier,
+  validateAccessToken,
+  sign,
+  ISSUER,
+  AUDIENCE,
+} from '../oauth.mjs';
 import { generateId, getDatabase, setTestDatabasePath } from '../store.mjs';
 
 const TEST_DB_DIR = mkdtempSync(join(tmpdir(), 'callforge-m02-'));
@@ -347,5 +354,58 @@ describe('M02 OAuth/PKCE and tenant isolation', () => {
         process.env.CALLFORGE_ALLOW_DEV_SECRET = savedDev;
       }
     }
+  });
+
+  // ---- SEC-003 F2: scope claim must be re-derived from the role ----
+
+  function mintToken(overrides = {}) {
+    const now = Math.floor(Date.now() / 1000);
+    return sign({
+      iss: ISSUER,
+      aud: AUDIENCE,
+      sub: tenantA,
+      tenant_id: tenantA,
+      role: 'auditor',
+      scope: ['read', 'audit'],
+      iat: now,
+      exp: now + 300,
+      ...overrides,
+    });
+  }
+
+  it('drops scopes the token role does not hold (SEC-003 F2)', () => {
+    const result = validateAccessToken(mintToken({ scope: ['read', 'admin', 'simulate'] }));
+    expect(result.valid).toBe(true);
+    expect(result.context.scopes).toEqual(['read']);
+    expect(result.context.role).toBe('auditor');
+  });
+
+  it('keeps the full role grant when the token carries no scope claim (SEC-003 F2)', () => {
+    const result = validateAccessToken(mintToken({ scope: undefined }));
+    expect(result.valid).toBe(true);
+    expect(result.context.scopes).toEqual(['read', 'audit']);
+  });
+
+  it('honours an explicitly empty scope claim as no grant (SEC-003 F2)', () => {
+    const result = validateAccessToken(mintToken({ scope: [] }));
+    expect(result.valid).toBe(true);
+    expect(result.context.scopes).toEqual([]);
+  });
+
+  it('rejects a token whose role is unknown (SEC-003 F2)', () => {
+    const result = validateAccessToken(mintToken({ role: 'superuser', scope: ['admin'] }));
+    expect(result.valid).toBe(false);
+    expect(result.error).toMatch(/unknown role/i);
+  });
+
+  it('denies an over-scoped token at the route guard (HTTP, SEC-003 F2)', async () => {
+    // auditor claims 'simulate' it does not hold; pre-fix this reaches the handler.
+    const overScoped = mintToken({ scope: ['read', 'simulate'] });
+    const res = await request(port, 'POST', '/simulate/call', {
+      token: overScoped,
+      body: { from: '+971500000000', to: '+971500000001' },
+    });
+    expect(res.status).toBe(403);
+    expect(res.body.error).toMatch(/scope/i);
   });
 });
