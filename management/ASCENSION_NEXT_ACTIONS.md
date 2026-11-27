@@ -196,3 +196,16 @@ R3 (lockfile re-prettify after every dep change) stays accepted/noted. Open on P
 cycle: none locally. Merge order unchanged and owner-gated: **#193 → #189 → #191 → #192**.
 M09 next step is still the SEC-001 sign-off, then §7B DCR/CIMD, the discovery `iss`, F19's shim and
 step 6 vendor wiring; then §7G interop (needs a reachable deployment) and EXT-008 app review.
+
+## Cycle 210 — R2 hardening + CI delivery incident (PR #193)
+
+`854697d` splits the guard's judgement into a unit-tested pure module
+(`scripts/lib/suite-integrity.mjs`, 13 tests) and adds `workflow_dispatch`. **EXT-010:** the
+`pull_request` event queued no run for five consecutive heads while `workflow_dispatch` worked
+immediately (run 45916816349 SUCCESS), so every head from now on needs an explicit dispatch
+and the queue must be verified with `gh run list` before a head is called green. Review record
+`management/TECH009_R2_HARDENING_REVIEW_RECORD.md`, verdict ACCEPT.
+
+Everything left on PR #193 is owner-gated: merge order #193 → #189 → #191 → #192, and the
+SEC-001 IdP sign-off (then §7B DCR/CIMD, the discovery `iss`, F19's shim, step 6 wiring, §7G
+interop, OpenAI app-review EXT-008).

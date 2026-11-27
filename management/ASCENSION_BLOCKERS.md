@@ -43,3 +43,18 @@ Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7
 ## Cycle 190 — cleanup PR #189 (issues #2/#4/#5/#6), head 97efda6
 
 Draft PR #189 (branch cleanup/issues-2-4-5-6): verifyChain partial-verification fix, rowid ordering, node:crypto test imports, start() socket smoke test. Local 111/111 pass. Awaiting independent review + owner merge; issues remain open until merged.
+
+## Cycle 210 — EXT-010 Actions event delivery (2026-11-27, OPEN)
+
+`pull_request` events queued **no** workflow run for five consecutive heads (`2907515`,
+`f2d4284`, `fde6522`, `38bf40b`, `854697d`), while the same commit's `workflow_dispatch` run
+started in under 20 s and passed. Workflow `active`, `actions/permissions` `enabled`/`all`,
+repo public/not archived, `queued` runs 0, GitHub status page "operational" (page snapshot
+stale by ~95 min).
+
+- Impact: a head can sit green-**looking** with zero CI; every suite/gate number since
+  `2907515` was local-only until 45916816349.
+- Workaround in force: `workflow_dispatch` (`854697d`) + verify with `gh run list` before
+  declaring any head green.
+- Owner action if it persists: check the org's Actions settings / any repo-level "paused
+  workflow" and re-enable event triggers; no further local code change is expected to help.
