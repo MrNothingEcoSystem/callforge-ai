@@ -85,6 +85,8 @@ describe('oidc: configuration is fail-closed', () => {
     expect(() => configureOidc({ ...base, issuer: ' ' })).toThrow(/issuer/);
     expect(() => configureOidc({ ...base, audience: undefined })).toThrow(/audience/);
     expect(() => configureOidc({ ...base, roleScopes: {} })).toThrow(/roleScopes/);
+    // Config problems are named even when the key set is also unusable.
+    expect(() => configureOidc({ ...base, issuer: '', jwks: { keys: [] } })).toThrow(/issuer/);
   });
 
   it('leaves the verifier unconfigured when no JWKS source is set', async () => {

@@ -96,13 +96,17 @@ export function configureOidc({
   roleClaim = 'role',
   clockSkewSeconds = DEFAULT_CLOCK_SKEW_SECONDS,
 }) {
-  const keys = loadJwks(jwks);
+  // Validate the scalar config before touching the key set, so a missing
+  // issuer is reported as such rather than as a key-set problem.
+  const validatedIssuer = requiredString(issuer, 'issuer');
+  const validatedAudience = requiredString(audience, 'audience');
   if (!roleScopes || Object.keys(roleScopes).length === 0) {
     throw new Error('roleScopes is required to configure external OIDC verification');
   }
+  const keys = loadJwks(jwks);
   state = {
-    issuer: requiredString(issuer, 'issuer'),
-    audience: requiredString(audience, 'audience'),
+    issuer: validatedIssuer,
+    audience: validatedAudience,
     tenantClaim: requiredString(tenantClaim, 'tenantClaim'),
     roleClaim: requiredString(roleClaim, 'roleClaim'),
     clockSkewSeconds: Number.isFinite(clockSkewSeconds) ? clockSkewSeconds : 0,
