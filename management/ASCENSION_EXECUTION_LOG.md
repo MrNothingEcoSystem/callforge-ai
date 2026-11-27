@@ -89,6 +89,7 @@
   One worker still dies with the known pre-existing TECH-009 `better-sqlite3` 11.10 teardown
   SIGABRT (`tests/audit.test.mjs`, and also `store.test.mjs` on the base branch) — reproduced on
   the base with the test changes stashed, so it is not introduced here and is what #193 fixes.
+- CI on the code head `0c6b253`: verify PASS (run 45934694680). Draft PR **#196** (base #189's branch; retarget to `main` after #189 merges).
 - Ledger: blocker row TECH-004 updated, next-actions block added. No merge, deploy, live call or
   spend. Telegram: none — no milestone acceptance, critical finding, external blocker, failed
   gate or approval request; 6-hour digest window since cycle 210 (~00:33 UTC) has not elapsed.
