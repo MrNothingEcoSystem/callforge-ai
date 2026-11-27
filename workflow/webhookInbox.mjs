@@ -53,7 +53,9 @@ export function reconcileProviderEvent(
   // TECH-016: a provider event may also carry the call result. Outcome capture
   // is independent of the intent transition — a late `call.completed` can still
   // be stale for the state machine yet authoritative for the attempt.
-  const p = /** @type {any} */ (payload);
+  // Callers pass an object, but a raw inbox replay hands back the stored JSON
+  // string; parse rather than silently dropping the outcome.
+  const p = /** @type {any} */ (typeof payload === 'string' ? JSON.parse(payload) : payload);
   const attempted = p?.providerRef ?? p?.provider_ref ?? providerRef;
   const noteOutcome = () => {
     if (!p?.outcome || !attempted) {

@@ -224,4 +224,17 @@ describe('M05 attempt outcomes (TECH-016)', () => {
     expect(duplicate.ignored_duplicate).toBe(true);
     expect(attemptRow(db, request.id).outcome_at).toBe(when);
   });
+
+  it('parses a JSON-string payload rather than dropping the outcome', async () => {
+    const { request, callIntentId, providerRef } = await dialled(db);
+    db.prepare("UPDATE call_intents SET status = 'dispatched' WHERE id = ?").run(callIntentId);
+    reconcileProviderEvent(db, {
+      provider: 'fake',
+      providerEventId: 'evt-3',
+      callIntentId,
+      eventType: 'call.answered',
+      payload: JSON.stringify({ outcome: 'answered', providerRef }),
+    });
+    expect(attemptRow(db, request.id).outcome).toBe('answered');
+  });
 });
