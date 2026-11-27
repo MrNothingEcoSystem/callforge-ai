@@ -550,3 +550,34 @@ The break still exists on #201…#207; merging those without #208 ships it.
 - Resource usage: ~14 min wall, two worktrees (removed), no background processes. Remaining:
   last-write-wins on concurrent PUTs ≈ 1 cycle, retention/pruning for revisions ≈ small, then
   the track is EXT-gated (EXT-002 legal, EXT-003 carrier). Assumption: D-008 holds.
+
+## Cycle 233 — version fence on concurrent policy PUTs (PR #209)
+
+Last engineering item on the M04 policy track. `PUT /tenant/policy` was a blind upsert: two
+admins saving at once both got 200 and the first edit disappeared, with nothing telling its
+author. The gate then runs on whichever policy landed last, which may be the one neither
+operator meant. `tenant_policies` now carries a monotonic per-row `version` (migration 0012,
+existing rows backfill at 1) and `writeTenantPolicy` accepts the version the caller read: the
+existence check and the `UPDATE … WHERE version = ?` are one statement, so the decision cannot
+straddle a competing commit. A superseded write moves nothing, writes no revision row, and
+answers **409** with the current version and policy for a deliberate retry. The fence comes from
+a body `version` or `If-Match` (`"3"`, `W/"3"`); omitted/junk keeps the old blind behaviour, so
+the change is additive. `GET` now serves `version`; `readTenantPolicy` reports 0 for "no override".
+
+- Gates: 10 new tests, **265/265**, tsc 0, eslint 0, prettier clean. Migration probed against a
+  database populated under 0001–0011: 0012 applies, existing row reads version 1, wrong-version
+  UPDATE is a 0-change no-op.
+- Read-only worktree probe at `66d5012` vs `ae8a20f`: pre-fix the stale PUT gets 200 and the
+  winner's 07:00 window is silently replaced by 10–20; post-fix 409, 07–18 preserved, version 2.
+  Draft test file fails 10/10 pre-fix. Verdict **ACCEPT**, F1–F4 recorded
+  (`management/TECH014_VERSION_REVIEW_RECORD.md`). F1 open: `DELETE` has no fence, so
+  put-then-revert is still last-write-wins. F2 open: version restarts at 1 after a revert and a
+  409 body of `0` is a blunt retry hint.
+- Draft PR #209 against #208. No merge, deploy, live call or spend. Telegram: none — last
+  message was the cycle-232 critical-defect send at ~14:50Z, inside the 6-hour digest window,
+  and this is a sub-task acceptance rather than a milestone one.
+- Resource usage: ~16 min wall, one worktree (removed), no background processes, no model spend
+  beyond this session. Remaining: DELETE fence (F1) and revision retention/pruning ≈ 1 cycle
+  each; after that the M04/M05 track is EXT-gated (EXT-002 legal, EXT-003 carrier). Assumption:
+  D-008 holds, so internal hardening stays the right use of cycles until the carrier and counsel
+  land.

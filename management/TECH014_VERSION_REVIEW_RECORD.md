@@ -20,10 +20,10 @@ winner's.
 that both carry `version: 1` (both operators read version 1). A lands, B is
 superseded.
 
-| tree | winner PUT | stale PUT | stored window | stored version |
-|---|---|---|---|---|
-| `66d5012` (pre-fix) | 200 | **200** | 10–20 (A's 07:00 silently lost) | (no column) |
-| `ae8a20f` (post-fix) | 200 | **409** | 07–18 (A preserved) | 2 |
+| tree                 | winner PUT | stale PUT | stored window                   | stored version |
+| -------------------- | ---------- | --------- | ------------------------------- | -------------- |
+| `66d5012` (pre-fix)  | 200        | **200**   | 10–20 (A's 07:00 silently lost) | (no column)    |
+| `ae8a20f` (post-fix) | 200        | **409**   | 07–18 (A preserved)             | 2              |
 
 Also probed: migration `0012` applied to a database populated under 0001–0011 —
 applies, existing row backfills to version 1, `UPDATE … WHERE version = 99` is a

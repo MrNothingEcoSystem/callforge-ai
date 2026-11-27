@@ -230,3 +230,18 @@ Remaining M04/M05 engineering: last-write-wins on concurrent PUTs, revision rete
 Then the track is EXT-gated (EXT-002 legal, EXT-003 carrier). Owner merge chain: #193 → … →
 #206 → #207 → this (#208).
 Next engineering: last-write-wins on concurrent PUTs.
+
+## Cycle 233 — version fence on concurrent PUTs (PR #209)
+
+`ae8a20f` on `tech-014-policy-lww` (draft PR #209, stacked on #208). Two admins saving at once
+both got 200 and the first edit vanished; `tenant_policies.version` (migration 0012) plus an
+`If-Match`/body fence makes the loser a 409 that names the current version and policy, with no
+revision row written. 10 tests, 265/265, tsc/eslint/prettier clean. Pre/post worktree probe ACCEPT
+(`management/TECH014_VERSION_REVIEW_RECORD.md`); F1 (`DELETE` unfenced) and F2 (version resets
+after a revert) open.
+
+Remaining M04/M05 engineering: DELETE fence, revision retention/pruning. Then EXT-002 (legal) and
+EXT-003 (carrier) gate closure.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → #207 → #208 → this.
+Next engineering: fence the revert (F1), then revision retention.
