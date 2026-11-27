@@ -263,3 +263,24 @@ EXT-002 (legal) and EXT-003 (carrier) gate closure; nothing here places a live c
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → #207 → #208 → this.
 Next engineering: revision retention/pruning, then stop and queue for owner merge.
+
+## Cycle 235 — policy revision retention (PR #210)
+
+The last unblocked M04 engineering item: `tenant_policy_revisions` was append-only with nothing
+to trim it, so every accepted change added a permanent row. `845ce74` on
+`tech-014-revision-retention` (draft PR #210, stacked on #209) prunes, inside the write
+transaction, rows older than the newest `POLICY_REVISION_RETENTION` (250) for that tenant —
+above `HISTORY_LIMIT_MAX` so a maximal page stays satisfiable, per tenant, write-time (no
+scheduler). 5 tests, 275/275, tsc/eslint/prettier clean, CI PASS (run 46033367778). Probe at 300
+writes: 250 kept (ids 51–300), second tenant untouched, 200-entry page serves; mutation check
+fails 3/5. Verdict ACCEPT (`management/TECH014_RETENTION_REVIEW_RECORD.md`), F1 age bound and F3
+trim marker open.
+
+**The M04/M05 engineering queue is now empty.** Everything left on the track is EXT-gated:
+EXT-002 (legal — half-hour windows, territory/penalty sign-off, human approval step), EXT-003
+(carrier — real DNCR provider, carrier event vocabulary, carrier `idempotencyKey` honouring for
+F3-a), EXT-005 (voice credentials). F2 (`version: 0` hint after revert) is a recorded nicety.
+Owner merge chain unchanged, now: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → #207 → #208 → #209 → this.
+Next engineering: nothing unblocked on M04/M05 — take the M02 SEC-001 IdP work (design only, no
+credentials needed) or stop and queue for owner merge.

@@ -611,3 +611,40 @@ behaviour, so the change is additive.
   model spend beyond this session. Remaining: revision retention/pruning ≈ 1 cycle,
   after which the M04/M05 track is EXT-gated (EXT-002 legal, EXT-003 carrier).
   Assumption: D-008 holds, so internal hardening stays the right use of cycles.
+
+## Cycle 235 — policy revision retention (PR #210)
+
+`tenant_policy_revisions` grew without bound: one permanent row per accepted change and per
+effective revert, and nothing trimmed it, so a tenant that edits regularly accumulated history
+forever. `recordPolicyRevision` now deletes, in the caller's transaction and after the insert,
+every row older than the newest `POLICY_REVISION_RETENTION` (250) for that tenant. 250 is
+deliberately above `HISTORY_LIMIT_MAX` (200), so retention never caps the read surface; pruning
+is per tenant and at write time because the process has no scheduler. A rejected write inserts
+nothing and so prunes nothing.
+
+- Gates: 5 new tests (file 5), **275/275**, tsc 0, eslint 0, prettier clean. Mutation-checked:
+  removing the `DELETE` fails 3/5 new tests.
+- Probe (scratch DB, discarded): 300 accepted writes → exactly 250 rows kept (ids 51–300), a
+  second tenant untouched at 1 row, total 251, a 200-entry page returns 200 entries newest-first
+  (n=299 → n=100). Verdict **ACCEPT**, F1 (age bound) and F3 (no trim marker on a truncated page)
+  recorded — `management/TECH014_RETENTION_REVIEW_RECORD.md`. Cycle-run probe, not a delegated
+  auditor, labelled as such.
+- CI `verify` PASS on `845ce74` (run 46033367778). Draft PR #210 stacked on #209. No merge,
+  deploy, live call or spend.
+- Telegram: none — cycle-232 critical-defect send was ~14:50Z, still inside the 6-hour digest
+  window, and this is a sub-task acceptance rather than a milestone one.
+- Resource usage: ~12 min wall, one branch, one probe script and one scratch DB (removed), no
+  background processes, no model spend beyond this session. **M04/M05 engineering is now
+  exhausted**; remaining work is EXT-002/EXT-003/EXT-005-gated. Next: M02 SEC-001 IdP design or a
+  stop-and-queue for owner merge. Assumption: D-008 holds.
+
+## Week 2026-W48 — digest
+
+- 5 cycles (231–235), all M04 policy-surface hardening: fenced revert, policy history route,
+  PUT/DELETE version fences, revision retention. 270 → 275 tests, all green; every increment
+  probe-verified. One live defect found and fixed in-cycle (#208's `actor_type 'client'` 500 on
+  every real PUT/DELETE).
+- Open owner decisions: the #193→#210 stack is 14 draft PRs deep and has never been merged. That
+  stack depth is now the top schedule risk — retargeting or merging mid-stack costs rework, and
+  #201…#207 are broken against a real DB without #208.
+- No merge, deploy, live call or spend all week.
