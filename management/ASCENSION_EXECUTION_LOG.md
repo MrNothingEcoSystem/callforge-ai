@@ -80,3 +80,11 @@
   (EXT-003-adjacent); M04 closure needs EXT-002. Assumption: the register's conservative
   readings are the right engineering defaults, and gating dials is worth doing before the
   engine can dial so no later caller has to retrofit it.
+
+### Cycle 218 addendum — CI heads
+
+`0653a95` SUCCESS (45941701001), `161d36f` SUCCESS (45941788439), `5cb930c` SUCCESS
+(45941911006). The ledger commit `56e0ab0` FAILED `verify` (45941972866) purely on
+`format:check` — the two new `management/` records were written unformatted; `c69d40b`
+(prettier only) SUCCESS (45941989332) and is the reviewable head. Lesson repeated from
+cycle 191: run `prettier --check .` over docs before pushing, not just over code.
