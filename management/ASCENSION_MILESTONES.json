@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-27T17:15:00Z",
+  "updated_at": "2026-11-27T17:58:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -40,7 +40,9 @@
       },
       "oidc_verify_pr": 211,
       "oidc_verify": "verification path only (RS* JWKS, tenant claim, role-derived scopes, fail-closed startup; probe ACCEPT WITH FOLLOW-UPS). Issuance still self-asserted \u2014 SEC-001 open; IdP choice pending owner (SEC001_IDP_DOSSIER.md).",
-      "followups": "F1 JWKS-URL test, F2 string exp/nbf, F3 key rotation needs restart, F4 skew env NaN"
+      "followups": "F1 JWKS-URL test, F2 string exp/nbf, F3 key rotation needs restart, F4 skew env NaN",
+      "sec001_verification_pr": 211,
+      "sec001_verification": "External RS* token verification on draft PR #211: JWKS load/verify, fail-closed startup, background key refresh (F3) and URL-branch tests (F1) closed cycle 237. Issuance still HS256/self-asserted (F5) \u2014 M02 not closed; owner IdP decision from management/SEC001_IDP_DOSSIER.md needed."
     },
     {
       "id": "M03",

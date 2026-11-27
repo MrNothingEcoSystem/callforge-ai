@@ -302,3 +302,17 @@ env NaN fallback. F1/F3 are the ones worth doing before an IdP is wired.
 Owner merge chain unchanged, now: #193 → … → #210 → this (#211).
 Next engineering: F1 + F3 on #211, or an M03 durability increment if the owner wants the stack
 merged first.
+
+## Cycle 237 — #211 F1 + F3 closed
+
+Key rotation no longer needs a restart (background refresh, 300 s default, throttled kid-miss
+refetch, failed refresh keeps the working set) and the JWKS-URL branch is covered over a real
+local HTTP fixture: `427492b`, 4 new tests, 300/300, mutations checked, probe clean. Draft PR
+#211 unchanged otherwise, still stacked on #210.
+
+Open on #211: F2 (string `exp`/`nbf`), F4 (NaN skew falls back to 0, not 5 s) — both niceties.
+SEC-001 stays open on issuance: the owner must pick an IdP from
+`management/SEC001_IDP_DOSSIER.md` before the redirect/code-exchange exists.
+Owner merge chain unchanged, now: #193 → … → #210 → this (#211).
+Next engineering: an M03 durability increment (design-only, no credentials), or stop and queue
+for the owner merge + IdP decision.

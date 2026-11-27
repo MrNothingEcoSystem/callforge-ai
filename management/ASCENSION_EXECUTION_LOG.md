@@ -687,3 +687,32 @@ broken set instead of falling back to self-asserted identity. Fully opt-in.
   (run 46039165423). Telegram: none this cycle — the previous cycle sent an approval request at
   16:44Z, so this one stays inside the no-duplicate-digest window; the IdP decision it asks for
   is still the open item. Remote head verified at `6bc3155`.
+
+## Cycle 237 — F1 + F3 on PR #211: JWKS refresh and URL coverage
+
+`oidc.mjs` loaded the key set once, so an IdP key rotation needed a process restart, and the
+`CALLFORGE_OIDC_JWKS_URL` branch had no test at all. Verification is synchronous (`guard()` cannot
+await a fetch mid-token), so rotation is handled out of band: `configureOidc` now records the key
+source and an optional refresh interval (`CALLFORGE_OIDC_JWKS_REFRESH_SECONDS`, default 300 s, `0`
+disables), a timer reloads from the same source, and an unknown `kid` starts a refresh throttled to
+5 s. A failed refresh keeps the working key set, so an unreachable IdP cannot lock every request
+out; the unknown key is still rejected once until the refresh lands.
+
+- `427492b` on `m02-oidc-token-verification` (draft PR #211, stacked on #210).
+- F1 closed: the URL branch is covered against a real local HTTP fixture — startup fetch, non-200
+  startup abort, rotated-kid acceptance after refresh, key-set retention across a failed refresh.
+  4 new tests, file 25, suite **300/300**, tsc 0, eslint 0, prettier clean.
+- Mutations: removing the kid-miss refresh fails the rotation test, wiping keys on a failed
+  refresh fails the retention test.
+- Probe (scratch, real JWKS server, no restart): old kid accepted → rotated kid `Unknown signing
+key` → accepted after the 1 s timer → old kid still accepted → explicit refresh with an empty
+  document returns `false` and the working set survives; 3 JWKS fetches total (startup, miss,
+  timer). Cycle-run probe, not a delegated auditor.
+- Not done: F2 (string `exp`/`nbf`) and F4 (NaN skew → 0 rather than the 5 s default) remain
+  recorded niceties; F5 (issuance is still self-asserted HS256) still gates SEC-001 and needs the
+  owner's IdP decision from `management/SEC001_IDP_DOSSIER.md`.
+- No merge, deploy, live call, credential or spend. Stack unchanged at 15 drafts; owner merge
+  chain #193 → … → #210 → this (#211).
+- Resource usage: ~16 min wall, one branch, one probe script (scratch, removed), no background
+  processes, no model spend beyond this session. Next engineering: an M03 durability increment,
+  or stop and queue for owner merge/IdP decision.

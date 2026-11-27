@@ -31,12 +31,12 @@ re-probed (`29b51ca`, `f70d839`).
 
 ## Follow-ups
 
-- **F1** — no test drives the `CALLFORGE_OIDC_JWKS_URL` branch (fetch path only exercised by
+- **F1** — _closed cycle 237 (`427492b`), URL branch covered over a local HTTP fixture_; originally: no test drives the `CALLFORGE_OIDC_JWKS_URL` branch (fetch path only exercised by
   inspection); needs a local HTTP fixture or a stubbed global fetch.
 - **F2** — string-valued `exp`/`nbf` are not accepted (`exp` string reads as expired, `nbf`
   string is silently ignored). Numeric Date is the JWT standard, so this is a nicety.
-- **F3** — key rotation means a process restart: the JWKS is loaded once, no background
-  refresh or `kid`-miss refetch.
+- **F3** — _closed cycle 237 (`427492b`): background refresh interval (default 300 s) plus a
+  throttled kid-miss refetch, failed refresh keeps the old set; a new kid still 401s once._
 - **F4** — `clockSkewSeconds` is only settable programmatically via
   `CALLFORGE_OIDC_CLOCK_SKEW_SECONDS`; `NaN` falls back to 0, not the 5s default.
 - **F5** — `/oauth/authorize` still mints HS256 tokens; nothing exchanges an IdP code or
