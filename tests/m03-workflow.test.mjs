@@ -2,7 +2,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { join } from 'node:path';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { runMigrations } from '../db/migrate.mjs';
+import { runMigrations, listMigrations } from '../db/migrate.mjs';
 import { transition, canTransition, InvalidTransitionError } from '../workflow/stateMachine.mjs';
 import { enqueue, claimBatch, ack, fail } from '../workflow/outbox.mjs';
 import { receiveWebhook, reconcileProviderEvent } from '../workflow/webhookInbox.mjs';
@@ -37,11 +37,13 @@ describe('M03 durable workflow', () => {
 
   it('records migrations and re-run is a no-op', () => {
     const db = getDatabase();
+    // Derive the expected set so a new migration does not need this test edited.
+    const expected = listMigrations().map(m => m.version);
     const versions = db.prepare('SELECT version FROM schema_migrations ORDER BY version').all();
-    expect(versions.map(v => v.version)).toEqual(['0001', '0002', '0003']);
+    expect(versions.map(v => v.version)).toEqual(expected);
     const again = runMigrations(db);
     expect(again.applied).toEqual([]);
-    expect(again.skipped).toEqual(['0001', '0002', '0003']);
+    expect(again.skipped).toEqual(expected);
   });
 
   it('enforces the state machine transitions', () => {

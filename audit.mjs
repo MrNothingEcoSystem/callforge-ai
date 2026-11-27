@@ -14,7 +14,7 @@ async function getChainHead() {
   // Always read from database to ensure fresh state
   const db = getDatabase();
   const lastEvent = db
-    .prepare('SELECT event_hash FROM audit_events ORDER BY rowid DESC LIMIT 1')
+    .prepare('SELECT event_hash FROM audit_events ORDER BY seq DESC LIMIT 1')
     .get();
 
   if (lastEvent) {
@@ -90,12 +90,12 @@ export function createAuditLogger() {
     async verifyChain(fromEventId = null) {
       const db = getDatabase();
 
-      let query = 'SELECT * FROM audit_events ORDER BY rowid ASC';
+      let query = 'SELECT * FROM audit_events ORDER BY seq ASC';
       const params = [];
 
       if (fromEventId) {
         query =
-          'SELECT * FROM audit_events WHERE rowid >= (SELECT rowid FROM audit_events WHERE id = ?) ORDER BY rowid ASC';
+          'SELECT * FROM audit_events WHERE seq >= (SELECT seq FROM audit_events WHERE id = ?) ORDER BY seq ASC';
         params.push(fromEventId);
       }
 
@@ -121,7 +121,7 @@ export function createAuditLogger() {
       // is reported as an unanchored segment instead of a false chain break
       // (issue #190 / review R1). Full archival still needs a checkpoint policy.
       const root = db
-        .prepare('SELECT previous_hash FROM audit_events ORDER BY rowid ASC LIMIT 1')
+        .prepare('SELECT previous_hash FROM audit_events ORDER BY seq ASC LIMIT 1')
         .get();
       const anchored = root ? root.previous_hash === GENESIS : true;
       const warnings = [];
@@ -140,7 +140,7 @@ export function createAuditLogger() {
       if (fromEventId && events.length > 0) {
         const predecessor = db
           .prepare(
-            'SELECT event_hash FROM audit_events WHERE rowid < (SELECT rowid FROM audit_events WHERE id = ?) ORDER BY rowid DESC LIMIT 1',
+            'SELECT event_hash FROM audit_events WHERE seq < (SELECT seq FROM audit_events WHERE id = ?) ORDER BY seq DESC LIMIT 1',
           )
           .get(fromEventId);
         if (predecessor) {
@@ -247,7 +247,7 @@ export function createAuditLogger() {
           `
         SELECT * FROM audit_events
         WHERE ${where}
-        ORDER BY rowid DESC
+        ORDER BY seq DESC
         LIMIT ? OFFSET ?
       `,
         )
