@@ -97,3 +97,19 @@ surface (dashboard/API), F2 half-hour windows (EXT-002), F6 import cycle, F7 sha
 defaults, a real DNCR provider (EXT-003), then EXT-002 for territory/penalty sign-off.
 Next engineering: the dashboard/API write surface for tenant policy (F3) — the only M04 item
 that is neither an owner decision nor external — then the M05 `call.dial` sink.
+
+## Cycle 224 — TECH-014 tenant policy write surface
+
+`GET`/`PUT /tenant/policy` (PR #201, stacked on #200): tenant from the token only, `read` scope
+for the read, `admin` for the write, validation before upsert (400 + violations, stored row
+untouched), 409 on read when the stored row is unusable rather than silently serving defaults,
+and the accepted policy is audited as `tenant_policy_updated`. 10 tests, 201/201 whole suite,
+tsc/eslint/prettier clean, CI PASS (run 45966569644) at `13cb810`.
+Review F3 is closed. Remaining on the M04 track, all non-blocking: F2 half-hour windows
+(EXT-002), F6 import cycle, F7 shallow-frozen defaults, list/delete routes, last-write-wins on
+concurrent PUTs, a real DNCR provider (EXT-003), then EXT-002 for the territory/penalty sign-off
+and the human approval step itself.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → this. M04 closure still needs EXT-002.
+Next engineering: the M05 `call.dial` sink (TECH-011 left it as the missing consumer), then the
+F6 import split.

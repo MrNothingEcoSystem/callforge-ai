@@ -260,3 +260,43 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   EXT-003 DNCR provider, then the owner merge chain and EXT-002. Assumption: an unguarded legacy
   path is worth closing before starting the write surface, since the dashboard will lean on the
   same producer.
+
+## 2026-11-27 — Cycle 224 (dispatcher, 08:31 UTC)
+
+- Sync: `git fetch --all`; `origin/main` = `28c9040` unchanged; local checkout `b18e315` and the
+  remote `tech-013-tenant-policy` at `1dde819` both clean and in sync, so the M04 stack (#197→#200)
+  is intact and the last cycle's write lease (#200) had already been released. New lease: branch
+  `tech-014-tenant-policy-api` cut from `origin/tech-013-tenant-policy`. No writes to the legacy
+  Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0.
+- Task selection: cycle 223 named the policy write surface (review #197 F3) as the only M04 item
+  that is neither an owner decision nor external; everything else in the queue is a draft PR in
+  the owner merge chain. F3 is this cycle's one task.
+- Change: `GET /tenant/policy` (`read`) and `PUT /tenant/policy` (`admin`, i.e. tenant_admin).
+  Tenant always from the token, body `tenant_id` may only agree (`rejectTenantMismatch`). The PUT
+  validates before upsert so a rejected body leaves the stored row untouched (400 + violations);
+  malformed JSON is 400; an unusable stored row answers 409 with `policy: null` instead of the
+  statutory defaults. Accepted writes are audited as `tenant_policy_updated` with the applied
+  policy. Accepts a bare object or `{ policy: {...} }`; `PUT` added to CORS. No schema change.
+- Tests: `tests/m04-tenant-policy-api.test.mjs`, 10 tests (401 unauthenticated, defaults on GET,
+  operator 403 on write, round-trip, nested shape, invalid window keeps the old row, tenant
+  mismatch 403, malformed JSON 400, corrupt row 409, audit payload). One test-harness note: the
+  corrupt-row case first used `window_start_hour = 30`, which the table CHECK already blocks;
+  switched to an inverted 18–7 window, which passes CHECK and fails validation — the case the
+  409 exists for.
+- Gates: vitest 201/201 (`--pool=threads`, TECH-009 still fork-pool specific), eslint 0, tsc 0,
+  prettier clean. CI verify PASS (run 45966569644) at head `13cb810`; remote branch SHA verified
+  equal. Draft PR **#201** (base `tech-013-tenant-policy`; retarget to `main` after the stack
+  merges).
+- Docs: `management/M04_TECH014_POLICY_API.md` (contract, deliberate boundaries, open
+  follow-ups). Ledger: blocker row TECH-014 added, next-actions block. M04 milestone status left
+  `increment-1` — no milestone acceptance this cycle.
+- No merge, deploy, live call or spend. Telegram: none — F3 is not a milestone acceptance and the
+  six-hour digest window since cycle 221 (~06:45 UTC) has not elapsed; the next digest is due
+  after ~12:45 UTC and should summarise the M04 gate stack.
+- Resource usage: ~19 min wall clock, 1 worktree, no persistent processes. Remaining work
+  estimate: no unblocked defect-class item left in M04 beyond polish (F6 import split, list/delete
+  routes); what remains is the owner merge chain, EXT-002, and the M05 `call.dial` sink.
+  Assumption: EXT-002 is still outstanding, so the gate surface — not the approval workflow — is
+  the correct spend of cycles.
+- Final head record: docs commit `213f6bf`; CI verify PASS (run 45966733773); remote branch SHA verified equal.
