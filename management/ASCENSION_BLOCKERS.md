@@ -16,13 +16,13 @@
 
 ## Technical blockers
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                             | Schedule into M02/M03 branches                  |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
+| ID       | Blocker                                           | Status                                                                                                                                                                                                                  | Next action                                                                                          |
+| -------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched)                                                                                                                                                                                        | Record verdict; fix blocking findings on branch                                                      |
+| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                                                                                                                                                                                                                    | Schedule into M02/M03 branches                                                                       |
+| TECH-003 | No durable workflow layer yet                     | M03 design dispatched                                                                                                                                                                                                   | Implement increment 1                                                                                |
+| TECH-004 | Postgres vs SQLite decision                       | **Decision record PROPOSED** `management/TECH004_DB_DECISION.md`: stay SQLite through M06/M09 single-node; Postgres as committed target at the first availability/archival trigger; no facade-first. No port authorised | Independent review of the record; land the engine-neutral hedge (audit `seq` column) before any port |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                                                                                                                                                                                                                 | Run + verify recovery                                                                                |
 
 Engineering continues on independent work whenever a gate is blocked.
 
