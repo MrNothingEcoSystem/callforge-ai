@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-09T07:25:00Z",
+  "updated_at": "2026-11-27T12:18:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -59,7 +59,7 @@
         "TECH-011 dialer wiring",
         "TECH-012 DNCR/consent data sources"
       ],
-      "verdict": "INCREMENT 1 REVIEWED ACCEPT WITH FOLLOW-UPS — pre-dial gate core only; M04 stays open until EXT-002 and wiring"
+      "verdict": "INCREMENT 1 REVIEWED ACCEPT WITH FOLLOW-UPS \u2014 pre-dial gate core only; M04 stays open until EXT-002 and wiring"
     },
     {
       "id": "M05",
@@ -150,6 +150,6 @@
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
     "cycles_proven": 1,
-    "last_cycle": "2026-11-09T04:12Z"
+    "last_cycle": "2026-11-27T12:18Z"
   }
 }

@@ -21,7 +21,7 @@ returns the row for backoff.
 
 ## Follow-ups (non-blocking)
 
-- **F3** — average-case concurrency: two dispatcher workers can both pass the `prior` check; the
+- **F3 (CLOSED cycle 228, `70d6219`, PR #204)** — average-case concurrency: two dispatcher workers can both pass the `prior` check; the
   second insert fails on the UNIQUE and retries, but if the first is still mid-flight the carrier sees
   two dials. The `idempotencyKey` contract is the only defence. Revisit with a claimed-status CAS when
   a second worker is actually run.
@@ -33,3 +33,6 @@ returns the row for backoff.
   the same transaction as the request.
 - **F6** — `simulatedProvider` keeps `calls` as module-level state, so a long-lived process grows it
   unbounded. Test-only convenience today.
+
+Now claimed by a CAS + 300s lease + `claim_token` fence; loser no-ops as `already_dispatching`.
+See `management/TECH015_F3_REVIEW_RECORD.md` (verdict ACCEPT, two-process probe).

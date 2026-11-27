@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 process.env.OUTBOX_DISPATCHER_ENABLED = '1';
 import { requestDial, dispatchDialRequest } from '../workflow/dialGate.mjs';
 import { createDispatcher } from '../workflow/dispatcher.mjs';
-import { handleCallDial } from '../telephony/dialSink.mjs';
+import { handleCallDial, CLAIM_LEASE_SECONDS } from '../telephony/dialSink.mjs';
 import { resolveProvider, registerProvider, UnknownProviderError } from '../telephony/provider.mjs';
 import { simulatedProvider } from '../telephony/simulatedProvider.mjs';
 import { closeStore, generateId, getDatabase, setTestDatabasePath } from '../store.mjs';
@@ -229,6 +229,76 @@ describe('M05 call.dial sink (TECH-015)', () => {
     expect(provider.calls).toHaveLength(2);
     expect(attempt(db, second.request.id).status).toBe('failed');
     expect(dialRow(db, second.request.id).status).toBe('pending');
+  });
+
+  it('lets only one of two concurrent workers dial (claim CAS)', async () => {
+    let release;
+    const gate = new Promise(resolve => {
+      release = resolve;
+    });
+    const provider = {
+      name: 'slow',
+      calls: [],
+      async dial(args) {
+        provider.calls.push(args);
+        await gate;
+        return { providerRef: `slow-${args.idempotencyKey}` };
+      },
+    };
+    const { request } = allowed(db);
+    const row = dialRow(db, request.id);
+
+    const first = handleCallDial(db, row, { provider });
+    // The first worker is parked inside dial(); the second must not reach the carrier.
+    const second = await handleCallDial(db, row, { provider });
+    expect(second).toMatchObject({ noop: true, reason: 'already_dispatching' });
+    expect(provider.calls).toHaveLength(1);
+
+    release();
+    const result = await first;
+    expect(result.accepted).toBe(true);
+    expect(provider.calls).toHaveLength(1);
+    const stored = attempt(db, request.id);
+    expect(stored.status).toBe('accepted');
+    expect(stored.attempts).toBe(1);
+    expect(stored.claim_token).toBeNull();
+  });
+
+  it('reclaims a claim whose lease expired rather than wedging the attempt', async () => {
+    const provider = fakeProvider();
+    const { request } = allowed(db);
+    const row = dialRow(db, request.id);
+    await handleCallDial(db, row, { provider });
+
+    // Simulate a worker that claimed the row and died: dispatching, stale claim.
+    db.prepare(
+      `UPDATE call_attempts
+          SET status = 'dispatching', claim_token = 'dead-worker', provider_ref = NULL,
+              claimed_at = datetime('now', ?)
+        WHERE dial_request_id = ?`,
+    ).run(`-${CLAIM_LEASE_SECONDS + 60} seconds`, request.id);
+
+    const result = await handleCallDial(db, row, { provider });
+    expect(result.accepted).toBe(true);
+    expect(provider.calls).toHaveLength(2);
+    expect(attempt(db, request.id)).toMatchObject({ status: 'accepted', attempts: 2 });
+  });
+
+  it('keeps a live claim even when the row is not yet accepted', async () => {
+    const provider = fakeProvider();
+    const { request } = allowed(db);
+    const row = dialRow(db, request.id);
+    await handleCallDial(db, row, { provider });
+    db.prepare(
+      `UPDATE call_attempts SET status = 'dispatching', claim_token = 'live-worker',
+              claimed_at = datetime('now') WHERE dial_request_id = ?`,
+    ).run(request.id);
+
+    expect(await handleCallDial(db, row, { provider })).toMatchObject({
+      noop: true,
+      reason: 'already_dispatching',
+    });
+    expect(provider.calls).toHaveLength(1);
   });
 
   it('resolves providers fail-closed and defaults to the inert simulated one', () => {
