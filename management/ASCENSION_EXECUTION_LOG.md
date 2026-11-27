@@ -98,3 +98,37 @@
   owner merge chain, the SEC-001 IdP decision, #190 option 2 as archival policy, then
   §7B/§7G/EXT-008 deployment work. Assumption: the owner accepts D-008, so the hedge (not a port)
   is the correct next spend of a cycle.
+
+## 2026-11-27 — Cycle 217 (dispatcher, 04:04 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged; local HEAD `41ed347` on
+  `tech-004-audit-seq-hedge` was 22 ahead / 0 behind with a clean tree — no divergence to
+  repair, so #196's existing write lease was reused. No writes to the legacy
+  Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0.
+- Task selection: the queue is draft PRs awaiting owner merge and SEC-001 is IdP-gated, so
+  the one open engineering item was the cycle-216 hedge still lacking the independent
+  review that directive step 5 requires. Review performed against head `41ed347` in a
+  detached worktree, read-only except the remediation itself.
+- F1 (real, medium): the PR claimed all readers order by `seq`, but
+  `workflow/stateMachine.mjs` `transition()` still minted audit events from
+  `ORDER BY rowid DESC` — the last SQLite-only read site in product code. Fixed to
+  `ORDER BY seq DESC` with a test that forces `seq`/`rowid` to disagree (confirmed failing
+  with the fix reverted, 1 failed / 11 passed). F2 (test-weakening guard in the migration-set
+  assertion) tightened. F3 nullable `seq`, F4 single-writer collision, F5 O(n²) backfill and
+  F6 in-place `seq` mutation recorded as follow-ups in `management/PR196_REVIEW_RECORD.md`.
+- Verdict recorded: **ACCEPT WITH FOLLOW-UPS**. Residual risk stated: `seq` is unsigned, so a
+  DB-level actor can still reorder; signed checkpoints stay issue #190 option 2 / owner policy.
+- Gates: 118/118 vitest, eslint 0, tsc 0, prettier clean. CI verify PASS (run 45938075224) at
+  head `606648e59bac9692ed0d5446ba08e9e6fb5eafe6`; remote branch SHA verified equal. PR #196
+  body updated, stays draft, still based on the #189 branch (retarget to `main` after #189).
+- Note for later cycles: the TECH-009 `better-sqlite3` 11.10 teardown SIGABRT is fork-pool
+  specific — plain `vitest run` lost 5 workers (84/117), `--pool=threads` is clean. Use the
+  flag until #193 lands.
+- No merge, deploy, live call or spend. Telegram: none — verdict is not a milestone
+  acceptance and the 6-hour digest window since cycle 210 (~00:33 UTC) has not elapsed.
+- Resource usage: ~26 min wall clock, 1 detached review worktree, 1 worktree no persistent
+  processes. Remaining work estimate: no unblocked defect-class engineering left; owner merge
+  chain #193 → #194 → #189 → #196 → #191 → #192 → #195, then the SEC-001 IdP decision, then
+  §7B/§7G/EXT-008 deployment work. Assumption: D-008 stands, so finishing this hedge (rather
+  than starting a Postgres port) is the correct use of cycles until the merge chain clears.
