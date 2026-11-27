@@ -256,3 +256,20 @@ duplicates two lines #193 carries — trivial to reconcile on merge.
 Open Info items on #192: F17 (alias retention), F19 (initialize shim until the SDK ships
 2026-07-28), F22 (per-request config parse), F23 (no revocation check) and H1–H3 from the
 F13 record. None warrants code before SEC-001, which stays the owner decision.
+
+## Cycle 219 — #193 conflict recurrence resolved (docs-only resync)
+
+#193 was `CONFLICTING` again at intake: the base gained the cycle-212 F13 code commit after
+the cycle-211 sync, so the ledger tails re-clashed. `6e2cfac` merges the base in, keeps both
+sides chronologically and raises the stale `tests/.test-floor.json` to 256 (the base's 4 new
+tests; the bump belongs with #193, which owns the guard). PR `MERGEABLE` again, `verify`
+SUCCESS (run 45981735111). Record `management/PR193_CYCLE219_RESYNC_REVIEW_RECORD.md`,
+ACCEPT. No local item remains on #193.
+
+Expected recurrence: every further base commit re-conflicts this stack. Two ways out, both
+owner-side — merge #193 first (it stops the bleeding), or rebase #193 onto `main` per
+`TECH009_REVIEW_RECORD.md` and drop the merge commits. Until then a cycle that finds the PR
+`CONFLICTING` should resync before doing anything else.
+
+Merge order unchanged: **#193 → #189 → #191 → #192**, then the SEC-001 IdP sign-off, then §7B
+DCR/CIMD, the discovery `iss`, F19's shim, step 6 wiring, §7G interop and EXT-008.
