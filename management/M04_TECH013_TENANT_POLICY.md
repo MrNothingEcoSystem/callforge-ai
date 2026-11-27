@@ -4,7 +4,7 @@
 
 `policies/dialEligibility.mjs` hard-coded the calling window (09:00–18:00 Asia/Dubai),
 the retry ceiling (2/day, 3/7d) and DNCR freshness (24h). Review F4 on PR #197: those are
-the statutory *defaults*, but every tenant's competent-authority approval names its own
+the statutory _defaults_, but every tenant's competent-authority approval names its own
 window and ceilings, so a single constant set silently mis-gates every tenant but the first.
 
 ## Change
