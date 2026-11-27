@@ -245,3 +245,21 @@ EXT-003 (carrier) gate closure.
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → #207 → #208 → this.
 Next engineering: fence the revert (F1), then revision retention.
+
+## Cycle 234 — fenced revert (F1 closed, PR #209)
+
+`d8bcfa7` on `tech-014-policy-lww` (draft PR #209). A revert based on a version the
+caller had already lost answered 200 and erased the newer edit; `DELETE /tenant/policy`
+now takes the same `If-Match` fence as PUT, evaluates it and the delete in one
+statement, and answers 409 with the current version and policy — no revision row, no
+audit entry, row intact. Absent row stays the idempotent 200 no-op, junk/omitted fence
+keeps last-write-wins. 5 tests, 270/270, tsc/eslint/prettier clean; real-HTTP pre/post
+probe ACCEPT (`management/TECH014_DELETE_FENCE_REVIEW_RECORD.md`). Pre-fix the stale
+DELETE gets 200 and the winner's 10–20 window is replaced by the 09 default.
+
+Remaining M04/M05 engineering: revision retention/pruning (only item left before the
+track is EXT-gated); F2 (`version: 0` hint after a revert) is a recorded nicety.
+EXT-002 (legal) and EXT-003 (carrier) gate closure; nothing here places a live call.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → #207 → #208 → this.
+Next engineering: revision retention/pruning, then stop and queue for owner merge.

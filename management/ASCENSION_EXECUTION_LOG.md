@@ -581,3 +581,32 @@ the change is additive. `GET` now serves `version`; `readTenantPolicy` reports 0
   each; after that the M04/M05 track is EXT-gated (EXT-002 legal, EXT-003 carrier). Assumption:
   D-008 holds, so internal hardening stays the right use of cycles until the carrier and counsel
   land.
+
+## Cycle 234 — fenced policy revert (PR #209, closes #209 F1)
+
+The revert was the write surface's last blind spot: `deleteTenantPolicy` read the
+row and then deleted it, so a `DELETE` sent with a version the caller had already
+lost still answered 200 and erased the competing edit — the operator saw a revert,
+the admin saw a save. `DELETE /tenant/policy` now takes the same `If-Match` fence as
+`PUT`: the check and the `DELETE … WHERE version = ?` are one statement, a superseded
+revert answers **409** with the current version and policy, and it writes no revision
+row and no audit entry. An absent row stays the idempotent 200 no-op (the revert's
+goal is already met) and a junk/omitted fence keeps the old last-write-wins
+behaviour, so the change is additive.
+
+- Gates: 5 new tests (file 23), **270/270**, tsc 0, eslint 0, prettier clean.
+  Mutation-checked: dropping `AND version = ?` fails the two fence tests.
+- Real-HTTP probe, read-only worktree at `66d5012` vs `d8bcfa7`: PUT A (07–18), PUT B
+  (10–20), stale `DELETE If-Match: "1"`. Pre-fix **200** and the stored window
+  collapses to the 09 default with a third revision row; post-fix **409** naming
+  version 2 with B's 10–20 preserved and two revision rows. Concurrent DELETE/PUT
+  both at v1 serialise to a consistent state. Draft test file fails 3/23 pre-fix.
+  Verdict **ACCEPT**, F2–F4 recorded (`management/TECH014_DELETE_FENCE_REVIEW_RECORD.md`).
+  Cycle-run probe, not a delegated auditor, labelled as such.
+- Draft PR #209 updated. No merge, deploy, live call or spend.
+- Telegram: none — cycle-232 critical-defect send was at ~14:50Z, inside the 6-hour
+  digest window, and last cycle (233) also sent nothing, so nothing yet overdue.
+- Resource usage: ~9 min wall, one worktree (removed), no background processes, no
+  model spend beyond this session. Remaining: revision retention/pruning ≈ 1 cycle,
+  after which the M04/M05 track is EXT-gated (EXT-002 legal, EXT-003 carrier).
+  Assumption: D-008 holds, so internal hardening stays the right use of cycles.

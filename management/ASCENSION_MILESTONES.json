@@ -61,7 +61,7 @@
       ],
       "verdict": "INCREMENT 1 REVIEWED ACCEPT WITH FOLLOW-UPS \u2014 pre-dial gate core only; M04 stays open until EXT-002 and wiring",
       "policy_revert_pr": 207,
-      "followups": "F3 write surface complete: PUT, DELETE (revert) and GET history (PR #208, revisions table 0011, probed ACCEPT). Remaining: last-write-wins on concurrent PUTs, revision retention/pruning. Live 500 on PUT/DELETE from actor_type 'client' found and fixed on #208.",
+      "followups": "F3 write surface complete: PUT, DELETE (revert) and GET history (PR #208, revisions table 0011, probed ACCEPT). Lost updates closed on #209: PUT version fence (0012) and the same If-Match fence on DELETE (F1, probed ACCEPT). Remaining: revision retention/pruning, F2 version-restarts-at-1 hint after a revert. Live 500 on PUT/DELETE from actor_type 'client' found and fixed on #208.",
       "policy_history_pr": 208
     },
     {
