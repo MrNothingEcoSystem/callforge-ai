@@ -10,6 +10,7 @@ import {
   configureOidcFromEnv,
   loadJwks,
   oidcConfigured,
+  refreshOidcKeys,
   resetOidc,
   verifyExternalToken,
 } from '../oidc.mjs';
@@ -330,5 +331,113 @@ describe('oidc: end to end over HTTP', () => {
       body: { ...body, idempotency_key: 'oidc-2' },
     });
     expect(forged.status).toBe(401);
+  });
+});
+
+describe('oidc: JWKS over HTTP and rotation (F1/F3)', () => {
+  let counter;
+  let current;
+  let status;
+  let jwksServer;
+
+  beforeAll(async () => {
+    current = { keys: [key.jwk] };
+    status = 200;
+    counter = 0;
+    jwksServer = http.createServer((_req, res) => {
+      counter += 1;
+      res.writeHead(status, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(current));
+    });
+    await new Promise(resolve => jwksServer.listen(0, '127.0.0.1', resolve));
+  });
+
+  afterAll(async () => {
+    await new Promise(resolve => jwksServer.close(resolve));
+  });
+
+  beforeEach(() => {
+    status = 200;
+    counter = 0;
+    current = { keys: [key.jwk] };
+  });
+
+  function envUrl() {
+    return `http://127.0.0.1:${jwksServer.address().port}/jwks.json`;
+  }
+
+  function configureFromUrl(extra = {}) {
+    return configureOidcFromEnv({
+      roleScopes: ROLES,
+      env: {
+        CALLFORGE_OIDC_JWKS_URL: envUrl(),
+        CALLFORGE_OIDC_ISSUER: ISSUER,
+        CALLFORGE_OIDC_AUDIENCE: AUDIENCE,
+        CALLFORGE_OIDC_JWKS_REFRESH_SECONDS: '0',
+      },
+    }).then(() => {
+      // Re-configure with a zero kid-miss throttle so the refresh is synchronous
+      // enough for a test; the env path already validated the fetch.
+      return configureOidc({
+        issuer: ISSUER,
+        audience: AUDIENCE,
+        jwks: current,
+        roleScopes: ROLES,
+        source: { type: 'url', url: envUrl() },
+        kidMissRefreshMinMs: 0,
+        ...extra,
+      });
+    });
+  }
+
+  const tick = () => new Promise(resolve => setTimeout(resolve, 50));
+
+  it('loads the key set from a JWKS URL and verifies a token', async () => {
+    await configureFromUrl();
+    expect(counter).toBe(1); // the env path fetched it from the JWKS URL
+    expect(verifyExternalToken(token(), NOW).valid).toBe(true);
+  });
+
+  it('aborts startup when the JWKS URL answers non-200', async () => {
+    status = 503;
+    await expect(
+      configureOidcFromEnv({
+        roleScopes: ROLES,
+        env: {
+          CALLFORGE_OIDC_JWKS_URL: envUrl(),
+          CALLFORGE_OIDC_ISSUER: ISSUER,
+          CALLFORGE_OIDC_AUDIENCE: AUDIENCE,
+        },
+      }),
+    ).rejects.toThrow(/status 503/);
+  });
+
+  it('accepts a rotated-in kid after a refresh, keeping the old keys', async () => {
+    await configureFromUrl();
+    const rotated = makeKey('k-2026-12');
+    current = { keys: [key.jwk, rotated.jwk] };
+
+    const before = counter;
+    const rotatedToken = token({}, { kid: 'k-2026-12', key: rotated.privateKey });
+    expect(verifyExternalToken(rotatedToken, NOW).valid).toBe(false);
+    await tick();
+    expect(counter).toBeGreaterThan(before); // the miss triggered a refetch
+    await refreshOidcKeys();
+
+    expect(verifyExternalToken(rotatedToken, NOW).valid).toBe(true);
+    expect(verifyExternalToken(token(), NOW).valid).toBe(true);
+  });
+
+  it('keeps the working key set when a refresh fails', async () => {
+    await configureFromUrl();
+    const rotated = makeKey('k-2026-12');
+    status = 500;
+    current = { keys: [rotated.jwk] };
+
+    expect(await refreshOidcKeys()).toBe(false);
+    expect(verifyExternalToken(token(), NOW).valid).toBe(true);
+    expect(
+      verifyExternalToken(token({}, { kid: 'k-2026-12', key: rotated.privateKey }), NOW).valid,
+    ).toBe(false);
   });
 });

@@ -14,8 +14,13 @@
  * - `iss` and `aud` are exact-matched, `exp` is mandatory, `nbf` is honoured;
  * - a missing/unusable tenant claim or an unknown role rejects the token.
  *
- * The key set is loaded once at startup (`configureOidcFromEnv`) so that
- * verification stays synchronous and `guard()` needs no rework.
+ * The key set is loaded at startup (`configureOidcFromEnv`). Verification stays
+ * synchronous, so key rotation cannot await a fetch mid-token; instead a
+ * background refresh (interval from CALLFORGE_OIDC_JWKS_REFRESH_SECONDS,
+ * default 300s, 0 disables) reloads from the same source, and an unknown `kid`
+ * additionally triggers a throttled refresh. A failed refresh keeps the working
+ * key set. A token signed by a brand-new key is therefore rejected once, until
+ * the refresh lands.
  */
 
 import { createPublicKey, verify as cryptoVerify } from 'node:crypto';
@@ -28,8 +33,11 @@ const ALGORITHMS = {
 
 const DEFAULT_CLOCK_SKEW_SECONDS = 5;
 const JWKS_FETCH_TIMEOUT_MS = 5000;
+const DEFAULT_REFRESH_SECONDS = 300;
+const KID_MISS_REFRESH_MIN_MS = 5000;
 
 let state = null;
+let refreshTimer = null;
 
 function b64json(part) {
   try {
@@ -95,6 +103,9 @@ export function configureOidc({
   tenantClaim = 'tenant_id',
   roleClaim = 'role',
   clockSkewSeconds = DEFAULT_CLOCK_SKEW_SECONDS,
+  source = null,
+  refreshSeconds = 0,
+  kidMissRefreshMinMs = KID_MISS_REFRESH_MIN_MS,
 }) {
   // Validate the scalar config before touching the key set, so a missing
   // issuer is reported as such rather than as a key-set problem.
@@ -104,6 +115,7 @@ export function configureOidc({
     throw new Error('roleScopes is required to configure external OIDC verification');
   }
   const keys = loadJwks(jwks);
+  stopRefreshTimer();
   state = {
     issuer: validatedIssuer,
     audience: validatedAudience,
@@ -112,8 +124,58 @@ export function configureOidc({
     clockSkewSeconds: Number.isFinite(clockSkewSeconds) ? clockSkewSeconds : 0,
     roleScopes,
     keys,
+    source: source ?? null,
+    kidMissRefreshMinMs: Number.isFinite(kidMissRefreshMinMs) ? kidMissRefreshMinMs : 0,
+    lastRefreshAt: Date.now(),
+    refreshing: false,
   };
+  if (state.source && Number.isFinite(refreshSeconds) && refreshSeconds > 0) {
+    refreshTimer = setInterval(() => {
+      refreshOidcKeys().catch(() => {});
+    }, refreshSeconds * 1000);
+    refreshTimer.unref?.();
+  }
   return { keyCount: keys.size, issuer: state.issuer, audience: state.audience };
+}
+
+function stopRefreshTimer() {
+  if (refreshTimer) {
+    clearInterval(refreshTimer);
+    refreshTimer = null;
+  }
+}
+
+async function readJwks(source) {
+  if (source.type === 'file') {
+    const { readFile } = await import('node:fs/promises');
+    return JSON.parse(await readFile(source.file, 'utf8'));
+  }
+  return fetchJwks(source.url);
+}
+
+/**
+ * Reload the key set from the configured source. Keeps the previous set when
+ * the refresh fails; never throws. Resolves `false` when there is no source or
+ * a refresh is already in flight.
+ */
+export async function refreshOidcKeys() {
+  const current = state;
+  if (!current || !current.source || current.refreshing) {
+    return false;
+  }
+  current.refreshing = true;
+  try {
+    const keys = loadJwks(await readJwks(current.source));
+    if (state === current) {
+      current.keys = keys;
+    }
+    return true;
+  } catch {
+    return false;
+  } finally {
+    current.refreshing = false;
+    current.lastRefreshAt = Date.now();
+  }
 }
 
 async function fetchJwks(source) {
@@ -143,13 +205,11 @@ export async function configureOidcFromEnv({ roleScopes, env = process.env } = {
   if (file && url) {
     throw new Error('Set only one of CALLFORGE_OIDC_JWKS_FILE or CALLFORGE_OIDC_JWKS_URL');
   }
-  let jwks;
-  if (file) {
-    const { readFile } = await import('node:fs/promises');
-    jwks = JSON.parse(await readFile(file, 'utf8'));
-  } else {
-    jwks = await fetchJwks(url);
-  }
+  const source = file ? { type: 'file', file } : { type: 'url', url };
+  const jwks = await readJwks(source);
+  const refreshRaw = env.CALLFORGE_OIDC_JWKS_REFRESH_SECONDS;
+  const refreshSeconds =
+    refreshRaw === undefined || refreshRaw === '' ? DEFAULT_REFRESH_SECONDS : Number(refreshRaw);
   return configureOidc({
     issuer: env.CALLFORGE_OIDC_ISSUER,
     audience: env.CALLFORGE_OIDC_AUDIENCE,
@@ -158,6 +218,8 @@ export async function configureOidcFromEnv({ roleScopes, env = process.env } = {
     clockSkewSeconds: Number(env.CALLFORGE_OIDC_CLOCK_SKEW_SECONDS),
     roleScopes,
     jwks,
+    source,
+    refreshSeconds: Number.isFinite(refreshSeconds) ? refreshSeconds : 0,
   });
 }
 
@@ -167,6 +229,7 @@ export function oidcConfigured() {
 
 /** Test helper. */
 export function resetOidc() {
+  stopRefreshTimer();
   state = null;
 }
 
@@ -199,6 +262,13 @@ export function verifyExternalToken(token, nowSeconds = Math.floor(Date.now() / 
   }
   const key = state.keys.get(header.kid);
   if (!key) {
+    // A rotated-in key is unknown until the next refresh. Start one, but not
+    // more often than KID_MISS_REFRESH_MIN_MS, so unauthenticated misses cannot
+    // turn into a fetch storm.
+    if (state.source && Date.now() - state.lastRefreshAt >= state.kidMissRefreshMinMs) {
+      state.lastRefreshAt = Date.now();
+      refreshOidcKeys().catch(() => {});
+    }
     return { valid: false, error: 'Unknown signing key' };
   }
   let signatureOk = false;
