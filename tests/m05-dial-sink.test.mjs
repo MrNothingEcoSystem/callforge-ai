@@ -183,6 +183,18 @@ describe('M05 call.dial sink (TECH-015)', () => {
     ).toBe('cancelled');
   });
 
+  it('no-ops unless the decision was an allow', async () => {
+    const provider = fakeProvider();
+    const { request } = allowed(db);
+    db.prepare("UPDATE dial_requests SET status = 'denied' WHERE id = ?").run(request.id);
+    expect(await handleCallDial(db, dialRow(db, request.id), { provider })).toMatchObject({
+      noop: true,
+      reason: 'dial_request_denied',
+    });
+    expect(provider.calls).toHaveLength(0);
+    expect(db.prepare('SELECT COUNT(*) c FROM call_attempts').get().c).toBe(0);
+  });
+
   it('no-ops on a missing payload or missing dial request', async () => {
     expect(await handleCallDial(db, { payload: '{}' })).toMatchObject({
       noop: true,

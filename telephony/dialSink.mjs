@@ -35,6 +35,11 @@ export async function handleCallDial(db, row, { provider } = {}) {
   if (!request) {
     return { noop: true, reason: 'dial_request_missing' };
   }
+  // A denied or still-pending decision has nothing to dial; only an allow is a
+  // licence to reach a carrier.
+  if (request.status !== 'allowed') {
+    return { noop: true, reason: `dial_request_${request.status}` };
+  }
   const adapter = provider ?? resolveProvider();
   const prior = /** @type {any} */ (
     db.prepare('SELECT * FROM call_attempts WHERE dial_request_id = ?').get(request.id)
