@@ -35,3 +35,14 @@ Engineering continues on independent work whenever a gate is blocked.
 | SEC-003 | Non-blocking: PKCE comparison is not timing-safe; used codes are retained (marked used, not deleted); token handler trusts in-token `scope` without re-deriving from `role`; conversation fixtures are not tenant-scoped (assumed global). | Low                                                                              | **Partially fixed in `65ff410`** — timing-safe compare + code invalidation on failed PKCE + unauthenticated-conversation test; scope re-derivation and fixture scoping remain open |
 
 Local verification this cycle: Node v24.22.2, pnpm 12.18.0, `pnpm test` on PR #7 worktree = 10 files, 70/70 passed. CI `verify` pass (run 42559869614). Signature tampering correctly rejected; the flaw is issuance, not verification.
+
+## Cycle 218 — M04 increment 1 (PR #197)
+
+`policies/dialEligibility.mjs` is the first executable M04 control: a fail-closed
+pre-dial evaluator for G1–G5 (R01 approval, R03 CLI, R05 consent+purpose, R06 DNCR
+freshness, R08 window, R09 opt-out, R10 ceiling). Pure, no DB, 43 tests, mutation-checked
+on the window boundary. Review record `management/PR197_REVIEW_RECORD.md`, verdict
+ACCEPT WITH FOLLOW-UPS; its F1 (missing campaign purpose only warned, so consent matched
+vacuously) is fixed in-cycle. **Not wired to the dialer** — TECH-011 — and **not legal
+advice**: R08's Fri/Sat scope, the retry counting method and the penalty-tier labels
+still need EXT-002 counsel sign-off, so M04 cannot close on this.
