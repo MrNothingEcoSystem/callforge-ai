@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-27T12:18:00Z",
+  "updated_at": "2026-11-27T13:05:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -64,8 +64,15 @@
     {
       "id": "M05",
       "name": "Provider-neutral telephony architecture",
-      "status": "pending",
-      "blockers": ["M03", "EXT-003 carrier authorization"]
+      "status": "increment-1-in-review",
+      "blockers": [
+        "M03",
+        "EXT-003 carrier authorization",
+        "owner merge of the #197\u2192#205 stack"
+      ],
+      "pr": 205,
+      "tests": "230/230 whole suite, 3 on the F5 increment",
+      "verdict": "F5 (intent cross-check) REVIEWED ACCEPT; M05 stays open until EXT-003"
     },
     {
       "id": "M06",

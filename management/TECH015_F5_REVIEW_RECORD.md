@@ -3,7 +3,7 @@
 - **Subject:** `616379d` (branch `tech-015-f5-intent-crosscheck`, draft PR #205), which closes F5 from
   `management/TECH015_REVIEW_RECORD.md`.
 - **Method:** fresh detached worktree at the subject commit, suite reproduced, plus an out-of-band
-  probe against *both* the pre-fix commit (`7488ec2`) and the subject: seed a tenant/intent, drive a
+  probe against _both_ the pre-fix commit (`7488ec2`) and the subject: seed a tenant/intent, drive a
   request to `allowed`, then call the sink once with the real row and once with `aggregate_id`
   replaced.
 - **Result, pre-fix:** the tampered row returns `accepted: true` and the provider records a second
