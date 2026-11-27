@@ -267,6 +267,26 @@ describe('M09 confirmation gate over the transport', () => {
     expect(config(tenantId).license_number).toBe('DED-123');
   });
 
+  it('re-issues the confirmation when the requestState carries no signature', async () => {
+    const minted = await rpc(base, token, call('configure_business', { license_number: 'CCC' }));
+    const [payload] = minted.body.result.requestState.split('.');
+    const { body } = await rpc(
+      base,
+      token,
+      call(
+        'configure_business',
+        { license_number: 'CCC' },
+        {
+          inputResponses: { confirm: { action: 'accept', content: { confirm: true } } },
+          requestState: payload,
+        },
+      ),
+    );
+    expect(body.result.resultType).toBe('input_required');
+    expect(body.result.requestState).toMatch(/^v1\./);
+    expect(config(tenantId).license_number).toBe('DED-123');
+  });
+
   it('declines without mutating and audits the decision', async () => {
     const { body } = await rpc(
       base,
