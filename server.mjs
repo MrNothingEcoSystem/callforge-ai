@@ -11,7 +11,8 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { parse } from 'url';
 import { initDatabase, getDatabase, closeStore } from './store.mjs';
 import { createAuditLogger } from './audit.mjs';
-import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
+import { createOAuthServer, ISSUER, AUDIENCE, ROLES } from './oauth.mjs';
+import { configureOidcFromEnv } from './oidc.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
@@ -63,6 +64,10 @@ class CallforgeHttpServer {
   }
 
   async initialize() {
+    // M02 SEC-001: external IdP tokens, when configured. A broken JWKS must
+    // abort startup rather than silently leave the server on self-asserted
+    // identity.
+    this.oidc = await configureOidcFromEnv({ roleScopes: ROLES });
     await initDatabase();
     // M03-2: crash recovery before /ready is reported healthy.
     const recovery = runRecovery(getDatabase());

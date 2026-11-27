@@ -652,3 +652,72 @@ nothing and so prunes nothing.
   stack depth is now the top schedule risk — retargeting or merging mid-stack costs rework, and
   #201…#207 are broken against a real DB without #208.
 - No merge, deploy, live call or spend all week.
+
+## Cycle 236 — M02 SEC-001 step 1: external OIDC token verification (PR #211)
+
+The M04/M05 queue is empty, so this cycle took the recommended M02 item. SEC-001 is that
+`/oauth/authorize` is unauthenticated, so tenant+role are caller-asserted. The dossier picked an
+IdP; this builds the half that needs no account, no credentials and no network: **verifying** an
+externally issued token, so a resource endpoint can trust one once an IdP is wired.
+
+`7ab03be`, `29b51ca` and `f70d839` on `m02-oidc-token-verification` (draft PR #211, stacked on
+#210): `oidc.mjs` verifies RS256/384/512 only (no `none`, no HMAC), requires a `kid` present in
+the loaded JWKS, exact `iss`/`aud`, mandatory `exp` and `nbf` with skew, binds the tenant from a
+configurable claim and **re-derives scopes from the role** (closes SEC-003's "token scope
+trusted" for this path). `oauth.mjs` routes every non-HS256 alg to it, so an alg swap cannot
+reuse the internal HMAC key; the HS256 path is unchanged. `server.mjs` loads the JWKS in
+`initialize()` from exactly one of `CALLFORGE_OIDC_JWKS_FILE`/`_URL` and aborts startup on a
+broken set instead of falling back to self-asserted identity. Fully opt-in.
+
+- Gates: 21 new tests, **296/296**, tsc 0, eslint 0, prettier clean. Mutations: drop the
+  signature check → 2 fail; trust the token `scope` → 1 fail; drop the `kid` lookup → 1 fail.
+- Review probe (fresh worktree, `management/M02_SEC001_OIDC_VERIFY_REVIEW_RECORD.md`) found two
+  real defects, both fixed in-cycle and re-probed: a `role: "toString"` claim passed
+  `role in roleScopes` and then threw on the scope spread (500 on the guard), and a missing
+  issuer was misreported as a broken key set. Verdict **ACCEPT WITH FOLLOW-UPS**; F1 (JWKS-URL
+  branch untested), F2 (string `exp`/`nbf`), F3 (rotation needs a restart), F4 (skew env NaN
+  fallback), F5 (**issuance still self-asserted — SEC-001 stays open**) recorded.
+- Draft PR #211, base `tech-014-revision-retention`. No dependency added, no network in tests,
+  no credentials, merge, deploy, live call or spend.
+- Resource usage: ~13 min wall, one branch, two review worktrees, one probe script, no
+  background processes, no model spend beyond this session. Remaining: SEC-001 issuance side
+  (IdP choice from the 2026-11-09 dossier needs the owner) and the EXT-002/EXT-003/EXT-005
+  gates; the #197→#211 stack is now 15 drafts with #201–#207 unmergeable alone.
+- CI `verify` PASS on the code head `f70d839` (run 46039079780) and on the docs head `6bc3155`
+  (run 46039165423). Telegram: none this cycle — the previous cycle sent an approval request at
+  16:44Z, so this one stays inside the no-duplicate-digest window; the IdP decision it asks for
+  is still the open item. Remote head verified at `6bc3155`.
+
+## Cycle 237 — F1 + F3 on PR #211: JWKS refresh and URL coverage
+
+`oidc.mjs` loaded the key set once, so an IdP key rotation needed a process restart, and the
+`CALLFORGE_OIDC_JWKS_URL` branch had no test at all. Verification is synchronous (`guard()` cannot
+await a fetch mid-token), so rotation is handled out of band: `configureOidc` now records the key
+source and an optional refresh interval (`CALLFORGE_OIDC_JWKS_REFRESH_SECONDS`, default 300 s, `0`
+disables), a timer reloads from the same source, and an unknown `kid` starts a refresh throttled to
+5 s. A failed refresh keeps the working key set, so an unreachable IdP cannot lock every request
+out; the unknown key is still rejected once until the refresh lands.
+
+- `427492b` on `m02-oidc-token-verification` (draft PR #211, stacked on #210).
+- F1 closed: the URL branch is covered against a real local HTTP fixture — startup fetch, non-200
+  startup abort, rotated-kid acceptance after refresh, key-set retention across a failed refresh.
+  4 new tests, file 25, suite **300/300**, tsc 0, eslint 0, prettier clean.
+- Mutations: removing the kid-miss refresh fails the rotation test, wiping keys on a failed
+  refresh fails the retention test.
+- Probe (scratch, real JWKS server, no restart): old kid accepted → rotated kid `Unknown signing
+key` → accepted after the 1 s timer → old kid still accepted → explicit refresh with an empty
+  document returns `false` and the working set survives; 3 JWKS fetches total (startup, miss,
+  timer). Cycle-run probe, not a delegated auditor.
+- Not done: F2 (string `exp`/`nbf`) and F4 (NaN skew → 0 rather than the 5 s default) remain
+  recorded niceties; F5 (issuance is still self-asserted HS256) still gates SEC-001 and needs the
+  owner's IdP decision from `management/SEC001_IDP_DOSSIER.md`.
+- No merge, deploy, live call, credential or spend. Stack unchanged at 15 drafts; owner merge
+  chain #193 → … → #210 → this (#211).
+- Resource usage: ~16 min wall, one branch, one probe script (scratch, removed), no background
+  processes, no model spend beyond this session. Next engineering: an M03 durability increment,
+  or stop and queue for owner merge/IdP decision.
+
+Cycle 237 gates on the remote: CI `verify` PASS on `427492b` (run 46043904466) and on `57b2fd2`
+(run 46043960756); remote head matches. Telegram: none — last digest 13:07Z (cycle 229) is under
+six hours old and cycle 235 already carried the approval request; no milestone, gate change or
+blocker this cycle.

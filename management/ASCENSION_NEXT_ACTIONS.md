@@ -284,3 +284,35 @@ Owner merge chain unchanged, now: #193 → #194 → #189 → #196 → #191 → #
 #197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → #207 → #208 → #209 → this.
 Next engineering: nothing unblocked on M04/M05 — take the M02 SEC-001 IdP work (design only, no
 credentials needed) or stop and queue for owner merge.
+
+## Cycle 236 — M02 SEC-001 step 1 (PR #211)
+
+External token _verification_ exists: RS* only, mandatory `kid`, exact iss/aud, exp/nbf, tenant
+from a claim, scopes re-derived from the role, fail-closed startup; 21 tests, 296/296, probe
+ACCEPT WITH FOLLOW-UPS (`management/M02_SEC001_OIDC_VERIFY_REVIEW_RECORD.md`). Draft PR #211,
+stacked on #210.
+
+SEC-001 stays open: issuance is still the unauthenticated `/oauth/authorize`. Closing it needs
+the owner to pick from `management/SEC001_IDP_DOSSIER.md` (recommendation: WorkOS AuthKit,
+Keycloak-managed only if PDPL residency is ruled hard) — that decision unblocks the redirect +
+code exchange and the IdP-side credentials.
+
+Open findings on #211: F1 JWKS-URL test, F2 string exp/nbf, F3 rotation without restart, F4 skew
+env NaN fallback. F1/F3 are the ones worth doing before an IdP is wired.
+Owner merge chain unchanged, now: #193 → … → #210 → this (#211).
+Next engineering: F1 + F3 on #211, or an M03 durability increment if the owner wants the stack
+merged first.
+
+## Cycle 237 — #211 F1 + F3 closed
+
+Key rotation no longer needs a restart (background refresh, 300 s default, throttled kid-miss
+refetch, failed refresh keeps the working set) and the JWKS-URL branch is covered over a real
+local HTTP fixture: `427492b`, 4 new tests, 300/300, mutations checked, probe clean. Draft PR
+#211 unchanged otherwise, still stacked on #210.
+
+Open on #211: F2 (string `exp`/`nbf`), F4 (NaN skew falls back to 0, not 5 s) — both niceties.
+SEC-001 stays open on issuance: the owner must pick an IdP from
+`management/SEC001_IDP_DOSSIER.md` before the redirect/code-exchange exists.
+Owner merge chain unchanged, now: #193 → … → #210 → this (#211).
+Next engineering: an M03 durability increment (design-only, no credentials), or stop and queue
+for the owner merge + IdP decision.
