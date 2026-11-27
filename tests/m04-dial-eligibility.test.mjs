@@ -51,7 +51,7 @@ describe('evaluateDial — allow path', () => {
     expect(result.reasons).toEqual([]);
   });
 
-  it('returns no warnings when the campaign carries a purpose', () => {
+  it('carries no warnings on a fully specified campaign', () => {
     expect(evaluate().warnings).toEqual([]);
   });
 });
@@ -143,6 +143,12 @@ describe('evaluateDial — R05 consent (G2 groundwork)', () => {
       contact: contact({ consent: { purpose: 'renewal', withdrawn: true } }),
     });
     expect(codes(result)).toContain('r05_consent_missing');
+  });
+
+  it('denies a contact whose consent exists but carries no purpose', () => {
+    expect(codes(evaluate({ contact: contact({ consent: { withdrawn: false } }) }))).toContain(
+      'r05_consent_purpose_mismatch',
+    );
   });
 
   it('denies a consent purpose that does not match the campaign', () => {
@@ -303,9 +309,10 @@ describe('evaluateDial — reporting shape', () => {
     expect(first.tier).toMatch(/DNCR/);
   });
 
-  it('warns when a marketing campaign has no purpose', () => {
-    const result = evaluate({ campaign: campaign({ purpose: undefined }) });
-    expect(result.warnings).toHaveLength(1);
+  it('denies a marketing campaign with no purpose to disclose', () => {
+    expect(codes(evaluate({ campaign: campaign({ purpose: undefined }) }))).toContain(
+      'r05_purpose_missing',
+    );
   });
 
   it('exposes its defaults for the dashboard', () => {

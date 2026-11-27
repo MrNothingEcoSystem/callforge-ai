@@ -127,7 +127,17 @@ function checkConsent(contact, campaign, reasons) {
     reasons.push(reason('r05_consent_missing', 'R05', 'no live consent record for this contact'));
     return;
   }
-  if (campaign.purpose && consent.purpose && consent.purpose !== campaign.purpose) {
+  if (!campaign.purpose) {
+    reasons.push(
+      reason(
+        'r05_purpose_missing',
+        'R05',
+        'marketing campaign has no purpose to match against consent or the opener',
+      ),
+    );
+    return;
+  }
+  if (consent.purpose !== campaign.purpose) {
     reasons.push(
       reason(
         'r05_consent_purpose_mismatch',
@@ -257,10 +267,6 @@ export function evaluateDial(ctx = {}) {
     if (week >= RETRY_LIMITS.week) {
       reasons.push(reason('r10_retry_week', 'R10', `${week} unanswered call(s) in the last 7d`));
     }
-  }
-
-  if (kind === 'marketing' && !campaign.purpose) {
-    warnings.push('campaign has no purpose: consent/opener disclosure cannot be matched');
   }
 
   return { allowed: reasons.length === 0, reasons, warnings };
