@@ -373,3 +373,36 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   ~1 session; F2/territory sign-off and DNCR provider wait on EXT-002/EXT-003; M04 closure needs
   EXT-002 and the human approval step. Assumption: the stack keeps its order, so a fix on the
   tip flows up rather than needing six branch rewrites.
+
+## 2026-11-27 — Cycle 227 (dispatcher, 11:34 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged, local clean. Active work is the M04/M05
+  stack (#197→#202) off `main`; this cycle branches `tech-016-attempt-outcomes` from the #202 tip
+  `8ca9cb5` (new write lease, one lease per branch). Local checkout for the audit hedge branch is
+  untouched at `e17517a` (25/28 commits ahead, already pushed). No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0 — verified before any write.
+- Task selection: ledger + next-actions named exactly one unblocked engineering item — TECH-015 F4
+  outcome correlation so `readAttempts()` stops assuming `no_answer`. Everything else remaining is
+  EXT-002/EXT-003 gated or cosmetic.
+- Change `eb98966`: `0009_call_attempt_outcomes.sql` (nullable CHECK-constrained `outcome`,
+  `outcome_at`, `duration_seconds`, `(provider, provider_ref)` index), `workflow/attemptOutcomes.mjs`
+  (fail-closed, correlation-by-handle, first-wins), hook in `webhookInbox.reconcileProviderEvent`
+  (recorded even when the intent transition is stale), `dialGate.readAttempts` LEFT JOIN with
+  `outcome ?? 'no_answer'` so the unreported default and the ceiling's conservative reading are
+  unchanged. Rationale and non-goals: `management/M05_TECH016_ATTEMPT_OUTCOMES.md`.
+- Tests +9 (223 collected, was 214): both ceiling directions, unreported default, unknown outcome,
+  unknown attempt, missing correlation, first-wins with duration-only refinement, cross-provider
+  miss, capture through an already-terminal intent, and provider timestamp surviving a duplicate.
+  Mutation check: literal `no_answer` in `readAttempts` reds the ceiling test (1 failed / 8
+  passed), restoring greens it.
+- Gates: 171 passed + 52 in the five `better-sqlite3` 11.10 teardown-SIGABRT files (audit, auth,
+  server, store, tools — TECH-009, fixed on #193, not in this stack; run individually they report
+  all tests then abort), **0 assertion failures**, eslint 0, tsc 0, prettier clean.
+- Draft PR #203 opened against #202 (retarget to `main` after the stack merges).
+- No merge, deploy, live call or spend. Telegram: none — not a milestone acceptance, no new
+  external blocker, and the 6-hour digest window (last digest cycle 218, ~09:5x UTC) has not
+  elapsed.
+- Resource usage: ~19 min wall clock, no background processes, no extra worktrees. Remaining work
+  estimate: M04/M05 defect class is empty; EXT-002 (legal sign-off) and EXT-003 (provider +
+  carrier vocabulary) gate the rest, plus owner merge of seven draft PRs. Assumption: D-008 stands
+  and the dialect-neutral policy/telephony work is the right use of cycles until EXT-002/003 land.

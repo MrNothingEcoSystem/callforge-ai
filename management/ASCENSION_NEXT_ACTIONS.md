@@ -146,3 +146,18 @@ sign-off (EXT-002); list/delete policy routes; last-write-wins on concurrent PUT
 provider (EXT-003).
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → #199 → #200 → #201 → this. M04 closure still needs EXT-002.
+
+## Cycle 227 — TECH-016 provider outcomes on attempts
+
+`readAttempts()` no longer assumes `no_answer` for every allowed dial (which let a connected call
+still consume the R10 ceiling). PR #202's F4 outcome correlation is answered by a `(provider,
+provider_ref)`-correlated webhook write, first-wins, fail-closed on unknown strings, nullable so
+the unreported default is unchanged. Draft PR #203 on branch `tech-016-attempt-outcomes`, stacked
+on #202. Doc `management/M05_TECH016_ATTEMPT_OUTCOMES.md`.
+
+Remaining M04/M05 items are now EXT-gated or cosmetic: F2 half-hour windows and territory/penalty
+sign-off (EXT-002), a real DNCR provider (EXT-003), a carrier event vocabulary (EXT-003),
+list/delete policy routes, last-write-wins on concurrent PUTs, TECH-015 F3 concurrency CAS,
+F5 aggregate cross-check, F6 bounded simulated call log.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → #202 → this.
