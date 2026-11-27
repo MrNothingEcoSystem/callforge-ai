@@ -339,6 +339,7 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   merge chain #193 → #194 → #189 → #196 → #191 → #192 → #195 → #197 → … → #202, EXT-002 for M04
   closure, EXT-003 for a real carrier. Assumption: EXT-002/EXT-003 stay outstanding, so closing the
   provider-neutral half (not a carrier integration) is the right spend of a cycle.
-- Final head record: docs commit `bd4b216013ab0cc66c20c50cdea9aaf171e62b16`; CI verify PASS
-  (run 45971669936); remote branch SHA verified equal to the local head. PR #202 body carries the
-  review verdict; stays draft.
+- Final head record: docs commit `bd4b216`; CI verify PASS (run 45971669936); then the final-head
+  note itself at `2020759`. Remote branch SHA verified equal each time. PR #202 body carries the
+  review verdict (the `gh pr edit` path fails on the Projects-classic GraphQL deprecation, so the
+  body was patched through the REST API); stays draft. No merge.
