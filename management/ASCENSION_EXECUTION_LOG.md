@@ -629,10 +629,14 @@ nothing and so prunes nothing.
   (n=299 → n=100). Verdict **ACCEPT**, F1 (age bound) and F3 (no trim marker on a truncated page)
   recorded — `management/TECH014_RETENTION_REVIEW_RECORD.md`. Cycle-run probe, not a delegated
   auditor, labelled as such.
-- CI `verify` PASS on `845ce74` (run 46033367778). Draft PR #210 stacked on #209. No merge,
-  deploy, live call or spend.
-- Telegram: none — cycle-232 critical-defect send was ~14:50Z, still inside the 6-hour digest
-  window, and this is a sub-task acceptance rather than a milestone one.
+- CI `verify` PASS on `845ce74` (run 46033367778). The ledger/docs commit then failed the
+  `format:check` gate (unformatted `ASCENSION_BLOCKERS.md` + `ASCENSION_MILESTONES.json` from the
+  python edits); `prettier --write` fixed it and CI is PASS on `c9620c0` (run 46033701452). Draft
+  PR #210 stacked on #209. No merge, deploy, live call or spend.
+- Telegram: one message sent at 16:44Z (approval request, `receipt: sent`) — the M04/M05
+  engineering queue is exhausted and the #197→#210 stack is 14 drafts deep with #201–#207
+  unmergeable alone, so the owner has to choose merge or stop-stacking. Outside the 6-hour digest
+  window only as a decision request, not a digest.
 - Resource usage: ~12 min wall, one branch, one probe script and one scratch DB (removed), no
   background processes, no model spend beyond this session. **M04/M05 engineering is now
   exhausted**; remaining work is EXT-002/EXT-003/EXT-005-gated. Next: M02 SEC-001 IdP design or a
