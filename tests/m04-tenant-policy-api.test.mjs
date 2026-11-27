@@ -12,7 +12,7 @@ import {
   initDatabase,
   setTestDatabasePath,
 } from '../store.mjs';
-import { readTenantPolicy } from '../policies/tenantPolicy.mjs';
+import { deleteTenantPolicy, readTenantPolicy } from '../policies/tenantPolicy.mjs';
 
 const DIR = join(process.cwd(), 'data', 'test-tenant-policy-api');
 const DB_PATH = join(DIR, 'callforge.db');
@@ -187,5 +187,125 @@ describe('tenant policy HTTP surface (review #197 F3)', () => {
     expect(logged).toHaveLength(1);
     expect(logged[0].event_type).toBe('tenant_policy_updated');
     expect(logged[0].payload.policy.callingWindow.startHour).toBe(7);
+  });
+});
+
+describe('tenant policy revert (review #197 F3 / cycle-230 follow-up)', () => {
+  let server;
+  let adminToken;
+  let tenantId;
+  let otherTenantId;
+
+  beforeAll(async () => {
+    mkdirSync(DIR, { recursive: true });
+    setTestDatabasePath(DB_PATH);
+    await initDatabase();
+    server = new CallforgeHttpServer();
+    server.auditLogger = { log: async () => {} };
+    tenantId = generateId();
+    otherTenantId = generateId();
+    const db = getDatabase();
+    db.prepare('INSERT INTO tenants (id, name, settings) VALUES (?, ?, ?)').run(
+      tenantId,
+      'A',
+      '{}',
+    );
+    db.prepare('INSERT INTO tenants (id, name, settings) VALUES (?, ?, ?)').run(
+      otherTenantId,
+      'B',
+      '{}',
+    );
+    adminToken = tokenFor(server, tenantId);
+  });
+
+  beforeEach(() => {
+    getDatabase().prepare('DELETE FROM tenant_policies').run();
+  });
+
+  afterAll(async () => {
+    await closeStore();
+  });
+
+  it('rejects an unauthenticated revert', async () => {
+    const res = createResponse();
+    await server.handleTenantPolicy(requestWith(null), res, 'DELETE');
+    expect(res.statusCode).toBe(401);
+  });
+
+  it('requires the admin scope to revert', async () => {
+    await server.handleTenantPolicy(requestWith(adminToken, VALID), createResponse(), 'PUT');
+    const operatorToken = tokenFor(server, tenantId, 'operator');
+    const res = createResponse();
+    await server.handleTenantPolicy(requestWith(operatorToken), res, 'DELETE');
+    expect(res.statusCode).toBe(403);
+    expect(readTenantPolicy(getDatabase(), tenantId).source).toBe('tenant');
+  });
+
+  it('deletes the override so the statutory defaults apply again', async () => {
+    await server.handleTenantPolicy(requestWith(adminToken, VALID), createResponse(), 'PUT');
+
+    const del = createResponse();
+    await server.handleTenantPolicy(requestWith(adminToken), del, 'DELETE');
+    expect(del.statusCode).toBe(200);
+    const body = JSON.parse(del.body);
+    expect(body.reverted).toBe(true);
+    expect(body.source).toBe('default');
+    expect(body.reverted_policy.callingWindow).toEqual({ startHour: 7, endHour: 18 });
+
+    const read = createResponse();
+    await server.handleTenantPolicy(requestWith(adminToken), read, 'GET');
+    expect(read.statusCode).toBe(200);
+    expect(JSON.parse(read.body).source).toBe('default');
+    expect(JSON.parse(read.body).policy.callingWindow).toEqual({ startHour: 9, endHour: 18 });
+  });
+
+  it('is idempotent: reverting without an override row is a 200 no-op and is not audited', async () => {
+    const logged = [];
+    server.auditLogger = { log: async entry => logged.push(entry) };
+    const res = createResponse();
+    await server.handleTenantPolicy(requestWith(adminToken), res, 'DELETE');
+    server.auditLogger = { log: async () => {} };
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).reverted).toBe(false);
+    expect(logged).toHaveLength(0);
+  });
+
+  it('audits the revert with the policy that was in force', async () => {
+    await server.handleTenantPolicy(requestWith(adminToken, VALID), createResponse(), 'PUT');
+    const logged = [];
+    server.auditLogger = { log: async entry => logged.push(entry) };
+    await server.handleTenantPolicy(requestWith(adminToken), createResponse(), 'DELETE');
+    server.auditLogger = { log: async () => {} };
+    expect(logged).toHaveLength(1);
+    expect(logged[0].event_type).toBe('tenant_policy_reverted');
+    expect(logged[0].payload.reverted_policy.callingWindow.startHour).toBe(7);
+  });
+
+  it('only reverts the token tenant, leaving another tenant intact', async () => {
+    const otherToken = tokenFor(server, otherTenantId);
+    await server.handleTenantPolicy(requestWith(otherToken, VALID), createResponse(), 'PUT');
+    await server.handleTenantPolicy(requestWith(adminToken), createResponse(), 'DELETE');
+    expect(readTenantPolicy(getDatabase(), otherTenantId).source).toBe('tenant');
+  });
+
+  it('reports a corrupt row in the audit payload instead of dropping it silently', async () => {
+    await server.handleTenantPolicy(requestWith(adminToken, VALID), createResponse(), 'PUT');
+    getDatabase()
+      .prepare('UPDATE tenant_policies SET window_start_hour = 18, window_end_hour = 7')
+      .run();
+    const logged = [];
+    server.auditLogger = { log: async entry => logged.push(entry) };
+    const res = createResponse();
+    await server.handleTenantPolicy(requestWith(adminToken), res, 'DELETE');
+    server.auditLogger = { log: async () => {} };
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).reverted).toBe(true);
+    expect(logged[0].payload.reverted_policy).toBeNull();
+    expect(logged[0].payload.violations.length).toBeGreaterThan(0);
+  });
+
+  it('deleteTenantPolicy reports removed=false for an absent tenant row', () => {
+    const result = deleteTenantPolicy(getDatabase(), generateId());
+    expect(result).toEqual({ removed: false, prior: null, violations: [] });
   });
 });
