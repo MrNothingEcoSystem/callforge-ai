@@ -9,3 +9,8 @@ Updated: 2026-11-09T04:30Z (cycles 1; supervisor verified)
 - M04-M16: pending/design, blocked as listed in ASCENSION_MILESTONES.json.
 
 No completion percentages are claimed. Remote main at last sync: 75b191acff9cde5a3e8ee6d62033fcd80380a7c2.
+
+## Cycle 218 (2026-11-27)
+
+- M04 moved from prose register to first executable control: pre-dial gate core, fail-closed, 43 tests, draft PR #197. Wiring and data sources outstanding (TECH-011/TECH-012); EXT-002 still gates closure.
+- No milestone accepted this cycle; M04 stays open by design.

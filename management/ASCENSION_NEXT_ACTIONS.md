@@ -19,3 +19,19 @@ M02 PR #7: independent audit ACCEPT WITH FOLLOW-UPS; SEC-002 + part of SEC-003 f
 ## Gates needing owner
 
 EXT-001..EXT-009 unchanged (see ASCENSION_BLOCKERS.md). No merge/deploy/live-call/paid action taken.
+
+## Cycle 218 — M04 increment 1 landed (PR #197)
+
+Every queued engineering item was a draft PR awaiting owner merge and SEC-001 is
+IdP-gated, so the cycle took the one unblocked track the roadmap still has: M04's
+"fail-closed policy" half. `policies/dialEligibility.mjs` evaluates gates G1–G5 as a
+pure function — deny on missing licence/approval, unbound CLI, absent or mismatched
+consent purpose, DNCR unknown/stale/listed, outside 09:00–18:00 Asia/Dubai, opted out,
+or over the 1-callback/day, 2-callback/week ceiling. 43 tests, 151/151 suite, CI
+SUCCESS on `5cb930c`.
+
+Review F1 fixed in-cycle; F2–F4 recorded. Next on this track: TECH-011 wiring at the M03
+dispatch path, then TECH-012 DNCR/consent sources. M04 closure still needs EXT-002.
+
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195. #197 is
+independent of that chain and can be reviewed or parked without touching it.

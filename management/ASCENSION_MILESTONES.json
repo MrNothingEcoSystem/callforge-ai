@@ -48,8 +48,18 @@
     {
       "id": "M04",
       "name": "UAE compliance and human approval",
-      "status": "pending",
-      "blockers": ["M02", "M03", "EXT-002 legal review"]
+      "status": "increment-1",
+      "branch": "m04-compliance-dial-gates",
+      "pr": 197,
+      "tests": "151/151 (whole suite), 43 on the increment",
+      "blockers": [
+        "M02",
+        "M03",
+        "EXT-002 legal review",
+        "TECH-011 dialer wiring",
+        "TECH-012 DNCR/consent data sources"
+      ],
+      "verdict": "INCREMENT 1 REVIEWED ACCEPT WITH FOLLOW-UPS — pre-dial gate core only; M04 stays open until EXT-002 and wiring"
     },
     {
       "id": "M05",
