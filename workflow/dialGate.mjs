@@ -11,13 +11,17 @@
  * `call.dial` outbox row, deny records the reasons. A denial is a decision,
  * not a failure, so the row is acked rather than retried.
  *
- * Still unwired by design: TECH-012 (DNCR/consent sources) and the M05 sink
- * behind `call.dial`. Until they land the producers must pass facts they
- * already hold, and the gate fails closed when they do not.
+ * Facts: `requestDial` accepts caller-supplied contact facts (they are
+ * snapshotted and the gate fails closed on anything missing). `requestDialResolved`
+ * is the stronger path — TECH-012 — and reads consent, opt-outs and a TTL-cached
+ * DNCR answer from the sources of record instead of trusting the caller.
+ *
+ * Still unwired by design: the M05 sink behind `call.dial`.
  */
 import { generateId } from '../store.mjs';
 import { enqueue } from './outbox.mjs';
 import { evaluateDial, POLICY_DEFAULTS } from '../policies/dialEligibility.mjs';
+import { resolveContactFacts } from '../sources/facts.mjs';
 
 const ATTEMPT_WINDOW_MS = 7 * 86_400_000;
 
@@ -155,6 +159,58 @@ export function requestDial(
     }).row;
   })();
   return { request, outboxRow, inserted: true };
+}
+
+/**
+ * Producer over the fact sources (TECH-012): resolve consent/opt-out/DNCR for
+ * the number, then snapshot the *resolved* facts. A caller claim of `clean`
+ * cannot outlive the provider answer.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {object} params
+ * @param {string} params.tenantId
+ * @param {string} params.callIntentId
+ * @param {string} params.idempotencyKey
+ * @param {Record<string, any>} params.campaign
+ * @param {Record<string, any>} params.policy
+ * @param {{ check: Function }} [params.dncr]
+ * @param {string} [params.timeZone]
+ * @param {Date} [params.now]
+ */
+export async function requestDialResolved(
+  db,
+  { tenantId, callIntentId, idempotencyKey, campaign, policy, dncr, timeZone, now = new Date() },
+) {
+  if (!tenantId || !callIntentId || !idempotencyKey) {
+    throw new TypeError('requestDialResolved requires tenantId, callIntentId and idempotencyKey');
+  }
+  const phone = campaign?.phone ?? campaign?.contactPhone;
+  if (!phone) {
+    throw new TypeError('requestDialResolved requires campaign.phone');
+  }
+  const existing = db
+    .prepare('SELECT * FROM dial_requests WHERE tenant_id = ? AND idempotency_key = ?')
+    .get(tenantId, idempotencyKey);
+  if (existing) {
+    return { request: existing, outboxRow: null, inserted: false };
+  }
+  const contact = await resolveContactFacts(db, {
+    tenantId,
+    phone,
+    purpose: campaign.purpose,
+    dncr,
+    now,
+  });
+  return requestDial(db, {
+    tenantId,
+    callIntentId,
+    idempotencyKey,
+    campaign,
+    contact,
+    policy,
+    timeZone,
+    now,
+  });
 }
 
 /**

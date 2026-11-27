@@ -45,3 +45,15 @@ acked (a decision, not a failure). 162/162, tsc/eslint/prettier clean. Needs ind
 review; retarget to `main` after #197. Remaining on this track: TECH-012 (DNCR/consent
 sources), the M05 `call.dial` sink, and F4 (tenant policy records). Owner merge chain
 unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then #197 → this branch.
+
+## Cycle 220 — TECH-012 fact sources (stacked PR)
+
+`requestDialResolved` now reads consent, opt-outs and a 24h-TTL DNCR answer from durable
+sources (`consents`, `opt_outs`, `dncr_checks`, migration 0006) instead of trusting the
+caller's snapshot; unknown/outage denies and is recorded. 177/177, tsc/eslint/prettier
+clean, mutation-verified. Needs independent review; stacks on #198 → #197.
+
+Remaining on the M04 track: a real DNCR provider/portal (EXT-003), a "re-query now"
+dashboard action (#198 F4), and tenant policy records (#197 F4). Then EXT-002 for closure.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → this branch.

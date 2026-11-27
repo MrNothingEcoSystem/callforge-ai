@@ -16,6 +16,7 @@
     "db/**/*.mjs",
     "workflow/**/*.mjs",
     "policies/**/*.mjs",
+    "sources/**/*.mjs",
     "scripts/**/*.mjs"
   ],
   "exclude": ["node_modules", "data", "coverage", "tests"]
