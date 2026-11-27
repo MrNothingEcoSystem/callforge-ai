@@ -91,3 +91,5 @@
 (45942102845) and `79dd71c` (45942224954, corrected the resource figure above); `79dd71c` is the
 branch head the ledger records. Lesson repeated from
 cycle 191: run `prettier --check .` over docs before pushing, not just over code.
+
+Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c`.
