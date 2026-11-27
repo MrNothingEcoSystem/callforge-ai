@@ -165,3 +165,88 @@ export function deleteTenantPolicy(db, tenantId) {
   const result = db.prepare('DELETE FROM tenant_policies WHERE tenant_id = ?').run(tenantId);
   return { removed: result.changes > 0, prior: existing.options, violations: existing.violations };
 }
+
+/** Bound on a history page, so a long-lived tenant cannot return an unbounded body. */
+export const HISTORY_LIMIT_DEFAULT = 50;
+export const HISTORY_LIMIT_MAX = 200;
+
+/**
+ * Append a revision row. Called inside the caller's transaction with the
+ * write it describes: a history entry that outlives the write it records, or
+ * a write with no entry, would both be misleading. Append-only — reverts
+ * delete `tenant_policies`, never these rows.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} tenantId
+ * @param {{ action: 'updated'|'reverted', policy: object|null, violations?: string[], actorId?: string|null }} entry
+ */
+export function recordPolicyRevision(db, tenantId, entry) {
+  if (!tenantId) {
+    throw new TypeError('recordPolicyRevision requires tenantId');
+  }
+  if (entry?.action !== 'updated' && entry?.action !== 'reverted') {
+    throw new RangeError(`unknown policy revision action: ${entry?.action}`);
+  }
+  db.prepare(
+    `INSERT INTO tenant_policy_revisions
+       (tenant_id, action, policy_json, violations_json, actor_id)
+     VALUES (?, ?, ?, ?, ?)`,
+  ).run(
+    tenantId,
+    entry.action,
+    entry.policy ? JSON.stringify(entry.policy) : null,
+    JSON.stringify(entry.violations ?? []),
+    entry.actorId ?? null,
+  );
+}
+
+/**
+ * Newest-first history for one tenant. The stored JSON is re-parsed rather
+ * than trusted: a hand-edited snapshot yields `policy: null` plus a parse
+ * violation instead of breaking the whole page.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} tenantId
+ * @param {number|string|undefined} limit
+ * @returns {{ entries: object[], limit: number }}
+ */
+export function readPolicyHistory(db, tenantId, limit) {
+  if (!tenantId) {
+    throw new TypeError('readPolicyHistory requires tenantId');
+  }
+  const parsed = Number.parseInt(String(limit ?? ''), 10);
+  const bounded = Number.isInteger(parsed)
+    ? Math.min(Math.max(parsed, 1), HISTORY_LIMIT_MAX)
+    : HISTORY_LIMIT_DEFAULT;
+  const rows = /** @type {any[]} */ (
+    db
+      .prepare(
+        `SELECT id, action, policy_json, violations_json, actor_id, created_at
+           FROM tenant_policy_revisions
+          WHERE tenant_id = ?
+          ORDER BY id DESC
+          LIMIT ?`,
+      )
+      .all(tenantId, bounded)
+  );
+  const entries = rows.map(row => {
+    const violations = JSON.parse(row.violations_json);
+    let policy = null;
+    if (row.policy_json !== null) {
+      try {
+        policy = JSON.parse(row.policy_json);
+      } catch {
+        violations.push('stored policy snapshot is not valid JSON');
+      }
+    }
+    return {
+      id: row.id,
+      action: row.action,
+      policy,
+      violations,
+      actor_id: row.actor_id,
+      created_at: row.created_at,
+    };
+  });
+  return { entries, limit: bounded };
+}
