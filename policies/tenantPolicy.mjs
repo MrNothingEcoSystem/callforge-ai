@@ -269,10 +269,23 @@ export const HISTORY_LIMIT_DEFAULT = 50;
 export const HISTORY_LIMIT_MAX = 200;
 
 /**
+ * Revision rows kept per tenant. Bounded because the table is written on every
+ * accepted policy change and nothing else ever trims it; a tenant that edits
+ * daily would otherwise grow it forever. Deliberately above
+ * `HISTORY_LIMIT_MAX` so a maximal history page is always satisfiable from
+ * stored rows rather than being capped by retention.
+ *
+ * Pruning happens at write time, in the caller's transaction, because the
+ * process has no scheduler to run a periodic sweep.
+ */
+export const POLICY_REVISION_RETENTION = 250;
+
+/**
  * Append a revision row. Called inside the caller's transaction with the
  * write it describes: a history entry that outlives the write it records, or
  * a write with no entry, would both be misleading. Append-only — reverts
- * delete `tenant_policies`, never these rows.
+ * delete `tenant_policies`, never these rows, and retention only ever drops
+ * rows older than the newest `POLICY_REVISION_RETENTION` for the tenant.
  *
  * @param {import('better-sqlite3').Database} db
  * @param {string} tenantId
@@ -296,6 +309,16 @@ export function recordPolicyRevision(db, tenantId, entry) {
     JSON.stringify(entry.violations ?? []),
     entry.actorId ?? null,
   );
+  db.prepare(
+    `DELETE FROM tenant_policy_revisions
+      WHERE tenant_id = ?
+        AND id NOT IN (
+          SELECT id FROM tenant_policy_revisions
+           WHERE tenant_id = ?
+           ORDER BY id DESC
+           LIMIT ?
+        )`,
+  ).run(tenantId, tenantId, POLICY_REVISION_RETENTION);
 }
 
 /**

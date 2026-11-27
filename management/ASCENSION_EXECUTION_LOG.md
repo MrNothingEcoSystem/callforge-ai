@@ -611,3 +611,69 @@ behaviour, so the change is additive.
   model spend beyond this session. Remaining: revision retention/pruning ≈ 1 cycle,
   after which the M04/M05 track is EXT-gated (EXT-002 legal, EXT-003 carrier).
   Assumption: D-008 holds, so internal hardening stays the right use of cycles.
+
+## Cycle 235 — policy revision retention (PR #210)
+
+`tenant_policy_revisions` grew without bound: one permanent row per accepted change and per
+effective revert, and nothing trimmed it, so a tenant that edits regularly accumulated history
+forever. `recordPolicyRevision` now deletes, in the caller's transaction and after the insert,
+every row older than the newest `POLICY_REVISION_RETENTION` (250) for that tenant. 250 is
+deliberately above `HISTORY_LIMIT_MAX` (200), so retention never caps the read surface; pruning
+is per tenant and at write time because the process has no scheduler. A rejected write inserts
+nothing and so prunes nothing.
+
+- Gates: 5 new tests (file 5), **275/275**, tsc 0, eslint 0, prettier clean. Mutation-checked:
+  removing the `DELETE` fails 3/5 new tests.
+- Probe (scratch DB, discarded): 300 accepted writes → exactly 250 rows kept (ids 51–300), a
+  second tenant untouched at 1 row, total 251, a 200-entry page returns 200 entries newest-first
+  (n=299 → n=100). Verdict **ACCEPT**, F1 (age bound) and F3 (no trim marker on a truncated page)
+  recorded — `management/TECH014_RETENTION_REVIEW_RECORD.md`. Cycle-run probe, not a delegated
+  auditor, labelled as such.
+- CI `verify` PASS on `845ce74` (run 46033367778). The ledger/docs commit then failed the
+  `format:check` gate (unformatted `ASCENSION_BLOCKERS.md` + `ASCENSION_MILESTONES.json` from the
+  python edits); `prettier --write` fixed it and CI is PASS on `c9620c0` (run 46033701452). Draft
+  PR #210 stacked on #209. No merge, deploy, live call or spend.
+- Telegram: one message sent at 16:44Z (approval request, `receipt: sent`) — the M04/M05
+  engineering queue is exhausted and the #197→#210 stack is 14 drafts deep with #201–#207
+  unmergeable alone, so the owner has to choose merge or stop-stacking. Outside the 6-hour digest
+  window only as a decision request, not a digest.
+- Resource usage: ~12 min wall, one branch, one probe script and one scratch DB (removed), no
+  background processes, no model spend beyond this session. **M04/M05 engineering is now
+  exhausted**; remaining work is EXT-002/EXT-003/EXT-005-gated. Next: M02 SEC-001 IdP design or a
+  stop-and-queue for owner merge. Assumption: D-008 holds.
+
+## Week 2026-W48 — digest
+
+- 5 cycles (231–235), all M04 policy-surface hardening: fenced revert, policy history route,
+  PUT/DELETE version fences, revision retention. 270 → 275 tests, all green; every increment
+  probe-verified. One live defect found and fixed in-cycle (#208's `actor_type 'client'` 500 on
+  every real PUT/DELETE).
+- Open owner decisions: the #193→#210 stack is 14 draft PRs deep and has never been merged. That
+  stack depth is now the top schedule risk — retargeting or merging mid-stack costs rework, and
+  #201…#207 are broken against a real DB without #208.
+- No merge, deploy, live call or spend all week.
+
+## Cycle 236 — M02 SEC-003 F2 scope re-derivation + orphaned-commit recovery (PR #212)
+
+Every M04/M05 item is EXT-gated, so the cycle took the M02 identity follow-ups. First finding was
+process, not code: `gh pr view 7` returned **MERGED** (2026-11-09, `4368955`) while the branch had
+three later commits (`c2a155f` authorize bearer auth, `7d8671f` role pinning + scope intersection,
+`7ce247f` format) that were therefore on no PR and no merging tip. `2955224` had already been
+pushed to that dead branch before it was noticed; all four are cherry-picked onto `89af926`
+(clean, no conflicts) on `m02-authorize-auth-recover` off `origin/main` 28c9040, draft PR #212.
+
+- Code: `validateAccessToken` requires a known role and intersects the claimed scopes with
+  `ROLES[role]`; absent claim → full role grant, explicit empty claim → nothing, unknown role →
+  invalid. Intersection is a subset of both sides, so nothing is widened.
+- Gates: 5 new tests, **all 5 red pre-fix** and pass after (**118/118** whole suite on main),
+  tsc 0, eslint 0, prettier clean, CI `verify` PASS (run 46048412891) at `89af926`.
+  Verdict ACCEPT, F1/F2 recorded (`management/SEC003_SCOPE_REVIEW_RECORD.md`). Cycle-run probe,
+  not a delegated auditor, labelled as such.
+- SEC-001 step 1 (`/oauth/authorize` token-authenticated, role pinned to token) also lands on
+  #212 and was re-verified by the same suite; step 2 (real IdP) stays owner-gated on the dossier.
+- Telegram: none — the cycle-235 approval request went at 16:44Z and the 6-hour digest window
+  runs to ~22:44Z; nothing here is a milestone acceptance or new external blocker.
+- Resource usage: ~14 min wall, one worktree (kept for push, to be removed), two branches
+  (one dead-but-pushed, one live), no background processes, no model spend beyond this session.
+  Remaining on M02: SEC-001 step 2 (owner, 5 sign-offs) and SEC-003 F3 fixture scoping (decision)
+  ≈ 1 cycle of writing once decided. Assumption: D-008 holds.

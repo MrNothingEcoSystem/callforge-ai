@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-27T15:18:00Z",
+  "updated_at": "2026-11-27T18:20:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -22,22 +22,23 @@
       "id": "M02",
       "name": "Production identity and tenant isolation",
       "status": "changes_requested",
-      "branch": "m02-oauth-tenant-isolation",
-      "pr": 7,
-      "sha": "ac0adcba2f87efe95e647bb1eda08ba790f0492a",
-      "tests": "70/70",
+      "branch": "m02-authorize-auth-recover",
+      "pr": 212,
+      "sha": "89af926ddd6032b992a3acdb67bc9a706e613d46",
+      "tests": "118/118 (whole suite on main)",
       "blockers": [
-        "SEC-001 self-asserted tenant/role at authorize",
-        "SEC-002 default token secret fallback",
-        "independent verdict recorded 2026-11-09 cycle 1"
+        "SEC-001 step 2 \u2014 real IdP user authentication (owner-gated, dossier complete)",
+        "SEC-003 F3 \u2014 conversation fixtures tenant scoping (decision pending)"
       ],
-      "verdict": "REJECT for production identity; ACCEPTABLE only as simulation baseline",
+      "verdict": "SEC-001 authorize authentication + role pinning and SEC-003 F2 scope re-derivation landed on #212 (probed ACCEPT, CI PASS); still NOT production identity until the IdP step",
       "audit": {
-        "date": "2026-11-09",
-        "tests_local": "70/70",
-        "ci": "pass (run 42559869614)",
-        "head": "ac0adcba2f87efe95e647bb1eda08ba790f0492a"
-      }
+        "date": "2026-11-27",
+        "tests_local": "118/118",
+        "ci": "pass (run 46048412891)",
+        "head": "89af926ddd6032b992a3acdb67bc9a706e613d46"
+      },
+      "supersedes_pr": 7,
+      "followups": "#212 carries c2a155f/7d8671f (authorize auth, role pinned to token), 2955224 (scope re-derived from role). PR #7 merged 2026-11-09 before the branch kept receiving these commits, so they were orphaned and had to be cherry-picked onto main; the old branch is superseded."
     },
     {
       "id": "M03",
@@ -61,7 +62,7 @@
       ],
       "verdict": "INCREMENT 1 REVIEWED ACCEPT WITH FOLLOW-UPS \u2014 pre-dial gate core only; M04 stays open until EXT-002 and wiring",
       "policy_revert_pr": 207,
-      "followups": "F3 write surface complete: PUT, DELETE (revert) and GET history (PR #208, revisions table 0011, probed ACCEPT). Lost updates closed on #209: PUT version fence (0012) and the same If-Match fence on DELETE (F1, probed ACCEPT). Remaining: revision retention/pruning, F2 version-restarts-at-1 hint after a revert. Live 500 on PUT/DELETE from actor_type 'client' found and fixed on #208.",
+      "followups": "F3 write surface complete: PUT, DELETE (revert) and GET history (PR #208, revisions table 0011, probed ACCEPT). Lost updates closed on #209: PUT version fence (0012) and the same If-Match fence on DELETE (F1, probed ACCEPT). Remaining: revision retention/pruning closed on #210 (250-row bound, per tenant, probed ACCEPT; F1 age bound, F3 trim marker open), F2 version-restarts-at-1 hint after a revert. Live 500 on PUT/DELETE from actor_type 'client' found and fixed on #208.",
       "policy_history_pr": 208
     },
     {
