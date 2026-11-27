@@ -12,12 +12,29 @@
  * the handler is idempotent (already-processed rows are a no-op).
  */
 import { claimBatch, ack, fail } from './outbox.mjs';
+import { dispatchDialRequest } from './dialGate.mjs';
 
+/**
+ * @param {import('better-sqlite3').Database} db
+ * @param {object} [options]
+ * @param {Record<string, Function>} [options.handlers]
+ * @param {number} [options.pollMs]
+ * @param {number} [options.limit]
+ * @param {string} [options.workerId]
+ * @param {() => Date} [options.now]
+ */
 export function createDispatcher(
   db,
-  { handlers = {}, pollMs = 1000, limit = 10, workerId = 'dispatcher-1' } = {},
+  { handlers = {}, pollMs = 1000, limit = 10, workerId = 'dispatcher-1', now } = {},
 ) {
-  const registry = { 'webhook.received': handleWebhook, ...handlers };
+  const registry = {
+    'webhook.received': handleWebhook,
+    // M04/TECH-011: the gate runs inside the dispatch path, so a producer that
+    // enqueued a dial request cannot bypass it. Denial returns normally (the
+    // decision stands); only a thrown error is retried.
+    'dial.requested': (db, row) => dispatchDialRequest(db, row, now ? { now: now() } : {}),
+    ...handlers,
+  };
   let timer = null;
   let stopped = false;
 

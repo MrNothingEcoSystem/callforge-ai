@@ -16,13 +16,14 @@
 
 ## Technical blockers
 
-| ID       | Blocker                                           | Status                           | Next action                                     |
-| -------- | ------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
-| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched) | Record verdict; fix blocking findings on branch |
-| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                             | Schedule into M02/M03 branches                  |
-| TECH-003 | No durable workflow layer yet                     | M03 design dispatched            | Implement increment 1                           |
-| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                   | Design deliverable                              |
-| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                          | Run + verify recovery                           |
+| ID       | Blocker                                           | Status                                                                                                                                                                                             | Next action                                     |
+| -------- | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| TECH-001 | M02 PR #7 independent security verdict pending    | In progress (auditor dispatched)                                                                                                                                                                   | Record verdict; fix blocking findings on branch |
+| TECH-002 | Issues #2, #4, #5, #6 open follow-ups             | Open                                                                                                                                                                                               | Schedule into M02/M03 branches                  |
+| TECH-003 | No durable workflow layer yet                     | M03 design dispatched                                                                                                                                                                              | Implement increment 1                           |
+| TECH-004 | Postgres vs SQLite decision                       | M03 evaluation                                                                                                                                                                                     | Design deliverable                              |
+| TECH-011 | Dial gate not wired to the dispatch path          | **Addressed on `tech-011-dial-gate-wiring`** (stacked on #197): `dial_requests` snapshot + `dial.requested` dispatcher handler, fail-closed, allow enqueues `call.dial`. Still needs the M05 sink. | Independent review; retarget after #197         |
+| TECH-005 | CALLFORGE dispatcher not yet proven over 2 cycles | Pending                                                                                                                                                                                            | Run + verify recovery                           |
 
 Engineering continues on independent work whenever a gate is blocked.
 

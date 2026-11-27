@@ -93,3 +93,44 @@ branch head the ledger records. Lesson repeated from
 cycle 191: run `prettier --check .` over docs before pushing, not just over code.
 
 Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c`.
+
+## 2026-11-27 — Cycle 219 (dispatcher, 05:24 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged, `origin/m04-compliance-dial-gates`
+  = `12b3dde` (cycle 218, a parallel dispatcher run finished 04:52 UTC). Local checkout was
+  on `tech-004-audit-seq-hedge` at `b18e315` = its remote, clean; worked in a new linked
+  worktree so no lease was shared. No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0.
+- Task selection: every earlier engineering item is a draft PR awaiting owner merge and
+  SEC-001 is IdP-gated, so the queue's own stated next step — TECH-011, wiring the cycle-218
+  gate into the M03 dispatch path — was taken. Branch `tech-011-dial-gate-wiring` stacked on
+  #197 because it imports `policies/dialEligibility.mjs`.
+- Built: migration `0005_dial_requests.sql` (snapshot + status + attempt index);
+  `workflow/dialGate.mjs` (`requestDial` producer, `dispatchDialRequest` handler,
+  `readAttempts`); dispatcher registry entry so the gate cannot be bypassed; 11 tests.
+  Denial is acked, allow enqueues exactly one `call.dial`; facts are snapshotted so the
+  verdict replays after a lease gap. `readAttempts` is bounded above by `now`, closing the
+  R10 half of #197 F2; unknown outcomes count as unanswered (conservative) until M05.
+- Two self-inflicted bugs before green: dates from JSON are strings, so `dncrCheckedAt` was
+  never a `Date` and every marketing dial denied (added `reviveContact`); `readAttempts`
+  compared DB `datetime('now')` against a synthetic test clock (producer now stamps
+  `created_at` from injectable `now`).
+- Also made `tests/m03-workflow` derive the migration set from `listMigrations()` (same fix
+  as on the #196 branch; it hardcoded `0001..0003`) and added `policies/**` to tsconfig
+  include — without an included importer, PR #197's JSDoc type errors were invisible.
+- Gates: 15 files **162/162** (`--pool=threads`), eslint 0, tsc 0, prettier clean. Mutation:
+  attempts `[]` reds only the ceiling test, restored green. No merge, deploy, call or spend.
+- Resource usage: ~7 min wall clock, 1 worktree, no background processes. Remaining: review
+  of this branch, TECH-012 (owner/carrier portal), M05 sink, then EXT-002 for M04 closure.
+  Assumption: wiring before the dialer exists is cheaper than retrofitting every caller.
+- Independent review of this branch (detached worktree, read-only) recorded verdict
+  **ACCEPT WITH FOLLOW-UPS** in `management/TECH011_REVIEW_RECORD.md`. F1 (Medium, real) —
+  `requestDial` never checked that the intent exists or belongs to the caller's tenant, so a
+  foreign intent id produced dial rows under the wrong tenant — fixed in-cycle with
+  `ReferenceError`/`RangeError` before any write and a test; F3 (double `created_at` write)
+  fixed. F2 (allowed-but-never-placed still consumes the R10 ceiling until M05 reconciles),
+  F4 (denied is terminal; dashboard needs a re-evaluate action) and F5 (migration number gap
+  until #196) recorded, none blocking.
+- Post-remediation gates: 163/163, eslint 0, tsc 0, prettier clean. CI `verify` SUCCESS at
+  `0034113` (45946206076) and review head `1cc7c87` (45946433794). PR #198 updated, stays
+  draft, base `m04-compliance-dial-gates`.
