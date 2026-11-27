@@ -143,3 +143,25 @@ export function writeTenantPolicy(db, tenantId, raw) {
   );
   return options;
 }
+
+/**
+ * Revert the tenant to the statutory defaults (review #197 F3 / cycle-230
+ * follow-up): delete the override row. Returns whether a row was removed and
+ * the policy that was in force before, so the caller can audit what was lost —
+ * a corrupt row is reported rather than silently dropped.
+ *
+ * @param {import('better-sqlite3').Database} db
+ * @param {string} tenantId
+ * @returns {{ removed: boolean, prior: object | null, violations: string[] }}
+ */
+export function deleteTenantPolicy(db, tenantId) {
+  if (!tenantId) {
+    throw new TypeError('deleteTenantPolicy requires tenantId');
+  }
+  const existing = readTenantPolicy(db, tenantId);
+  if (existing.source === 'default') {
+    return { removed: false, prior: null, violations: [] };
+  }
+  const result = db.prepare('DELETE FROM tenant_policies WHERE tenant_id = ?').run(tenantId);
+  return { removed: result.changes > 0, prior: existing.options, violations: existing.violations };
+}

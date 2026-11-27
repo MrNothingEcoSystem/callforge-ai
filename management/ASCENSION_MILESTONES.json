@@ -1,8 +1,8 @@
 {
-  "program": "CALLFORGE OMEGA \u2014 Project Ascension",
+  "program": "CALLFORGE OMEGA — Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-27T13:05:00Z",
+  "updated_at": "2026-11-27T14:06:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -59,17 +59,15 @@
         "TECH-011 dialer wiring",
         "TECH-012 DNCR/consent data sources"
       ],
-      "verdict": "INCREMENT 1 REVIEWED ACCEPT WITH FOLLOW-UPS \u2014 pre-dial gate core only; M04 stays open until EXT-002 and wiring"
+      "verdict": "INCREMENT 1 REVIEWED ACCEPT WITH FOLLOW-UPS — pre-dial gate core only; M04 stays open until EXT-002 and wiring",
+      "policy_revert_pr": 207,
+      "followups": "F3 write surface extended: PUT + DELETE /tenant/policy (delete probed ACCEPT, PR #207); GET history route and last-write-wins on concurrent PUTs remain"
     },
     {
       "id": "M05",
       "name": "Provider-neutral telephony architecture",
       "status": "increment-1-in-review",
-      "blockers": [
-        "M03",
-        "EXT-003 carrier authorization",
-        "owner merge of the #197\u2192#205 stack"
-      ],
+      "blockers": ["M03", "EXT-003 carrier authorization", "owner merge of the #197→#205 stack"],
       "pr": 205,
       "tests": "230/230 whole suite, 3 on the F5 increment",
       "verdict": "F5 (intent cross-check) REVIEWED ACCEPT; M05 stays open until EXT-003"

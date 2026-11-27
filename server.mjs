@@ -16,6 +16,7 @@ import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
 import {
+  deleteTenantPolicy,
   readTenantPolicy,
   validatePolicyOptions,
   writeTenantPolicy,
@@ -174,7 +175,7 @@ class CallforgeHttpServer {
     }
 
     // M04 (F3): tenant policy record — token-bound read/write surface.
-    if (path === '/tenant/policy' && (method === 'GET' || method === 'PUT')) {
+    if (path === '/tenant/policy' && ['GET', 'PUT', 'DELETE'].includes(method)) {
       await this.handleTenantPolicy(req, res, method);
       return;
     }
@@ -264,12 +265,17 @@ class CallforgeHttpServer {
    * substituting the statutory defaults.
    */
   async handleTenantPolicy(req, res, method) {
-    const context = this.guard(req, res, method === 'PUT' ? ['admin'] : ['read']);
+    const context = this.guard(req, res, method === 'GET' ? ['read'] : ['admin']);
     if (!context) {
       return;
     }
     const tenantId = context.tenantId;
     const db = getDatabase();
+
+    if (method === 'DELETE') {
+      await this.handleTenantPolicyRevert(res, db, tenantId, context);
+      return;
+    }
 
     if (method === 'GET') {
       const stored = readTenantPolicy(db, tenantId);
@@ -317,6 +323,37 @@ class CallforgeHttpServer {
     });
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ tenant_id: tenantId, source: 'tenant', policy: options, violations }));
+  }
+
+  /**
+   * M04 (review #197 F3): revert to the statutory defaults. Idempotent — a
+   * tenant with no override row is already at the defaults, so the response
+   * says `reverted: false` and nothing is audited.
+   */
+  async handleTenantPolicyRevert(res, db, tenantId, context) {
+    const result = deleteTenantPolicy(db, tenantId);
+    if (result.removed) {
+      await this.auditLogger.log({
+        tenant_id: tenantId,
+        event_type: 'tenant_policy_reverted',
+        actor_type: 'client',
+        actor_id: context.subject,
+        action: 'delete_tenant_policy',
+        resource_type: 'tenant_policy',
+        resource_id: tenantId,
+        payload: { reverted_policy: result.prior, violations: result.violations },
+      });
+    }
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        tenant_id: tenantId,
+        source: 'default',
+        reverted: result.removed,
+        reverted_policy: result.prior,
+        violations: result.violations,
+      }),
+    );
   }
 
   /** M02: a client-supplied tenant_id must never widen the token tenant. */

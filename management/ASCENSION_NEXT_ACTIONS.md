@@ -193,3 +193,22 @@ Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 �
 #197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → this.
 Next engineering: the policy list/delete routes (`GET /tenant/policy` history, `DELETE` revert), then
 last-write-wins on concurrent PUTs.
+
+## Cycle 231 — `DELETE /tenant/policy` revert (PR #207)
+
+The only unblocked engineering item left on the M04 policy track was the revert: `PUT` could
+store an override that nothing could take away, so a tenant stayed on its last accepted policy
+for good. `9cd4d3a` on `tech-014-delete-policy-route` (draft PR #207, stacked on #206) routes
+`DELETE` before the body read, admin-scoped, tenant from the token only, idempotent (no row →
+200 `reverted:false`, nothing audited), and audits `tenant_policy_reverted` with the removed
+policy plus any violations so a corrupt row is reported instead of vanishing. 8 tests, 242/242,
+tsc/eslint/prettier clean, CI PASS (run 46012046286). Worktree probe on both sides at
+`management/TECH014_DELETE_REVIEW_RECORD.md`, verdict ACCEPT: pre-fix the revert returns 400
+and the 07:00 override survives; fixed it returns 200 and the tenant is back on 09:00.
+
+Remaining M04/M05 engineering: `GET /tenant/policy` history (needs a revisions table) and
+last-write-wins on concurrent PUTs. Then the track is EXT-gated — EXT-002 (legal) and EXT-003
+(carrier) gate closure, and nothing here places a live call.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → this.
+Next engineering: the policy history route (revisions table + `GET /tenant/policy/history`).
