@@ -652,3 +652,34 @@ nothing and so prunes nothing.
   stack depth is now the top schedule risk — retargeting or merging mid-stack costs rework, and
   #201…#207 are broken against a real DB without #208.
 - No merge, deploy, live call or spend all week.
+
+## Cycle 236 — M02 SEC-001 step 1: external OIDC token verification (PR #211)
+
+The M04/M05 queue is empty, so this cycle took the recommended M02 item. SEC-001 is that
+`/oauth/authorize` is unauthenticated, so tenant+role are caller-asserted. The dossier picked an
+IdP; this builds the half that needs no account, no credentials and no network: **verifying** an
+externally issued token, so a resource endpoint can trust one once an IdP is wired.
+
+`7ab03be`, `29b51ca` and `f70d839` on `m02-oidc-token-verification` (draft PR #211, stacked on
+#210): `oidc.mjs` verifies RS256/384/512 only (no `none`, no HMAC), requires a `kid` present in
+the loaded JWKS, exact `iss`/`aud`, mandatory `exp` and `nbf` with skew, binds the tenant from a
+configurable claim and **re-derives scopes from the role** (closes SEC-003's "token scope
+trusted" for this path). `oauth.mjs` routes every non-HS256 alg to it, so an alg swap cannot
+reuse the internal HMAC key; the HS256 path is unchanged. `server.mjs` loads the JWKS in
+`initialize()` from exactly one of `CALLFORGE_OIDC_JWKS_FILE`/`_URL` and aborts startup on a
+broken set instead of falling back to self-asserted identity. Fully opt-in.
+
+- Gates: 21 new tests, **296/296**, tsc 0, eslint 0, prettier clean. Mutations: drop the
+  signature check → 2 fail; trust the token `scope` → 1 fail; drop the `kid` lookup → 1 fail.
+- Review probe (fresh worktree, `management/M02_SEC001_OIDC_VERIFY_REVIEW_RECORD.md`) found two
+  real defects, both fixed in-cycle and re-probed: a `role: "toString"` claim passed
+  `role in roleScopes` and then threw on the scope spread (500 on the guard), and a missing
+  issuer was misreported as a broken key set. Verdict **ACCEPT WITH FOLLOW-UPS**; F1 (JWKS-URL
+  branch untested), F2 (string `exp`/`nbf`), F3 (rotation needs a restart), F4 (skew env NaN
+  fallback), F5 (**issuance still self-asserted — SEC-001 stays open**) recorded.
+- Draft PR #211, base `tech-014-revision-retention`. No dependency added, no network in tests,
+  no credentials, merge, deploy, live call or spend.
+- Resource usage: ~13 min wall, one branch, two review worktrees, one probe script, no
+  background processes, no model spend beyond this session. Remaining: SEC-001 issuance side
+  (IdP choice from the 2026-11-09 dossier needs the owner) and the EXT-002/EXT-003/EXT-005
+  gates; the #197→#211 stack is now 15 drafts with #201–#207 unmergeable alone.
