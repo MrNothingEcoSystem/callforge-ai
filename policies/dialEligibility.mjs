@@ -216,13 +216,22 @@ export function evaluateDial(ctx = /** @type {any} */ ({})) {
 
   // Tenant overrides are re-validated by the caller's record, but a hand-edited
   // or stale snapshot can still be unusable; deny rather than widen the gate.
+  // `undefined` means "no tenant record — use the statutory defaults"; an
+  // explicit `null` is a stored row that failed validation (review TECH-013 F1)
+  // and must deny, not silently fall back to the wider defaults.
   let options = POLICY_DEFAULTS;
-  const rawOptions = /** @type {Record<string, any>} */ (ctx.options);
-  if (rawOptions) {
-    const checked = validatePolicyOptions({
-      ...rawOptions,
-      timeZone: rawOptions.timeZone ?? timeZone,
-    });
+  const rawOptions = /** @type {Record<string, any>|null|undefined} */ (ctx.options);
+  const unusablePolicy = () => ({
+    options: null,
+    violations:
+      Array.isArray(policy?.policyViolations) && policy.policyViolations.length > 0
+        ? policy.policyViolations
+        : ['tenant policy row is unusable'],
+  });
+  if (rawOptions !== undefined) {
+    const checked = rawOptions
+      ? validatePolicyOptions({ ...rawOptions, timeZone: rawOptions.timeZone ?? timeZone })
+      : unusablePolicy();
     if (!checked.options) {
       return {
         allowed: false,

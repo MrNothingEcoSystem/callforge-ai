@@ -201,3 +201,28 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   estimate: dashboard write surface, half-hour windows, legacy producer fold-in, EXT-003 DNCR
   provider, EXT-002 for M04 closure, then the owner merge chain. Assumption: F4 is
   behaviour-changing enough to prefer over the two UI-shaped follow-ups.
+
+## 2026-11-27 — Cycle 222 (dispatcher, 07:20 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged. Primary checkout still on
+  `tech-004-audit-seq-hedge` at `b18e315` (25 ahead / 0 behind, clean); new detached-branch
+  worktree `review/tech-013` off `origin/tech-013-tenant-policy` `3c11bf8` so no lease was
+  shared with #196. Nothing written to the legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0, pnpm 12.18.0 (`--offline`).
+- Task selection: everything in the queue is a draft PR and SEC-001 is IdP-gated; #200 was the
+  only completed increment still on self-review, which directive step 5 requires to be
+  independent. Reviewed read-only, remediating only what the review found.
+- F5 (Medium, real, fixed): `readTenantPolicy` returns `options: null` for an unusable row, but
+  `evaluateDial`'s `if (rawOptions)` collapsed that to "absent" and used the wider statutory
+  defaults. Probe: inverted 18–9 row → 10:00 Dubai dial allowed, not denied. Fix distinguishes
+  `undefined` from `null`, denies `invalid_policy`, and names the snapshotted violations. Two
+  tests added (unit contract; end-to-end corrupt-after-request) — both red with the condition
+  reverted, green with it. F6 (import cycle) and F7 (shallow-frozen defaults) recorded Low.
+- Gates: 188/188 (`--pool=threads`), eslint 0, tsc 0, prettier clean. Draft PR #200 body
+  updated with the verdict pointer; still based on `tech-012-fact-sources`, still draft.
+- No merge, deploy, live call or spend. Telegram: none — a review verdict is not a milestone
+  acceptance and the 6-hour digest window since cycle 221 (~06:47 UTC) has not elapsed.
+- Resource usage: ~13 min wall clock, 1 worktree, no background processes. Remaining work
+  estimate: F1/F3 (or the dashboard), M05 `call.dial` sink, EXT-003 DNCR provider, EXT-002 for
+  M04 closure, then the owner merge chain. Assumption: closing the review finding is worth
+  more than opening another stacked increment while four PRs await merge.

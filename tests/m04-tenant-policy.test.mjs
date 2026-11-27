@@ -153,6 +153,79 @@ describe('tenant policy options (review #197 F4)', () => {
     expect(codes(verdict)).toEqual(['invalid_policy']);
   });
 
+  it('denies when an explicit null options snapshot is handed in (TECH-013 F1)', () => {
+    const contact = { ...CLEAN, phone: '+971501234567' };
+    const base = { now: NOON, campaign: CAMPAIGN, contact, policy: POLICY };
+    // Absent options = no tenant record -> statutory defaults (allowed).
+    expect(evaluateDial(base).allowed).toBe(true);
+    // Explicit null = the stored row failed validation -> deny, never widen.
+    const verdict = evaluateDial({ ...base, options: null });
+    expect(verdict.allowed).toBe(false);
+    expect(codes(verdict)).toEqual(['invalid_policy']);
+  });
+
+  it('denies end-to-end when the stored row is corrupted after the request', async () => {
+    const id = tenant();
+    writeTenantPolicy(db, id, VALID);
+    const intentId = generateId();
+    db.prepare(
+      'INSERT INTO call_intents (id, tenant_id, idempotency_key, direction, status) VALUES (?, ?, ?, ?, ?)',
+    ).run(intentId, id, `intent-${intentId}`, 'outbound', 'approved');
+    db.prepare(
+      'INSERT INTO consents (id, tenant_id, phone, purpose, granted_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
+    ).run(
+      generateId(),
+      id,
+      CAMPAIGN.phone,
+      'renewal',
+      '2026-11-01T00:00:00Z',
+      '2026-11-01T00:00:00Z',
+    );
+    seq += 1;
+    const { request } = await requestDialResolved(db, {
+      tenantId: id,
+      callIntentId: intentId,
+      idempotencyKey: `dial-broken-${seq}`,
+      campaign: CAMPAIGN,
+      policy: POLICY,
+      dncr: {
+        check: async () => ({
+          status: 'clean',
+          checkedAt: new Date('2026-11-26T05:00:00Z'),
+          reference: 'x',
+        }),
+      },
+      now: NOON,
+    });
+    // Corrupt the row the way a hand edit or a stale writer would: 18–9 passes
+    // the column CHECKs but is an inverted window, so it is unusable.
+    db.prepare(
+      'UPDATE tenant_policies SET window_start_hour = 18, window_end_hour = 9 WHERE tenant_id = ?',
+    ).run(id);
+    // Re-snapshot with the corrupted row, then dispatch: must deny.
+    const fresh = await requestDialResolved(db, {
+      tenantId: id,
+      callIntentId: intentId,
+      idempotencyKey: `dial-broken2-${seq}`,
+      campaign: CAMPAIGN,
+      policy: POLICY,
+      dncr: {
+        check: async () => ({
+          status: 'clean',
+          checkedAt: new Date('2026-11-26T05:00:00Z'),
+          reference: 'x',
+        }),
+      },
+      now: NOON,
+    });
+    const outcome = dispatchDialRequest(db, { aggregate_id: fresh.request.id }, { now: NOON });
+    expect(outcome.allowed).toBe(false);
+    expect(outcome.reasons.map(r => r.code)).toEqual(['invalid_policy']);
+    // The earlier snapshot was taken while the row was still valid and allows.
+    const ok = dispatchDialRequest(db, { aggregate_id: request.id }, { now: NOON });
+    expect(ok.allowed).toBe(true);
+  });
+
   it('snapshots the tenant policy with the resolved request', async () => {
     const id = tenant();
     writeTenantPolicy(db, id, VALID);

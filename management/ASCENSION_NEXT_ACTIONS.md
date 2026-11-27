@@ -70,3 +70,21 @@ policy (dashboard), half-hour windows, folding the record into the legacy `reque
 producer, a real DNCR provider (EXT-003), then EXT-002 for closure.
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → #199 → this branch.
+
+## Cycle 222 — independent review of TECH-013 (PR #200)
+
+Verdict ACCEPT WITH FOLLOW-UPS on `management/TECH013_REVIEW_RECORD.md`. Review F5 was real:
+a stored row that fails validation reached the evaluator as `options: null`, which was treated
+as "absent" and substituted the statutory defaults, so a corrupt 18–9 window still dialled at
+10:00 instead of denying. Fixed by distinguishing `undefined` (no record → defaults) from
+`null` (record present but unusable → `invalid_policy`, detail from the snapshotted
+violations); two tests added, both red on the pre-fix evaluator. Gates 188/188, tsc/eslint/
+prettier clean.
+
+Open from the review, none blocking: F1 legacy `requestDial` producer still default-only,
+F2 whole-hour windows (Res.57 half-hours need EXT-002), F3 no write surface/dashboard,
+F6 `dialEligibility` ⇄ `tenantPolicy` import cycle, F7 shallow-frozen defaults.
+
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200. M04 closure still needs EXT-002; the M05 `call.dial` sink is the
+next engineering item after F1/F3 or the dashboard, whichever the owner prefers.
