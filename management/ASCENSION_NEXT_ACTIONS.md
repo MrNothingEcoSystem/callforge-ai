@@ -187,9 +187,9 @@ claiming, so a divergent pair no-ops as `intent_mismatch` instead of dialling ev
 wrong intent. 3 tests, 230/230, tsc/eslint/prettier clean, CI PASS. Read-only worktree probe on both
 sides of the fix, verdict ACCEPT (`management/TECH015_F5_REVIEW_RECORD.md`).
 
-Remaining M04/M05 engineering, all non-blocking: F6 bounded simulated call log, list/delete policy
-routes, last-write-wins on concurrent PUTs. EXT-002 (legal) and EXT-003 (carrier) gate closure.
+Remaining M04/M05 engineering, all non-blocking: list/delete policy routes, last-write-wins on
+concurrent PUTs. EXT-002 (legal) and EXT-003 (carrier) gate closure.
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → this.
-Next engineering: F6 (bounded simulated log — pure test-support hygiene), then the policy list/delete
-routes.
+Next engineering: the policy list/delete routes (`GET /tenant/policy` history, `DELETE` revert), then
+last-write-wins on concurrent PUTs.

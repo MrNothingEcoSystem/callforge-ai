@@ -472,3 +472,22 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   Remaining M04/M05 engineering: F6 bounded simulated log, list/delete policy routes, last-write-wins
   on concurrent PUTs. EXT-002/EXT-003 gate closure; owner merge chain is nine drafts deep.
   Assumption: D-008 holds, so internal hardening is the right use of cycles until the carrier lands.
+
+## Cycle 230 — TECH-015 F6 bounded simulated log
+
+`06cbf47` on `tech-015-f6-bounded-sim-log` (draft PR #206, stacked on #205) caps the simulated
+provider's dial log at `MAX_RECORDED_CALLS` = 100, oldest-first eviction, with a monotonic
+`totalDials` counter so eviction cannot hide the count; records carry `outcome` and are written
+before the throw; `reset()` replaces the ad-hoc field resets in the sink test. 4 new tests,
+234/234 suite, eslint/prettier/tsc clean; CI `verify` dispatched (run 46007185595).
+Read-only probe on both sides of the fix at 5000 dials: old retains 5000 with no cap, new retains
+the newest 100 while counting 5000 and resetting to zero. Record
+`management/TECH015_F6_VERIFICATION.md`.
+
+Remaining M04/M05 engineering, all non-blocking: list/delete policy routes, last-write-wins on
+concurrent PUTs. EXT-002 (legal) and EXT-003 (carrier) gate closure.
+Owner merge chain unchanged: #193 → … → #204 → #205 → this.
+Next engineering: policy list/delete routes, then last-write-wins on concurrent PUTs.
+
+Resource usage: ~4 min wall, 1 code commit + 1 docs commit, 0 live calls, 0 spend. Remaining
+estimate: list/delete routes ≈ 1 cycle, last-write-wins ≈ 1 cycle, then the track is EXT-gated.

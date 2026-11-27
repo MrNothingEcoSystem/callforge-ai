@@ -31,8 +31,9 @@ returns the row for backoff.
 - **F5 (CLOSED cycle 229, `616379d`, PR #205)** — the sink trusts `payload.dialRequestId` without cross-checking `row.aggregate_id` against
   `request.call_intent_id`. Cheap to add; no reachable divergence today since the payload is minted in
   the same transaction as the request.
-- **F6** — `simulatedProvider` keeps `calls` as module-level state, so a long-lived process grows it
-  unbounded. Test-only convenience today.
+- **F6 (CLOSED cycle 230, `06cbf47`, PR #206)** — `simulatedProvider` kept `calls` as module-level
+  state, so a long-lived process grew it unbounded. Now a 100-entry oldest-first-evicting log with a
+  monotonic `totalDials`; see `management/TECH015_F6_VERIFICATION.md` (probe at 5000 dials).
 
 Now claimed by a CAS + 300s lease + `claim_token` fence; loser no-ops as `already_dispatching`.
 See `management/TECH015_F3_REVIEW_RECORD.md` (verdict ACCEPT, two-process probe).

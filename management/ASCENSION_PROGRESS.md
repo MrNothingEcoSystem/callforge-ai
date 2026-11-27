@@ -26,3 +26,9 @@ No completion percentages are claimed. Remote main at last sync: 75b191acff9cde5
 - TECH-015 F3 closed on draft PR #204: claim CAS fixes the double-dial race on the M05 sink
   (300s lease, fenced terminal writes). 227/227, review ACCEPT with a real two-process probe.
   No milestone accepted; M04/M05 stay open on EXT-002/EXT-003.
+
+## Cycle 230 (2026-11-27)
+
+- TECH-015 F6 closed on draft PR #206: the simulated dial log is bounded at 100 entries with a
+  monotonic total, probe-verified at 5000 dials; 234/234. Test-support hygiene only — no carrier,
+  no milestone accepted. M04/M05 stay open on EXT-002/EXT-003.
