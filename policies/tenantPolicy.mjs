@@ -2,7 +2,7 @@
  * CALLFORGE AI — per-tenant policy record (review #197 F4)
  *
  * The gate's numeric knobs (calling window, retry ceiling, DNCR freshness) are
- * statutory defaults in `dialEligibility.mjs`. A tenant's competent-authority
+ * statutory defaults in `policyDefaults.mjs`. A tenant's competent-authority
  * approval can differ, so they live in `tenant_policies` instead of code.
  *
  * Fail-closed shape: an absent row means "use the defaults" (a deliberate
@@ -10,7 +10,7 @@
  * returns `options: null` plus violations, and the evaluator denies. A tenor
  * with a broken policy must not get the widest window by accident.
  */
-import { POLICY_DEFAULTS } from './dialEligibility.mjs';
+import { POLICY_DEFAULTS, copyPolicyDefaults } from './policyDefaults.mjs';
 
 export const POLICY_BOUNDS = Object.freeze({
   windowHour: { min: 0, max: 24 },
@@ -102,7 +102,7 @@ export function readTenantPolicy(db, tenantId) {
     db.prepare('SELECT * FROM tenant_policies WHERE tenant_id = ?').get(tenantId)
   );
   if (!row) {
-    return { options: { ...POLICY_DEFAULTS }, source: 'default', violations: [] };
+    return { options: copyPolicyDefaults(), source: 'default', violations: [] };
   }
   const { options, violations } = validatePolicyOptions({
     timeZone: row.time_zone,
