@@ -214,18 +214,54 @@ export function writeTenantPolicy(db, tenantId, raw, expectedVersion) {
  *
  * @param {import('better-sqlite3').Database} db
  * @param {string} tenantId
- * @returns {{ removed: boolean, prior: object | null, violations: string[] }}
+ * @param {unknown} [expectedVersion] version fence (review #209 F1), same
+ *   `If-Match` semantics as `writeTenantPolicy`; omitted keeps last-write-wins
+ * @returns {{ removed: boolean, prior: object | null, violations: string[], conflict: boolean, version: number }}
  */
-export function deleteTenantPolicy(db, tenantId) {
+export function deleteTenantPolicy(db, tenantId, expectedVersion) {
   if (!tenantId) {
     throw new TypeError('deleteTenantPolicy requires tenantId');
   }
   const existing = readTenantPolicy(db, tenantId);
+  const expect = parsePolicyVersion(expectedVersion);
+  // No override row: the revert's goal is already met, so even a fenced DELETE
+  // stays the idempotent 200 no-op.
   if (existing.source === 'default') {
-    return { removed: false, prior: null, violations: [] };
+    return { removed: false, prior: null, violations: [], conflict: false, version: 0 };
   }
-  const result = db.prepare('DELETE FROM tenant_policies WHERE tenant_id = ?').run(tenantId);
-  return { removed: result.changes > 0, prior: existing.options, violations: existing.violations };
+  if (expect !== null && existing.version !== expect) {
+    return {
+      removed: false,
+      prior: null,
+      violations: [],
+      conflict: true,
+      version: existing.version,
+    };
+  }
+  const sql =
+    expect === null
+      ? 'DELETE FROM tenant_policies WHERE tenant_id = ?'
+      : 'DELETE FROM tenant_policies WHERE tenant_id = ? AND version = ?';
+  const args = expect === null ? [tenantId] : [tenantId, expect];
+  const result = db.prepare(sql).run(...args);
+  // A fenced DELETE that matched nothing lost a race between the read above
+  // and the statement: report the now-current version, change nothing.
+  if (expect !== null && result.changes === 0) {
+    return {
+      removed: false,
+      prior: null,
+      violations: [],
+      conflict: true,
+      version: readTenantPolicy(db, tenantId).version,
+    };
+  }
+  return {
+    removed: result.changes > 0,
+    prior: existing.options,
+    violations: existing.violations,
+    conflict: false,
+    version: 0,
+  };
 }
 
 /** Bound on a history page, so a long-lived tenant cannot return an unbounded body. */

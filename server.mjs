@@ -291,7 +291,15 @@ class CallforgeHttpServer {
     const db = getDatabase();
 
     if (method === 'DELETE') {
-      await this.handleTenantPolicyRevert(res, db, tenantId, context);
+      // Review #209 F1: the revert is fenced the same way as the write, so a
+      // revert that raced a competing PUT cannot silently discard it.
+      await this.handleTenantPolicyRevert(
+        res,
+        db,
+        tenantId,
+        context,
+        parsePolicyVersion(stripETag(req.headers['if-match'])),
+      );
       return;
     }
 
@@ -388,14 +396,16 @@ class CallforgeHttpServer {
   /**
    * M04 (review #197 F3): revert to the statutory defaults. Idempotent — a
    * tenant with no override row is already at the defaults, so the response
-   * says `reverted: false` and nothing is audited.
+   * says `reverted: false` and nothing is audited. A supplied `If-Match`
+   * version makes the delete conditional: a superseded revert is a 409 that
+   * leaves the row and the history untouched (review #209 F1).
    */
-  async handleTenantPolicyRevert(res, db, tenantId, context) {
+  async handleTenantPolicyRevert(res, db, tenantId, context, expectedVersion) {
     // The revision shares the delete's transaction: a revert is either wholly
     // recorded (row gone + history entry, including a corrupt row's violations)
     // or not applied at all.
     const result = db.transaction(() => {
-      const revert = deleteTenantPolicy(db, tenantId);
+      const revert = deleteTenantPolicy(db, tenantId, expectedVersion);
       if (revert.removed) {
         recordPolicyRevision(db, tenantId, {
           action: 'reverted',
@@ -406,6 +416,19 @@ class CallforgeHttpServer {
       }
       return revert;
     })();
+    if (result.conflict) {
+      const current = readTenantPolicy(db, tenantId);
+      res.writeHead(409, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: 'Tenant policy changed since the supplied version',
+          tenant_id: tenantId,
+          version: current.version,
+          policy: current.options,
+        }),
+      );
+      return;
+    }
     if (result.removed) {
       await this.auditLogger.log({
         tenant_id: tenantId,
@@ -423,6 +446,7 @@ class CallforgeHttpServer {
       JSON.stringify({
         tenant_id: tenantId,
         source: 'default',
+        version: 0,
         reverted: result.removed,
         reverted_policy: result.prior,
         violations: result.violations,
