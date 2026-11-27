@@ -170,3 +170,93 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   policy records (#197 F4), then EXT-002 for M04 closure. Assumption: wiring the sources
   before the dialer exists is cheaper than retrofitting callers, and the register's 24h
   freshness rule is the right cache ceiling.
+
+## 2026-11-27 — Cycle 221 (dispatcher, 06:42 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged. Local `/root/callforge-ai` sat on
+  `tech-004-audit-seq-hedge` at `b18e315` = its remote, clean, 25 ahead / 0 behind. New
+  linked worktree off `origin/tech-012-fact-sources` so no lease was shared. Nothing written
+  to the legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0, pnpm 12.18.0 (`--offline` install from the local store).
+- Task selection: queue is all draft PRs + SEC-001 IdP-gated. Highest unblocked engineering
+  item was the open review follow-up F4 on PR #197 ("constants should become a tenant policy
+  record") — the one finding on the M04 track that changes product behaviour.
+- Built: migration `0007_tenant_policy.sql` (`tenant_policies`, one row per tenant, defaults =
+  statutory set, CHECK ranges); `policies/tenantPolicy.mjs` (`validatePolicyOptions`,
+  `readTenantPolicy`, `writeTenantPolicy`); `evaluateDial` takes optional `options`,
+  re-validates and returns a single `invalid_policy` denial instead of falling back;
+  `requestDialResolved` snapshots the record's options so dispatch is reproducible.
+- Fail-closed matrix: absent row → defaults; inverted/empty window, hour >24, day>week,
+  DNCR age outside 1–168h, empty zone → unusable → deny. Week/day bounds keep the Res.57
+  callback shape (2/day, 3/7d) as the default.
+- Gates: 17 files **186/186** (`--pool=threads`), eslint 0, tsc 0, prettier clean. Self-review
+  recorded in `management/TECH013_REVIEW_RECORD.md`, verdict **ACCEPT WITH FOLLOW-UPS**;
+  F1 (legacy `requestDial` producer still default-only), F2 (whole-hour windows), F3 (no
+  write surface) recorded, none blocking. Design/limits: `management/M04_TECH013_TENANT_POLICY.md`.
+- CI `verify` PASS at `ad9cfbf` (run 45953992828) after a prettier pass on two records; draft
+  PR #200 opened, base `tech-012-fact-sources` (retarget down the stack after merges). No
+  merge, deploy, live call or spend.
+- Telegram: digest due (window since cycle 210 ~00:33 UTC closed at ~06:33) — one digest sent.
+- Resource usage: ~7 min wall clock, 1 worktree, no background processes. Remaining work
+  estimate: dashboard write surface, half-hour windows, legacy producer fold-in, EXT-003 DNCR
+  provider, EXT-002 for M04 closure, then the owner merge chain. Assumption: F4 is
+  behaviour-changing enough to prefer over the two UI-shaped follow-ups.
+
+## 2026-11-27 — Cycle 222 (dispatcher, 07:20 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged. Primary checkout still on
+  `tech-004-audit-seq-hedge` at `b18e315` (25 ahead / 0 behind, clean); new detached-branch
+  worktree `review/tech-013` off `origin/tech-013-tenant-policy` `3c11bf8` so no lease was
+  shared with #196. Nothing written to the legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0, pnpm 12.18.0 (`--offline`).
+- Task selection: everything in the queue is a draft PR and SEC-001 is IdP-gated; #200 was the
+  only completed increment still on self-review, which directive step 5 requires to be
+  independent. Reviewed read-only, remediating only what the review found.
+- F5 (Medium, real, fixed): `readTenantPolicy` returns `options: null` for an unusable row, but
+  `evaluateDial`'s `if (rawOptions)` collapsed that to "absent" and used the wider statutory
+  defaults. Probe: inverted 18–9 row → 10:00 Dubai dial allowed, not denied. Fix distinguishes
+  `undefined` from `null`, denies `invalid_policy`, and names the snapshotted violations. Two
+  tests added (unit contract; end-to-end corrupt-after-request) — both red with the condition
+  reverted, green with it. F6 (import cycle) and F7 (shallow-frozen defaults) recorded Low.
+- Gates: 188/188 (`--pool=threads`), eslint 0, tsc 0, prettier clean. CI `verify` PASS at
+  `5e2f504` (run 45958014402), remote branch SHA verified equal. Draft PR #200 body
+  updated with the verdict; still based on `tech-012-fact-sources`, still draft.
+- No merge, deploy, live call or spend. Telegram: none — a review verdict is not a milestone
+  acceptance and the 6-hour digest window since cycle 221 (~06:47 UTC) has not elapsed.
+- Resource usage: ~13 min wall clock, 1 worktree, no background processes. Remaining work
+  estimate: F1/F3 (or the dashboard), M05 `call.dial` sink, EXT-003 DNCR provider, EXT-002 for
+  M04 closure, then the owner merge chain. Assumption: closing the review finding is worth
+  more than opening another stacked increment while four PRs await merge.
+
+## 2026-11-27 — Cycle 223 (dispatcher, 07:56 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged; primary checkout still on
+  `tech-004-audit-seq-hedge` at `b18e315` (25 ahead / 0 behind, clean). Reused the existing
+  `tech-013-tenant-policy` worktree (`wt-tech013`) rather than cutting a fifth stack branch —
+  the item is a review follow-up on that PR and cycle 222's F5 fix set the in-PR precedent.
+  Nothing written to the legacy Davidcarmelalex/CALLFORGE repo.
+- Toolchain: Node v24.11.0, pnpm 12.18.0.
+- Task selection: every other queue item is a draft PR awaiting owner merge or IdP/EXT-gated;
+  the highest-priority unblocked item was #200's review F1 (`requestDial`, the non-resolving
+  producer, was still gated against the statutory defaults while the record was only read by
+  `requestDialResolved`) — a real correctness hole: any caller on the older path silently
+  escaped the tenant's approved window and ceilings.
+- Change: `requestDial` resolves `readTenantPolicy(db, tenantId)` unless the caller supplied an
+  `options` snapshot (so `requestDialResolved` is unchanged and a caller snapshot still wins),
+  snapshots `options`/`policyViolations`/`timeZone` from the record, and carries an unusable
+  row through as `options: null` so dispatch denies `invalid_policy` instead of widening.
+- Proof: 3 tests — narrowed tenant window (09:00–10:00) denies a 12:00 dial the defaults allow,
+  corrupt 18–9 row denies end-to-end, explicit snapshot still honoured. Reverting only
+  `workflow/dialGate.mjs` fails exactly the first two (10 passed / 2 failed), so the tests bite.
+- Gates: 17 files **191/191** (`--pool=threads`), eslint 0, tsc 0, prettier clean. CI `verify`
+  PASS at `f8da2c3` (run 45962081786), remote branch SHA verified equal. PR #200 body updated
+  with the remediation; still draft, still based on `tech-012-fact-sources`.
+- Record: F1 struck through in `management/TECH013_REVIEW_RECORD.md` with a remediation
+  section; F2/F3/F6/F7 remain open and non-blocking. No merge, deploy, live call or spend.
+- Telegram: none — a follow-up fix is not a milestone acceptance and the 6-hour digest window
+  since cycle 221 (~06:47 UTC) has not elapsed (due ~12:47).
+- Resource usage: ~6 min wall clock, 1 worktree, no background processes, 1 CI run polled.
+  Remaining work estimate: F3 dashboard/API write surface (next), F2 (EXT-002), F6/F7 cleanups,
+  EXT-003 DNCR provider, then the owner merge chain and EXT-002. Assumption: an unguarded legacy
+  path is worth closing before starting the write surface, since the dashboard will lean on the
+  same producer.

@@ -58,3 +58,42 @@ Remaining on the M04 track: a real DNCR provider/portal (EXT-003), a "re-query n
 dashboard action (#198 F4), and tenant policy records (#197 F4). Then EXT-002 for closure.
 Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
 #197 → #198 → this branch.
+
+## Cycle 221 — TECH-013 tenant policy record (stacked PR)
+
+Review F4 on #197 is closed: `tenant_policies` (migration 0007) replaces the hard-coded
+window/ceilings/DNCR ceiling with a per-tenant record; absent row = statutory defaults, a
+corrupted row denies (`invalid_policy`) rather than widening the gate, and the values are
+snapshotted into the request so the decision is reproducible. 186/186, tsc/eslint/prettier
+clean, draft PR #200 (stacks on #199 → #198 → #197). Remaining on the M04 track: writing a
+policy (dashboard), half-hour windows, folding the record into the legacy `requestDial`
+producer, a real DNCR provider (EXT-003), then EXT-002 for closure.
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → this branch.
+
+## Cycle 222 — independent review of TECH-013 (PR #200)
+
+Verdict ACCEPT WITH FOLLOW-UPS on `management/TECH013_REVIEW_RECORD.md`. Review F5 was real:
+a stored row that fails validation reached the evaluator as `options: null`, which was treated
+as "absent" and substituted the statutory defaults, so a corrupt 18–9 window still dialled at
+10:00 instead of denying. Fixed by distinguishing `undefined` (no record → defaults) from
+`null` (record present but unusable → `invalid_policy`, detail from the snapshotted
+violations); two tests added, both red on the pre-fix evaluator. Gates 188/188, tsc/eslint/
+prettier clean.
+
+Open from the review, none blocking: F1 legacy `requestDial` producer still default-only,
+F2 whole-hour windows (Res.57 half-hours need EXT-002), F3 no write surface/dashboard,
+F6 `dialEligibility` ⇄ `tenantPolicy` import cycle, F7 shallow-frozen defaults.
+
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200. M04 closure still needs EXT-002.
+
+## Cycle 223 — review F1 closed (legacy producer)
+
+`requestDial` now reads the tenant policy record itself when no snapshot is supplied and
+carries an unusable row through so dispatch denies `invalid_policy`; 3 tests, 2 red pre-fix,
+191/191, CI PASS (run 45962081786). Remaining on the M04 track, all non-blocking: F3 write
+surface (dashboard/API), F2 half-hour windows (EXT-002), F6 import cycle, F7 shallow-frozen
+defaults, a real DNCR provider (EXT-003), then EXT-002 for territory/penalty sign-off.
+Next engineering: the dashboard/API write surface for tenant policy (F3) — the only M04 item
+that is neither an owner decision nor external — then the M05 `call.dial` sink.

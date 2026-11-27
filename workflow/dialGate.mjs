@@ -16,12 +16,20 @@
  * is the stronger path — TECH-012 — and reads consent, opt-outs and a TTL-cached
  * DNCR answer from the sources of record instead of trusting the caller.
  *
+ * The tenant's own calling window / ceilings / DNCR freshness (TECH-013) are
+ * read from the tenant policy record on both producers and snapshotted, so the
+ * decision stays reproducible at dispatch time. A caller-supplied `options`
+ * snapshot wins (the resolved producer passes the record it just read); without
+ * one the record is read here, and an unusable record is carried as `null` so
+ * dispatch denies (`invalid_policy`) instead of widening to the defaults.
+ *
  * Still unwired by design: the M05 sink behind `call.dial`.
  */
 import { generateId } from '../store.mjs';
 import { enqueue } from './outbox.mjs';
 import { evaluateDial, POLICY_DEFAULTS } from '../policies/dialEligibility.mjs';
 import { resolveContactFacts } from '../sources/facts.mjs';
+import { readTenantPolicy } from '../policies/tenantPolicy.mjs';
 
 const ATTEMPT_WINDOW_MS = 7 * 86_400_000;
 
@@ -117,6 +125,22 @@ export function requestDial(
   if (existing) {
     return { request: existing, outboxRow: null, inserted: false };
   }
+  // Review F1 (TECH-013): the legacy producer used to be gated against the
+  // statutory defaults only, so whoever called it silently avoided the tenant
+  // record. Resolve the record unless the caller already snapshotted options.
+  let options = policy.options;
+  let policyViolations = policy.policyViolations;
+  let effectiveTimeZone = policy.timeZone ?? timeZone;
+  if (options === undefined) {
+    const record = /** @type {{options: any, violations: string[]}} */ (
+      readTenantPolicy(db, tenantId)
+    );
+    options = record.options;
+    policyViolations = record.violations;
+    if (effectiveTimeZone === undefined) {
+      effectiveTimeZone = record.options?.timeZone;
+    }
+  }
   const request = {
     id: generateId(),
     tenant_id: tenantId,
@@ -126,7 +150,12 @@ export function requestDial(
     cli: campaign.cli ?? null,
     purpose: campaign.purpose ?? null,
     phone: contact.phone,
-    policy_json: JSON.stringify({ ...policy, timeZone: policy.timeZone ?? timeZone }),
+    policy_json: JSON.stringify({
+      ...policy,
+      options,
+      policyViolations,
+      timeZone: effectiveTimeZone,
+    }),
     contact_json: JSON.stringify(contact),
     created_at: now.toISOString().slice(0, 19).replace('T', ' '),
   };
@@ -205,6 +234,9 @@ export async function requestDialResolved(
   if (intent.tenant_id !== tenantId) {
     throw new RangeError(`call intent ${callIntentId} belongs to tenant ${intent.tenant_id}`);
   }
+  const tenantPolicy = /** @type {{options: any, violations: string[]}} */ (
+    readTenantPolicy(db, tenantId)
+  );
   const contact = await resolveContactFacts(db, {
     tenantId,
     phone,
@@ -218,8 +250,12 @@ export async function requestDialResolved(
     idempotencyKey,
     campaign,
     contact,
-    policy,
-    timeZone,
+    policy: {
+      ...policy,
+      options: tenantPolicy.options,
+      policyViolations: tenantPolicy.violations,
+    },
+    timeZone: tenantPolicy.options?.timeZone ?? timeZone,
     now,
   });
 }
@@ -246,7 +282,8 @@ export function dispatchDialRequest(db, row, { now = new Date() } = {}) {
     contact,
     policy,
     attempts: readAttempts(db, { tenantId: request.tenant_id, phone: request.phone, now }),
-    timeZone: policy.timeZone ?? POLICY_DEFAULTS.timeZone,
+    options: policy.options,
+    timeZone: policy.options?.timeZone ?? policy.timeZone ?? POLICY_DEFAULTS.timeZone,
   });
 
   return db.transaction(() => {
