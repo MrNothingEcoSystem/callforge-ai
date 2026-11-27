@@ -284,3 +284,26 @@ Owner merge chain unchanged, now: #193 → #194 → #189 → #196 → #191 → #
 #197 → #198 → #199 → #200 → #201 → #202 → #203 → #204 → #205 → #206 → #207 → #208 → #209 → this.
 Next engineering: nothing unblocked on M04/M05 — take the M02 SEC-001 IdP work (design only, no
 credentials needed) or stop and queue for owner merge.
+
+## Cycle 236 — M02 SEC-003 F2 + SEC-001 authorize landed on `main` (PR #212)
+
+The M04/M05 queue is EXT-gated, so the cycle took the M02 identity follow-ups. Two problems were
+found before any code: PR #7 had been **merged on 2026-11-09** at `4368955`, and the branch kept
+taking commits afterwards (`c2a155f` authorize authentication, `7d8671f` role pinning + scope
+intersection, `7ce247f` format), so all of that was orphaned — on no PR and on no branch that
+merges. `2955224` (SEC-003 F2) was pushed onto the same dead branch before that was noticed.
+
+All four are cherry-picked onto `89af926` on `m02-authorize-auth-recover` off `main` (draft PR
+#212, CI PASS run 46048412891). `validateAccessToken` now re-derives scopes from the role and
+intersects the claim, refuses an unknown/absent role; absent claim derives the role grant, an
+explicit empty claim grants nothing. 5 tests, all red pre-fix; 118/118 on main, tsc/eslint/prettier
+clean. Verdict ACCEPT (`management/SEC003_SCOPE_REVIEW_RECORD.md`), F1/F2 recorded.
+`m02-oauth-tenant-isolation` is superseded — do not push to it again.
+
+Remaining on M02, both owner/decision-gated: SEC-001 step 2, the real IdP user-authentication step
+(dossier complete, five sign-offs listed in `SEC001_IDP_DOSSIER.md`), and SEC-003 F3 conversation
+fixture scoping (decide global-with-note vs tenant column + migration).
+Next engineering: nothing unblocked on M04/M05/M02 without a decision — take the SEC-003 F3
+decision record, then stop and queue for owner merge.
+The owner merge set is now #212 (independent, based on main) alongside the #193→#210 stack;
+**#212 does not stack on #197** and can merge on its own.

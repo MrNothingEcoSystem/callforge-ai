@@ -652,3 +652,28 @@ nothing and so prunes nothing.
   stack depth is now the top schedule risk — retargeting or merging mid-stack costs rework, and
   #201…#207 are broken against a real DB without #208.
 - No merge, deploy, live call or spend all week.
+
+## Cycle 236 — M02 SEC-003 F2 scope re-derivation + orphaned-commit recovery (PR #212)
+
+Every M04/M05 item is EXT-gated, so the cycle took the M02 identity follow-ups. First finding was
+process, not code: `gh pr view 7` returned **MERGED** (2026-11-09, `4368955`) while the branch had
+three later commits (`c2a155f` authorize bearer auth, `7d8671f` role pinning + scope intersection,
+`7ce247f` format) that were therefore on no PR and no merging tip. `2955224` had already been
+pushed to that dead branch before it was noticed; all four are cherry-picked onto `89af926`
+(clean, no conflicts) on `m02-authorize-auth-recover` off `origin/main` 28c9040, draft PR #212.
+
+- Code: `validateAccessToken` requires a known role and intersects the claimed scopes with
+  `ROLES[role]`; absent claim → full role grant, explicit empty claim → nothing, unknown role →
+  invalid. Intersection is a subset of both sides, so nothing is widened.
+- Gates: 5 new tests, **all 5 red pre-fix** and pass after (**118/118** whole suite on main),
+  tsc 0, eslint 0, prettier clean, CI `verify` PASS (run 46048412891) at `89af926`.
+  Verdict ACCEPT, F1/F2 recorded (`management/SEC003_SCOPE_REVIEW_RECORD.md`). Cycle-run probe,
+  not a delegated auditor, labelled as such.
+- SEC-001 step 1 (`/oauth/authorize` token-authenticated, role pinned to token) also lands on
+  #212 and was re-verified by the same suite; step 2 (real IdP) stays owner-gated on the dossier.
+- Telegram: none — the cycle-235 approval request went at 16:44Z and the 6-hour digest window
+  runs to ~22:44Z; nothing here is a milestone acceptance or new external blocker.
+- Resource usage: ~14 min wall, one worktree (kept for push, to be removed), two branches
+  (one dead-but-pushed, one live), no background processes, no model spend beyond this session.
+  Remaining on M02: SEC-001 step 2 (owner, 5 sign-offs) and SEC-003 F3 fixture scoping (decision)
+  ≈ 1 cycle of writing once decided. Assumption: D-008 holds.
