@@ -259,17 +259,21 @@ describe('evaluateDial — R10 retry ceiling (G5)', () => {
     outcome: 'no_answer',
   });
 
-  it('denies a second dial within 24h after an unanswered call', () => {
-    expect(codes(evaluate({ attempts: [at(2)] }))).toContain('r10_retry_day');
+  it('allows the single permitted callback within 24h', () => {
+    expect(evaluate({ attempts: [at(2)] }).allowed).toBe(true);
   });
 
-  it('denies a third dial within 7 days', () => {
-    const result = evaluate({ attempts: [at(40), at(80)] });
+  it('denies a third call within 24h', () => {
+    expect(codes(evaluate({ attempts: [at(2), at(6)] }))).toContain('r10_retry_day');
+  });
+
+  it('denies a fourth call within 7 days', () => {
+    const result = evaluate({ attempts: [at(40), at(80), at(120)] });
     expect(codes(result)).toContain('r10_retry_week');
   });
 
   it('allows again once both windows are clear', () => {
-    expect(evaluate({ attempts: [at(40), at(200)] }).allowed).toBe(true);
+    expect(evaluate({ attempts: [at(40), at(200), at(300)] }).allowed).toBe(true);
   });
 
   it('ignores non-unanswered outcomes for the ceiling', () => {

@@ -23,7 +23,9 @@
 
 const DEFAULT_TIME_ZONE = 'Asia/Dubai';
 const CALLING_WINDOW = { startHour: 9, endHour: 18 };
-const RETRY_LIMITS = { day: 1, week: 2 };
+// Art.5(5) allows 1 callback/day and 2/week, so the ceilings count *calls*:
+// the initial attempt plus its callbacks (2/day, 3/7d). Reaching the ceiling denies.
+const RETRY_LIMITS = { day: 2, week: 3 };
 const DNCR_MAX_AGE_HOURS = 24;
 const UNANSWERED_OUTCOMES = new Set(['no_answer', 'callback', 'ended_unanswered']);
 

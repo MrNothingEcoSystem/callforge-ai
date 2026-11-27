@@ -22,8 +22,8 @@ Rules are applied by campaign kind, so a transactional callback is not held to t
 marketing approval/consent/DNCR set while still enforcing CLI, E.164 and opt-out.
 
 Boundaries are deliberate and conservative: the window is `[09:00, 18:00)` Asia/Dubai
-(an 18:00 start is refused), DNCR freshness is 24h, and the R10 ceiling is 1 unanswered
-call per 24h and 2 per 7d. Each is a named constant or `POLICY_DEFAULTS` entry, not a
+(an 18:00 start is refused), DNCR freshness is 24h, and the R10 ceiling counts calls
+(2/day, 3/7d — i.e. the initial attempt plus the 1 callback/day and 2/week the rule allows). Each is a named constant or `POLICY_DEFAULTS` entry, not a
 literal buried in a branch.
 
 Not legal advice. Thresholds the register marks LEGAL-REVIEW (Fri/Sat scope, retry
