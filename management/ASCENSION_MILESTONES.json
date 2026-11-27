@@ -2,7 +2,7 @@
   "program": "CALLFORGE OMEGA \u2014 Project Ascension",
   "directive_version": "1.0",
   "canonical_repository": "MrNothingEcoSystem/callforge-ai",
-  "updated_at": "2026-11-27T14:40:00Z",
+  "updated_at": "2026-11-27T15:18:00Z",
   "milestones": [
     {
       "id": "M00",
@@ -61,7 +61,7 @@
       ],
       "verdict": "INCREMENT 1 REVIEWED ACCEPT WITH FOLLOW-UPS \u2014 pre-dial gate core only; M04 stays open until EXT-002 and wiring",
       "policy_revert_pr": 207,
-      "followups": "F3 write surface complete: PUT, DELETE (revert) and GET history (PR #208, revisions table 0011, probed ACCEPT). Remaining: last-write-wins on concurrent PUTs, revision retention/pruning. Live 500 on PUT/DELETE from actor_type 'client' found and fixed on #208.",
+      "followups": "F3 write surface complete: PUT, DELETE (revert) and GET history (PR #208, revisions table 0011, probed ACCEPT). Lost updates closed on #209: PUT version fence (0012) and the same If-Match fence on DELETE (F1, probed ACCEPT). Remaining: revision retention/pruning, F2 version-restarts-at-1 hint after a revert. Live 500 on PUT/DELETE from actor_type 'client' found and fixed on #208.",
       "policy_history_pr": 208
     },
     {
@@ -160,6 +160,6 @@
     "cron_name": "CALLFORGE OMEGA dispatcher",
     "telegram_channel": "telegram:8400775109",
     "cycles_proven": 1,
-    "last_cycle": "2026-11-27T12:18Z"
+    "last_cycle": "2026-11-27T15:18Z"
   }
 }

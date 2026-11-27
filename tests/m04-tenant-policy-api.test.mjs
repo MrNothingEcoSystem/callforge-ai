@@ -48,6 +48,13 @@ function requestWith(token, body) {
   return req;
 }
 
+function requestWithHeaders(token, headers = {}) {
+  const req = new EventEmitter();
+  req.headers = token ? { authorization: `Bearer ${token}`, ...headers } : { ...headers };
+  setImmediate(() => req.emit('end'));
+  return req;
+}
+
 function tokenFor(server, tenantId, role = 'tenant_admin') {
   const verifier = generateCodeVerifier();
   const auth = server.oauth.authorize({
@@ -90,6 +97,7 @@ describe('tenant policy HTTP surface (review #197 F3)', () => {
 
   beforeEach(() => {
     getDatabase().prepare('DELETE FROM tenant_policies').run();
+    getDatabase().prepare('DELETE FROM tenant_policy_revisions').run();
   });
 
   afterAll(async () => {
@@ -220,6 +228,7 @@ describe('tenant policy revert (review #197 F3 / cycle-230 follow-up)', () => {
 
   beforeEach(() => {
     getDatabase().prepare('DELETE FROM tenant_policies').run();
+    getDatabase().prepare('DELETE FROM tenant_policy_revisions').run();
   });
 
   afterAll(async () => {
@@ -306,6 +315,93 @@ describe('tenant policy revert (review #197 F3 / cycle-230 follow-up)', () => {
 
   it('deleteTenantPolicy reports removed=false for an absent tenant row', () => {
     const result = deleteTenantPolicy(getDatabase(), generateId());
-    expect(result).toEqual({ removed: false, prior: null, violations: [] });
+    expect(result).toEqual({
+      removed: false,
+      prior: null,
+      violations: [],
+      conflict: false,
+      version: 0,
+    });
+  });
+
+  describe('version fence on revert (review #209 F1)', () => {
+    it('reverts when If-Match names the current version', async () => {
+      await server.handleTenantPolicy(requestWith(adminToken, VALID), createResponse(), 'PUT');
+      const res = createResponse();
+      await server.handleTenantPolicy(
+        requestWithHeaders(adminToken, { 'if-match': '"1"' }),
+        res,
+        'DELETE',
+      );
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).reverted).toBe(true);
+      expect(readTenantPolicy(getDatabase(), tenantId).source).toBe('default');
+    });
+
+    it('409s a stale revert, keeping the renewal that raced it, and does not audit', async () => {
+      await server.handleTenantPolicy(requestWith(adminToken, VALID), createResponse(), 'PUT');
+      const renewal = { ...VALID, callingWindow: { startHour: 10, endHour: 20 } };
+      await server.handleTenantPolicy(requestWith(adminToken, renewal), createResponse(), 'PUT');
+
+      const logged = [];
+      server.auditLogger = { log: async entry => logged.push(entry) };
+      const res = createResponse();
+      await server.handleTenantPolicy(
+        requestWithHeaders(adminToken, { 'if-match': '"1"' }),
+        res,
+        'DELETE',
+      );
+      server.auditLogger = { log: async () => {} };
+
+      expect(res.statusCode).toBe(409);
+      const body = JSON.parse(res.body);
+      expect(body.version).toBe(2);
+      expect(body.policy.callingWindow).toEqual({ startHour: 10, endHour: 20 });
+      const stored = readTenantPolicy(getDatabase(), tenantId);
+      expect(stored.source).toBe('tenant');
+      expect(stored.version).toBe(2);
+      expect(logged).toHaveLength(0);
+      const revisions = getDatabase()
+        .prepare('SELECT action FROM tenant_policy_revisions WHERE tenant_id = ?')
+        .all(tenantId);
+      expect(revisions.map(r => r.action)).toEqual(['updated', 'updated']);
+    });
+
+    it('stays an idempotent 200 no-op when there is nothing to revert, even fenced', async () => {
+      const res = createResponse();
+      await server.handleTenantPolicy(
+        requestWithHeaders(adminToken, { 'if-match': '"3"' }),
+        res,
+        'DELETE',
+      );
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).reverted).toBe(false);
+    });
+
+    it('degrades a junk If-Match to the blind last-write-wins revert', async () => {
+      await server.handleTenantPolicy(requestWith(adminToken, VALID), createResponse(), 'PUT');
+      const res = createResponse();
+      await server.handleTenantPolicy(
+        requestWithHeaders(adminToken, { 'if-match': 'W/"junk"' }),
+        res,
+        'DELETE',
+      );
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.body).reverted).toBe(true);
+    });
+
+    it('deleteTenantPolicy rejects a mismatched version without deleting', () => {
+      const db = getDatabase();
+      db.prepare(
+        `INSERT INTO tenant_policies
+           (tenant_id, time_zone, window_start_hour, window_end_hour,
+            retry_limit_day, retry_limit_week, dncr_max_age_hours, version)
+         VALUES (?, 'Asia/Dubai', 7, 18, 2, 3, 24, 4)`,
+      ).run(tenantId);
+      const result = deleteTenantPolicy(db, tenantId, 2);
+      expect(result.conflict).toBe(true);
+      expect(result.version).toBe(4);
+      expect(readTenantPolicy(db, tenantId).source).toBe('tenant');
+    });
   });
 });

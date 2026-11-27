@@ -21,11 +21,20 @@ import {
   readTenantPolicy,
   recordPolicyRevision,
   validatePolicyOptions,
+  parsePolicyVersion,
   writeTenantPolicy,
 } from './policies/tenantPolicy.mjs';
 
 const PORT = process.env.PORT || 3000;
 const SIMULATION_MODE = process.env.SIMULATION_MODE !== 'false'; // Default true for v0.2
+
+/** `If-Match: "3"`, `W/"3"` and bare `3` all denote version 3. */
+function stripETag(value) {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  return value.trim().replace(/^W\//, '').replace(/^"|"$/g, '');
+}
 
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
@@ -282,7 +291,15 @@ class CallforgeHttpServer {
     const db = getDatabase();
 
     if (method === 'DELETE') {
-      await this.handleTenantPolicyRevert(res, db, tenantId, context);
+      // Review #209 F1: the revert is fenced the same way as the write, so a
+      // revert that raced a competing PUT cannot silently discard it.
+      await this.handleTenantPolicyRevert(
+        res,
+        db,
+        tenantId,
+        context,
+        parsePolicyVersion(stripETag(req.headers['if-match'])),
+      );
       return;
     }
 
@@ -293,6 +310,7 @@ class CallforgeHttpServer {
         JSON.stringify({
           tenant_id: tenantId,
           source: stored.source,
+          version: stored.version,
           policy: stored.options,
           violations: stored.violations,
         }),
@@ -319,15 +337,40 @@ class CallforgeHttpServer {
       res.end(JSON.stringify({ error: 'Invalid tenant policy', violations }));
       return;
     }
-    // The revision row is committed with the write it records.
-    db.transaction(() => {
-      writeTenantPolicy(db, tenantId, options);
-      recordPolicyRevision(db, tenantId, {
-        action: 'updated',
-        policy: options,
-        actorId: context.subject,
-      });
+    // Optimistic fence: the client may send the `version` it read, either as a
+    // body field or `If-Match: "3"`. A superseded write changes nothing and is
+    // reported as 409 with the now-current policy so the caller can retry
+    // against it. Omitted version keeps the old last-write-wins behaviour.
+    const expected =
+      body?.version !== undefined
+        ? body.version
+        : parsePolicyVersion(stripETag(req.headers['if-match']));
+    // The revision row is committed with the write it records, and only when
+    // the write actually applied.
+    const written = db.transaction(() => {
+      const outcome = writeTenantPolicy(db, tenantId, options, expected);
+      if (!outcome.conflict) {
+        recordPolicyRevision(db, tenantId, {
+          action: 'updated',
+          policy: options,
+          actorId: context.subject,
+        });
+      }
+      return outcome;
     })();
+    if (written.conflict) {
+      const current = readTenantPolicy(db, tenantId);
+      res.writeHead(409, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: 'Tenant policy changed since the supplied version',
+          tenant_id: tenantId,
+          version: current.version,
+          policy: current.options,
+        }),
+      );
+      return;
+    }
     await this.auditLogger.log({
       tenant_id: tenantId,
       event_type: 'tenant_policy_updated',
@@ -339,20 +382,30 @@ class CallforgeHttpServer {
       payload: { policy: options },
     });
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ tenant_id: tenantId, source: 'tenant', policy: options, violations }));
+    res.end(
+      JSON.stringify({
+        tenant_id: tenantId,
+        source: 'tenant',
+        version: written.version,
+        policy: options,
+        violations,
+      }),
+    );
   }
 
   /**
    * M04 (review #197 F3): revert to the statutory defaults. Idempotent — a
    * tenant with no override row is already at the defaults, so the response
-   * says `reverted: false` and nothing is audited.
+   * says `reverted: false` and nothing is audited. A supplied `If-Match`
+   * version makes the delete conditional: a superseded revert is a 409 that
+   * leaves the row and the history untouched (review #209 F1).
    */
-  async handleTenantPolicyRevert(res, db, tenantId, context) {
+  async handleTenantPolicyRevert(res, db, tenantId, context, expectedVersion) {
     // The revision shares the delete's transaction: a revert is either wholly
     // recorded (row gone + history entry, including a corrupt row's violations)
     // or not applied at all.
     const result = db.transaction(() => {
-      const revert = deleteTenantPolicy(db, tenantId);
+      const revert = deleteTenantPolicy(db, tenantId, expectedVersion);
       if (revert.removed) {
         recordPolicyRevision(db, tenantId, {
           action: 'reverted',
@@ -363,6 +416,19 @@ class CallforgeHttpServer {
       }
       return revert;
     })();
+    if (result.conflict) {
+      const current = readTenantPolicy(db, tenantId);
+      res.writeHead(409, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          error: 'Tenant policy changed since the supplied version',
+          tenant_id: tenantId,
+          version: current.version,
+          policy: current.options,
+        }),
+      );
+      return;
+    }
     if (result.removed) {
       await this.auditLogger.log({
         tenant_id: tenantId,
@@ -380,6 +446,7 @@ class CallforgeHttpServer {
       JSON.stringify({
         tenant_id: tenantId,
         source: 'default',
+        version: 0,
         reverted: result.removed,
         reverted_policy: result.prior,
         violations: result.violations,
