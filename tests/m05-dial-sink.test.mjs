@@ -101,8 +101,7 @@ describe('M05 call.dial sink (TECH-015)', () => {
     db.exec(
       'DELETE FROM call_attempts; DELETE FROM outbox; DELETE FROM dial_requests; DELETE FROM call_intents; DELETE FROM tenants;',
     );
-    simulatedProvider.queuedFailures = 0;
-    simulatedProvider.calls.length = 0;
+    simulatedProvider.reset();
   });
 
   it('dials through the provider, records the attempt and dispatches the intent', async () => {
