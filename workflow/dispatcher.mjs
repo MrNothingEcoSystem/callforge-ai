@@ -13,6 +13,7 @@
  */
 import { claimBatch, ack, fail } from './outbox.mjs';
 import { dispatchDialRequest } from './dialGate.mjs';
+import { handleCallDial } from '../telephony/dialSink.mjs';
 
 /**
  * @param {import('better-sqlite3').Database} db
@@ -22,10 +23,11 @@ import { dispatchDialRequest } from './dialGate.mjs';
  * @param {number} [options.limit]
  * @param {string} [options.workerId]
  * @param {() => Date} [options.now]
+ * @param {{ name: string, dial: Function }} [options.provider] telephony adapter; defaults to CALLFORGE_TELEPHONY_PROVIDER
  */
 export function createDispatcher(
   db,
-  { handlers = {}, pollMs = 1000, limit = 10, workerId = 'dispatcher-1', now } = {},
+  { handlers = {}, pollMs = 1000, limit = 10, workerId = 'dispatcher-1', now, provider } = {},
 ) {
   const registry = {
     'webhook.received': handleWebhook,
@@ -33,6 +35,9 @@ export function createDispatcher(
     // enqueued a dial request cannot bypass it. Denial returns normally (the
     // decision stands); only a thrown error is retried.
     'dial.requested': (db, row) => dispatchDialRequest(db, row, now ? { now: now() } : {}),
+    // M05/TECH-015: the sink is registered here, so an allowed dial reaches the
+    // provider without the producer having to know about telephony.
+    'call.dial': (db, row) => handleCallDial(db, row, provider ? { provider } : {}),
     ...handlers,
   };
   let timer = null;

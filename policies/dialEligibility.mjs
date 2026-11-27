@@ -22,13 +22,12 @@
  */
 
 import { validatePolicyOptions } from './tenantPolicy.mjs';
+import { DEFAULT_TIME_ZONE, POLICY_DEFAULTS } from './policyDefaults.mjs';
 
-const DEFAULT_TIME_ZONE = 'Asia/Dubai';
-const CALLING_WINDOW = { startHour: 9, endHour: 18 };
-// Art.5(5) allows 1 callback/day and 2/week, so the ceilings count *calls*:
-// the initial attempt plus its callbacks (2/day, 3/7d). Reaching the ceiling denies.
-const RETRY_LIMITS = { day: 2, week: 3 };
-const DNCR_MAX_AGE_HOURS = 24;
+// Re-exported so existing import sites and tests keep one address for the
+// statutory defaults; the values themselves live in `policyDefaults.mjs`.
+export { POLICY_DEFAULTS };
+
 const UNANSWERED_OUTCOMES = new Set(['no_answer', 'callback', 'ended_unanswered']);
 
 /** Rule catalogue: id → penalty tier (Res.57) and human label. */
@@ -308,10 +307,3 @@ export function evaluateDial(ctx = /** @type {any} */ ({})) {
 
   return { allowed: reasons.length === 0, reasons, warnings };
 }
-
-export const POLICY_DEFAULTS = Object.freeze({
-  timeZone: DEFAULT_TIME_ZONE,
-  callingWindow: CALLING_WINDOW,
-  retryLimits: RETRY_LIMITS,
-  dncrMaxAgeHours: DNCR_MAX_AGE_HOURS,
-});
