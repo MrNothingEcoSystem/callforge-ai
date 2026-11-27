@@ -17,7 +17,7 @@
  * licensed/externally-binding flags (LICENSE_FLAGS). `simulate_call` stays C1.
  */
 
-import { createHash } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 
 /** Argument names whose mutation makes `configure_business` a C2 action. */
 export const LICENSE_FLAGS = [
@@ -47,23 +47,71 @@ function fingerprint(name, args) {
   return createHash('sha256').update(JSON.stringify({ name, subset })).digest('hex').slice(0, 32);
 }
 
-export function createRequestState(name, args) {
-  return Buffer.from(JSON.stringify({ tool: name, fp: fingerprint(name, args) }), 'utf8').toString(
-    'base64url',
-  );
+const STATE_VERSION = 'v1';
+
+/**
+ * `requestState` is only a staleness token, but it round-trips through the client,
+ * so it is HMAC-signed (F13): a state minted for one tool/argument set cannot be
+ * hand-edited into another. Key precedence is an explicit secret, then the token
+ * secret (stable across instances), then a per-process random key — with the last
+ * one a resume that lands on another instance is simply re-issued, never applied.
+ */
+let processKey = null;
+function stateKey() {
+  const explicit = process.env.CALLFORGE_ELICITATION_STATE_SECRET;
+  if (explicit) {
+    return explicit;
+  }
+  if (process.env.CALLFORGE_TOKEN_SECRET) {
+    return process.env.CALLFORGE_TOKEN_SECRET;
+  }
+  if (!processKey) {
+    processKey = randomBytes(32).toString('hex');
+  }
+  return processKey;
 }
 
-/** @returns {{tool: string, fp: string} | null} */
-export function parseRequestState(state) {
-  if (typeof state !== 'string' || !state) {
-    return null;
-  }
+function signState(payload) {
+  return createHmac('sha256', stateKey()).update(`${STATE_VERSION}.${payload}`).digest('base64url');
+}
+
+export function createRequestState(name, args) {
+  const payload = Buffer.from(
+    JSON.stringify({ tool: name, fp: fingerprint(name, args) }),
+    'utf8',
+  ).toString('base64url');
+  return `${STATE_VERSION}.${payload}.${signState(payload)}`;
+}
+
+const parseShape = picked => {
   try {
-    const parsed = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'));
+    const parsed = JSON.parse(Buffer.from(picked, 'base64url').toString('utf8'));
     return typeof parsed?.tool === 'string' && typeof parsed?.fp === 'string' ? parsed : null;
   } catch {
     return null;
   }
+};
+
+/**
+ * Verifies the signature first; an unsigned (pre-F13) or hand-edited state is
+ * treated as stale rather than trusted, so the caller re-issues rather than applies.
+ * @returns {{tool: string, fp: string} | null}
+ */
+export function parseRequestState(state) {
+  if (typeof state !== 'string' || !state) {
+    return null;
+  }
+  const parts = state.split('.');
+  if (parts.length !== 3 || parts[0] !== STATE_VERSION) {
+    return null;
+  }
+  const [, payload, signature] = parts;
+  const expected = Buffer.from(signState(payload), 'utf8');
+  const actual = Buffer.from(signature, 'utf8');
+  if (actual.length !== expected.length || !timingSafeEqual(actual, expected)) {
+    return null;
+  }
+  return parseShape(payload);
 }
 
 export function stateMatches(state, name, args) {
