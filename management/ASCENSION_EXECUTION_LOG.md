@@ -343,3 +343,33 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   note itself at `2020759`. Remote branch SHA verified equal each time. PR #202 body carries the
   review verdict (the `gh pr edit` path fails on the Projects-classic GraphQL deprecation, so the
   body was patched through the REST API); stays draft. No merge.
+
+## 2026-11-27 — Cycle 226 (dispatcher, 11:00 UTC)
+
+- Sync: `git fetch`; `origin/main` = `28c9040` unchanged; every open PR `MERGEABLE`, so no
+  conflict resync was due. Local main checkout is still parked on `tech-004-audit-seq-hedge`
+  (28 ahead / 0 behind, clean) and was left untouched; work continued on the stack tip
+  `tech-015-dial-sink` (PR #202) in its existing worktree — one lease per branch, and the
+  ledger tail lives there. No writes to the legacy repo.
+- Toolchain: Node v24.11.0 (scratch node24), pnpm 12.18.0, vitest 5.1.0.
+- Selection: the recorded next engineering item was the F6 import cycle (small, purely
+  internal, neither owner nor external gated). Took it over starting a new track.
+- Change `ccc7a4b`: new `policies/policyDefaults.mjs` is the single home of the statutory
+  defaults; both nested objects and the defaults are frozen and `copyPolicyDefaults()` returns
+  an independent copy (F7). `dialEligibility` re-exports `POLICY_DEFAULTS` for compatibility;
+  the `tenantPolicy → dialEligibility` edge is gone, leaving a DAG.
+- Tests +3 (214 total, was 211): no cross-import edge in either file, the evaluator's re-export
+  is the _same_ object, and mutation of one copy cannot reach the defaults or another copy.
+- Gates: 214/214 (`--pool=threads`), eslint 0, tsc 0, prettier clean. CI verify SUCCESS (run 45987017732) at `ccc7a4b`; remote branch SHA verified equal.
+- Independent read-only pass in a detached worktree at `ccc7a4b`: 214/214 reproduced, dynamic
+  import of both modules at top level (the TDZ case F6 described) succeeds and the re-export
+  identity holds, eslint/tsc/prettier clean. Record
+  `management/TECH013_F6F7_REVIEW_RECORD.md`, verdict **ACCEPT**, no defect.
+- No merge, deploy, live call or spend. Telegram: none — not a milestone acceptance, no critical
+  finding, no external blocker, no failed gate, no approval request; last digest cycle 218
+  ~09:47 UTC, next due ~15:47 UTC.
+- Resource usage: ~14 min wall clock, 2 worktrees (the branch lease + the reviewer's, removed
+  below), no background processes. Remaining work estimate: webhook→intent outcome mapping
+  ~1 session; F2/territory sign-off and DNCR provider wait on EXT-002/EXT-003; M04 closure needs
+  EXT-002 and the human approval step. Assumption: the stack keeps its order, so a fix on the
+  tip flows up rather than needing six branch rewrites.

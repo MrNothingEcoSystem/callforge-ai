@@ -131,3 +131,18 @@ Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 �
 #197 → #198 → #199 → #200 → #201 → this. M04 closure still needs EXT-002.
 Next engineering: the F6 import cycle split (small, purely internal), then webhook→intent outcome
 mapping so `readAttempts()` stops assuming `no_answer`.
+
+## Cycle 226 — TECH-013 F6/F7 closed (import cycle, default mutation)
+
+`ccc7a4b` moves the statutory defaults into a neutral `policies/policyDefaults.mjs`, so
+`dialEligibility` and `tenantPolicy` no longer import each other (one-way edge kept for
+`validatePolicyOptions`), freezes the defaults all the way down and copies them per read.
+214/214, tsc/eslint/prettier clean, CI PASS (run 45987017732). Review record
+`management/TECH013_F6F7_REVIEW_RECORD.md`, verdict ACCEPT (probe: both modules load at top
+level, re-export is the same frozen object, no behaviour diff).
+Remaining on the M04/M05 track, all non-blocking: webhook→intent outcome mapping so
+`readAttempts()` stops assuming `no_answer`; F2 half-hour windows and territory/penalty
+sign-off (EXT-002); list/delete policy routes; last-write-wins on concurrent PUTs; a real DNCR
+provider (EXT-003).
+Owner merge chain unchanged: #193 → #194 → #189 → #196 → #191 → #192 → #195, then
+#197 → #198 → #199 → #200 → #201 → this. M04 closure still needs EXT-002.
