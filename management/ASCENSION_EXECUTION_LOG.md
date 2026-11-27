@@ -464,10 +464,10 @@ Final docs head `cc31342` SUCCESS (45942337662); code is unchanged from `5cb930c
   cycle-run worktree probe, labelled as such.
 - Draft PR #205 opened against #204. Residual recorded, not fixed: no row/request `tenant_id`
   cross-check (unreachable — `requestDial` already rejects a foreign-tenant intent).
-- No merge, deploy, live call or spend. Telegram: none — not a milestone acceptance, no critical
-  finding, no new external blocker, no failed gate; last digest cycle 221 (~06:45 UTC), next due
-  ~12:45–13:00 UTC and the digest window is only now opening, so it is deferred to the next cycle
-  rather than sent twice in one cycle's scope.
+- No merge, deploy, live call or spend. Telegram: one digest sent at 13:07 UTC (receipt `sent`) —
+  the 6-hour window since cycle 221 (~06:45 UTC) had elapsed; content was stack status, the two
+  EXT gates and SEC-001. Milestone acceptance, critical finding, blocker and gate checks were all
+  negative, so nothing separate was sent.
 - Resource usage: ~17 min wall clock, two detached worktrees (removed), no background processes.
   Remaining M04/M05 engineering: F6 bounded simulated log, list/delete policy routes, last-write-wins
   on concurrent PUTs. EXT-002/EXT-003 gate closure; owner merge chain is nine drafts deep.
