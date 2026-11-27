@@ -10,14 +10,14 @@
 
 ## Observed
 
-| Step | Control `10ccbaf` | Fix `ef3047c` |
-| --- | --- | --- |
-| `PUT /tenant/policy` | **500** `CHECK constraint failed: actor_type` | 200, policy stored |
-| `GET /tenant/policy/history` | **404** (no route) | 200, one `updated` entry with the applied policy |
-| `DELETE /tenant/policy` | **500** same CHECK | 200, revert reported |
-| history after revert | 404 | 200, `reverted` then `updated`, newest-first, row gone |
-| POST to history path | 404 | 404 |
-| history without a token | 404 | 401 |
+| Step                         | Control `10ccbaf`                             | Fix `ef3047c`                                          |
+| ---------------------------- | --------------------------------------------- | ------------------------------------------------------ |
+| `PUT /tenant/policy`         | **500** `CHECK constraint failed: actor_type` | 200, policy stored                                     |
+| `GET /tenant/policy/history` | **404** (no route)                            | 200, one `updated` entry with the applied policy       |
+| `DELETE /tenant/policy`      | **500** same CHECK                            | 200, revert reported                                   |
+| history after revert         | 404                                           | 200, `reverted` then `updated`, newest-first, row gone |
+| POST to history path         | 404                                           | 404                                                    |
+| history without a token      | 404                                           | 401                                                    |
 
 ## Verdict
 
