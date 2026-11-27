@@ -15,6 +15,11 @@ import { createOAuthServer, ISSUER, AUDIENCE } from './oauth.mjs';
 import { receiveWebhook } from './workflow/webhookInbox.mjs';
 import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
+import {
+  readTenantPolicy,
+  validatePolicyOptions,
+  writeTenantPolicy,
+} from './policies/tenantPolicy.mjs';
 
 const PORT = process.env.PORT || 3000;
 const SIMULATION_MODE = process.env.SIMULATION_MODE !== 'false'; // Default true for v0.2
@@ -71,7 +76,7 @@ class CallforgeHttpServer {
 
       // CORS headers
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, OPTIONS');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
       if (method === 'OPTIONS') {
@@ -168,6 +173,12 @@ class CallforgeHttpServer {
       }
     }
 
+    // M04 (F3): tenant policy record — token-bound read/write surface.
+    if (path === '/tenant/policy' && (method === 'GET' || method === 'PUT')) {
+      await this.handleTenantPolicy(req, res, method);
+      return;
+    }
+
     // Webhook endpoints (M03-2): HMAC-verified store; 202 stored, 200 duplicate, 401 on bad signature (nothing stored)
     if (path.startsWith('/webhook/')) {
       await this.handleWebhook(req, res, path.slice('/webhook/'.length));
@@ -244,6 +255,68 @@ class CallforgeHttpServer {
       return null;
     }
     return auth.context;
+  }
+
+  /**
+   * M04 (F3): tenant policy surface. The tenant always comes from the token; a
+   * body `tenant_id` may only agree with it. GET needs `read`, PUT needs
+   * `admin`. A stored-but-unusable row answers 409 on GET instead of silently
+   * substituting the statutory defaults.
+   */
+  async handleTenantPolicy(req, res, method) {
+    const context = this.guard(req, res, method === 'PUT' ? ['admin'] : ['read']);
+    if (!context) {
+      return;
+    }
+    const tenantId = context.tenantId;
+    const db = getDatabase();
+
+    if (method === 'GET') {
+      const stored = readTenantPolicy(db, tenantId);
+      res.writeHead(stored.options ? 200 : 409, { 'Content-Type': 'application/json' });
+      res.end(
+        JSON.stringify({
+          tenant_id: tenantId,
+          source: stored.source,
+          policy: stored.options,
+          violations: stored.violations,
+        }),
+      );
+      return;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid JSON body' }));
+      return;
+    }
+    if (this.rejectTenantMismatch(res, body.tenant_id, context)) {
+      return;
+    }
+    // Accept either a bare policy object or `{ policy: {...} }`.
+    const input = body?.policy ?? body ?? {};
+    const { options, violations } = validatePolicyOptions(input);
+    if (!options) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Invalid tenant policy', violations }));
+      return;
+    }
+    writeTenantPolicy(db, tenantId, options);
+    await this.auditLogger.log({
+      tenant_id: tenantId,
+      event_type: 'tenant_policy_updated',
+      actor_type: 'client',
+      actor_id: context.subject,
+      action: 'update_tenant_policy',
+      resource_type: 'tenant_policy',
+      resource_id: tenantId,
+      payload: { policy: options },
+    });
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ tenant_id: tenantId, source: 'tenant', policy: options, violations }));
   }
 
   /** M02: a client-supplied tenant_id must never widen the token tenant. */
