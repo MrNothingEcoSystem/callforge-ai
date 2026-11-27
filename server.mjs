@@ -17,7 +17,9 @@ import { runRecovery } from './workflow/recovery.mjs';
 import { createDispatcher } from './workflow/dispatcher.mjs';
 import {
   deleteTenantPolicy,
+  readPolicyHistory,
   readTenantPolicy,
+  recordPolicyRevision,
   validatePolicyOptions,
   writeTenantPolicy,
 } from './policies/tenantPolicy.mjs';
@@ -174,6 +176,13 @@ class CallforgeHttpServer {
       }
     }
 
+    // TECH-014: policy history is a distinct path, so it must be matched
+    // before the exact `/tenant/policy` route.
+    if (path === '/tenant/policy/history' && method === 'GET') {
+      await this.handleTenantPolicyHistory(req, res, query);
+      return;
+    }
+
     // M04 (F3): tenant policy record — token-bound read/write surface.
     if (path === '/tenant/policy' && ['GET', 'PUT', 'DELETE'].includes(method)) {
       await this.handleTenantPolicy(req, res, method);
@@ -310,11 +319,19 @@ class CallforgeHttpServer {
       res.end(JSON.stringify({ error: 'Invalid tenant policy', violations }));
       return;
     }
-    writeTenantPolicy(db, tenantId, options);
+    // The revision row is committed with the write it records.
+    db.transaction(() => {
+      writeTenantPolicy(db, tenantId, options);
+      recordPolicyRevision(db, tenantId, {
+        action: 'updated',
+        policy: options,
+        actorId: context.subject,
+      });
+    })();
     await this.auditLogger.log({
       tenant_id: tenantId,
       event_type: 'tenant_policy_updated',
-      actor_type: 'client',
+      actor_type: 'user',
       actor_id: context.subject,
       action: 'update_tenant_policy',
       resource_type: 'tenant_policy',
@@ -331,12 +348,26 @@ class CallforgeHttpServer {
    * says `reverted: false` and nothing is audited.
    */
   async handleTenantPolicyRevert(res, db, tenantId, context) {
-    const result = deleteTenantPolicy(db, tenantId);
+    // The revision shares the delete's transaction: a revert is either wholly
+    // recorded (row gone + history entry, including a corrupt row's violations)
+    // or not applied at all.
+    const result = db.transaction(() => {
+      const revert = deleteTenantPolicy(db, tenantId);
+      if (revert.removed) {
+        recordPolicyRevision(db, tenantId, {
+          action: 'reverted',
+          policy: revert.prior,
+          violations: revert.violations,
+          actorId: context.subject,
+        });
+      }
+      return revert;
+    })();
     if (result.removed) {
       await this.auditLogger.log({
         tenant_id: tenantId,
         event_type: 'tenant_policy_reverted',
-        actor_type: 'client',
+        actor_type: 'user',
         actor_id: context.subject,
         action: 'delete_tenant_policy',
         resource_type: 'tenant_policy',
@@ -352,6 +383,29 @@ class CallforgeHttpServer {
         reverted: result.removed,
         reverted_policy: result.prior,
         violations: result.violations,
+      }),
+    );
+  }
+
+  /**
+   * TECH-014: newest-first policy history for the token's tenant. A POST/
+   * DELETE to this path is a 404, handled by the router.
+   */
+  async handleTenantPolicyHistory(req, res, query) {
+    const context = this.guard(req, res, ['read']);
+    if (!context) {
+      return;
+    }
+    // `parse(req.url, true)` yields a plain object; direct handler callers
+    // pass URLSearchParams. Accept both.
+    const limit = typeof query?.get === 'function' ? query.get('limit') : query?.limit;
+    const history = readPolicyHistory(getDatabase(), context.tenantId, limit ?? undefined);
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(
+      JSON.stringify({
+        tenant_id: context.tenantId,
+        limit: history.limit,
+        entries: history.entries,
       }),
     );
   }
