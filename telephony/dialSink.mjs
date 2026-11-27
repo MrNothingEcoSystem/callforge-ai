@@ -97,6 +97,20 @@ export async function handleCallDial(db, row, { provider } = {}) {
   if (!request) {
     return { noop: true, reason: 'dial_request_missing' };
   }
+  // TECH-015 F5: the payload names its own intent, so a row can in principle point
+  // at a request belonging to a different intent. Cross-check both the outbox
+  // aggregate and the payload's copy against the request before anything dials;
+  // a divergence is fail-closed rather than evidence filed under the wrong intent.
+  const aggregateId = /** @type {any} */ (row).aggregate_id;
+  const claimedIntent = payload?.callIntentId;
+  if (
+    (aggregateId !== undefined && aggregateId !== null && aggregateId !== request.call_intent_id) ||
+    (claimedIntent !== undefined &&
+      claimedIntent !== null &&
+      claimedIntent !== request.call_intent_id)
+  ) {
+    return { noop: true, reason: 'intent_mismatch' };
+  }
   // A denied or still-pending decision has nothing to dial; only an allow is a
   // licence to reach a carrier.
   if (request.status !== 'allowed') {
