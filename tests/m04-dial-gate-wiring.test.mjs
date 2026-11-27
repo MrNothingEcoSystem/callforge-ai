@@ -110,6 +110,23 @@ describe('M04 dial gate wiring (TECH-011)', () => {
     expect(() => requestDial(db, { campaign: CAMPAIGN, contact: CONTACT })).toThrow(TypeError);
   });
 
+  it('rejects a missing intent and one owned by another tenant (review F1)', () => {
+    const ids = seed(db);
+    expect(() =>
+      requestDial(db, { ...ids, callIntentId: 'nope', campaign: CAMPAIGN, contact: CONTACT }),
+    ).toThrow(ReferenceError);
+    const otherTenant = seed(db).tenantId;
+    expect(() =>
+      requestDial(db, {
+        ...ids,
+        tenantId: otherTenant,
+        campaign: CAMPAIGN,
+        contact: CONTACT,
+      }),
+    ).toThrow(RangeError);
+    expect(db.prepare('SELECT COUNT(*) c FROM dial_requests').get().c).toBe(0);
+  });
+
   it('allows and enqueues exactly one call.dial with the snapshot', () => {
     const { request } = raise(db);
     const result = dispatchDialRequest(db, { aggregate_id: request.id }, { now: NOW });

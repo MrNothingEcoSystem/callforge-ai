@@ -96,6 +96,17 @@ export function requestDial(
   if (!tenantId || !callIntentId || !idempotencyKey) {
     throw new TypeError('requestDial requires tenantId, callIntentId and idempotencyKey');
   }
+  // Review F1: the FK only proves the intent exists, not that it belongs to this
+  // tenant — a mismatch would enqueue a dial row under the wrong tenant.
+  const intent = /** @type {any} */ (
+    db.prepare('SELECT tenant_id FROM call_intents WHERE id = ?').get(callIntentId)
+  );
+  if (!intent) {
+    throw new ReferenceError(`call intent ${callIntentId} does not exist`);
+  }
+  if (intent.tenant_id !== tenantId) {
+    throw new RangeError(`call intent ${callIntentId} belongs to tenant ${intent.tenant_id}`);
+  }
   const existing = db
     .prepare('SELECT * FROM dial_requests WHERE tenant_id = ? AND idempotency_key = ?')
     .get(tenantId, idempotencyKey);
@@ -119,8 +130,8 @@ export function requestDial(
     db.prepare(
       `INSERT INTO dial_requests
          (id, tenant_id, call_intent_id, idempotency_key, campaign_kind, cli, purpose,
-          phone, policy_json, contact_json)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          phone, policy_json, contact_json, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).run(
       request.id,
       tenantId,
@@ -132,10 +143,7 @@ export function requestDial(
       request.phone,
       request.policy_json,
       request.contact_json,
-    );
-    db.prepare('UPDATE dial_requests SET created_at = ? WHERE id = ?').run(
       request.created_at,
-      request.id,
     );
     return enqueue(db, {
       tenantId,
