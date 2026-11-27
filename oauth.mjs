@@ -54,7 +54,7 @@ export function generateCodeVerifier() {
   return b64url(randomBytes(32));
 }
 
-function sign(payload) {
+export function sign(payload) {
   const header = b64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
   const body = b64url(JSON.stringify(payload));
   const sig = b64url(createHmac('sha256', tokenSecret()).update(`${header}.${body}`).digest());
@@ -100,7 +100,18 @@ export function validateAccessToken(token, nowSeconds = Math.floor(Date.now() / 
   if (!claims.tenant_id) {
     return { valid: false, error: 'Token has no tenant binding' };
   }
-  const scopes = Array.isArray(claims.scope) ? claims.scope : [];
+  // SEC-003 F2: never trust the `scope` claim alone. Re-derive the grant from
+  // the role and intersect, so a token whose claim set drifted from its role
+  // (older issuer, hand-built token) cannot exceed the role's ceiling.
+  const role = claims.role || null;
+  const roleScopes = role ? ROLES[role] : null;
+  if (!role || !roleScopes) {
+    return { valid: false, error: 'Token has unknown role' };
+  }
+  const ceiling = new Set(roleScopes);
+  const scopes = Array.isArray(claims.scope)
+    ? claims.scope.filter(s => ceiling.has(s))
+    : [...roleScopes];
   return {
     valid: true,
     context: {
