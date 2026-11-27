@@ -491,3 +491,29 @@ Next engineering: policy list/delete routes, then last-write-wins on concurrent 
 
 Resource usage: ~4 min wall, 1 code commit + 1 docs commit, 0 live calls, 0 spend. Remaining
 estimate: list/delete routes ≈ 1 cycle, last-write-wins ≈ 1 cycle, then the track is EXT-gated.
+
+## Cycle 231 — TECH-014 `DELETE /tenant/policy` revert
+
+`9cd4d3a` on `tech-014-delete-policy-route` (draft PR #207, stacked on #206). Cycle 230's named
+next action, first half: a stored override could never be removed, so the gate ran on the last
+accepted tenant policy indefinitely. `deleteTenantPolicy()` re-reads the row with the same
+validator before deleting, so the audit record (`tenant_policy_reverted`) carries the removed
+policy **and** any violations — a constraint-legal corrupt row (inverted 18–7 window) is reported
+with `reverted_policy: null` rather than silently dropped. Admin scope, tenant from the token
+only, idempotent no-op (200 `reverted:false`, no audit entry) when there is no row.
+
+- Gates: 8 new tests (18 in file), **242/242**, tsc 0, eslint 0, prettier clean; CI `verify` PASS
+  on `9cd4d3a` (run 46012046286).
+- Read-only probe in detached worktrees at `23fb1af` (control) and `9cd4d3a`: the control answers
+  the revert with 400 `Invalid tenant policy` and leaves the 07:00 override; the fix answers 200
+  and the tenant is back on the statutory 09:00. Verdict **ACCEPT**, findings F1 (no history table
+  — audit-only trail, by design), F2 (`reverted_policy` can be null), F3 (revert races a concurrent
+  PUT, last-write-wins). `management/TECH014_DELETE_REVIEW_RECORD.md`. Cycle-run probe, not a
+  delegated auditor, labelled as such.
+- No merge, deploy, live call or spend. Telegram: no send — the cycle-229 digest at 13:07 UTC is
+  59 min old, under the 6-hour window, and there was no acceptance, critical finding, new blocker
+  or failed gate.
+- Resource usage: ~9 min wall, two code/docs commits + one review commit, two detached worktrees
+  (removed), no background processes. Remaining estimate: history route ≈ 1 cycle (needs migration
+  0011 + revisions table), last-write-wins ≈ 1 cycle, then the track is EXT-gated. Assumption: D-008
+  holds, so internal hardening remains the right use of cycles until the carrier and counsel land.
